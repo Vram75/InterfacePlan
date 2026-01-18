@@ -238,6 +238,32 @@ export function SvgOverlay(props: {
   );
 
   const migratedRef = useRef<Set<string>>(new Set());
+  const latestDraftRef = useRef<Point[]>(draft);
+  const latestModeRef = useRef<Mode>(mode);
+  const latestAdminModeRef = useRef<boolean>(props.adminMode);
+
+  useEffect(() => {
+    latestDraftRef.current = draft;
+  }, [draft]);
+
+  useEffect(() => {
+    latestModeRef.current = mode;
+  }, [mode]);
+
+  useEffect(() => {
+    latestAdminModeRef.current = props.adminMode;
+  }, [props.adminMode]);
+
+  useEffect(() => {
+    return () => {
+      const latestDraft = latestDraftRef.current;
+      const latestMode = latestModeRef.current;
+      if (!latestAdminModeRef.current) return;
+      if (latestMode.kind !== "draw") return;
+      if (latestDraft.length < 3) return;
+      props.onPolygonCommit(latestMode.roomId, latestDraft);
+    };
+  }, [props.onPolygonCommit]);
 
   const [snapEnabled, _setSnapEnabled] = useState<boolean>(() => readSnapFromStorage());
   const setSnapEnabled = (updater: boolean | ((v: boolean) => boolean)) => {
