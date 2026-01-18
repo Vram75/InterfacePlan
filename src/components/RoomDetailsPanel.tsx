@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import type { Room } from "../types";
+import type { Room, ServiceColor } from "../types";
 
 const API_BASE = "http://localhost:8000";
 
@@ -8,7 +8,6 @@ function resolvePhotoUrl(photoUrl: string | null | undefined): string | null {
   if (!photoUrl) return null;
   const s = String(photoUrl).trim();
   if (!s) return null;
-
   if (/^https?:\/\//i.test(s)) return s;
   const path = s.startsWith("/") ? s : `/${s}`;
   return `${API_BASE}${path}`;
@@ -19,7 +18,6 @@ type AspectMode = "free" | "1:1" | "4:3";
 function clamp(n: number, a: number, b: number) {
   return Math.min(b, Math.max(a, n));
 }
-
 function round(n: number, d = 2) {
   const f = Math.pow(10, d);
   return Math.round(n * f) / f;
@@ -49,17 +47,14 @@ function canvasToBlob(canvas: HTMLCanvasElement, type = "image/jpeg", quality = 
   });
 }
 
-function CropModal(props: {
-  file: File;
-  onCancel: () => void;
-  onConfirm: (croppedFile: File) => void;
-}) {
+function CropModal(props: { file: File; onCancel: () => void; onConfirm: (croppedFile: File) => void }) {
   const [dataUrl, setDataUrl] = useState<string | null>(null);
   const [img, setImg] = useState<HTMLImageElement | null>(null);
 
   const [aspect, setAspect] = useState<AspectMode>("1:1");
   const [zoom, setZoom] = useState(1);
   const [pos, setPos] = useState({ x: 0, y: 0 }); // px within stage
+
   const [dragging, setDragging] = useState(false);
   const dragRef = useRef<{ startX: number; startY: number; origX: number; origY: number } | null>(null);
 
@@ -71,15 +66,18 @@ function CropModal(props: {
       const url = await fileToDataUrl(props.file);
       if (!alive) return;
       setDataUrl(url);
+
       const image = await loadImage(url);
       if (!alive) return;
       setImg(image);
+
       setZoom(1);
       setPos({ x: 0, y: 0 });
     })().catch(() => {
       setDataUrl(null);
       setImg(null);
     });
+
     return () => {
       alive = false;
     };
@@ -141,12 +139,12 @@ function CropModal(props: {
 
   async function confirmCrop() {
     if (!img) return;
-
     const stage = stageRef.current;
     if (!stage) return;
-    const s = stage.getBoundingClientRect();
 
+    const s = stage.getBoundingClientRect();
     const { w: cropW, h: cropH } = cropBoxSize(s.width, s.height);
+
     const cropLeft = (s.width - cropW) / 2;
     const cropTop = (s.height - cropH) / 2;
 
@@ -170,6 +168,7 @@ function CropModal(props: {
     const canvas = document.createElement("canvas");
     canvas.width = outW;
     canvas.height = outH;
+
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
@@ -177,7 +176,6 @@ function CropModal(props: {
 
     const blob = await canvasToBlob(canvas, "image/jpeg", 0.9);
     const cropped = new File([blob], `photo_cropped_${Date.now()}.jpg`, { type: "image/jpeg" });
-
     props.onConfirm(cropped);
   }
 
@@ -206,42 +204,33 @@ function CropModal(props: {
 
   const modal = (
     <div
+      onMouseDown={() => props.onCancel()}
       style={{
         position: "fixed",
         inset: 0,
-        background: "rgba(0,0,0,0.55)",
-        zIndex: 99999,
+        zIndex: 9999,
+        background: "rgba(0,0,0,0.45)",
         display: "grid",
         placeItems: "center",
-        padding: 20,
+        padding: 18,
       }}
-      onMouseDown={() => props.onCancel()}
     >
       <div
+        onMouseDown={(e) => e.stopPropagation()}
         style={{
-          width: "min(860px, 96vw)",
-          background: "rgba(255,255,255,0.96)",
+          width: "min(920px, 96vw)",
           borderRadius: 18,
+          background: "white",
           border: "1px solid rgba(0,0,0,0.12)",
-          boxShadow: "0 24px 60px rgba(0,0,0,0.22)",
+          boxShadow: "0 24px 60px rgba(0,0,0,0.25)",
           overflow: "hidden",
         }}
-        onMouseDown={(e) => e.stopPropagation()}
       >
-        {/* Header */}
-        <div
-          style={{
-            padding: "12px 14px",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-            borderBottom: "1px solid rgba(0,0,0,0.10)",
-          }}
-        >
+        <div style={{ padding: 14, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
           <div style={{ fontWeight: 900 }}>Recadrer la photo</div>
 
-          <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
-            <label style={{ fontSize: 12, opacity: 0.8, fontWeight: 700 }}>Ratio</label>
+          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            <span style={{ fontWeight: 700, opacity: 0.7 }}>Ratio</span>
             <select
               value={aspect}
               onChange={(e) => setAspect(e.target.value as AspectMode)}
@@ -261,27 +250,25 @@ function CropModal(props: {
             <button
               onClick={props.onCancel}
               style={{
-                padding: "10px 12px",
-                borderRadius: 14,
+                padding: "8px 12px",
+                borderRadius: 12,
                 border: "1px solid rgba(0,0,0,0.14)",
                 background: "white",
                 fontWeight: 800,
-                cursor: "pointer",
               }}
             >
               Annuler
             </button>
+
             <button
               onClick={confirmCrop}
-              disabled={!img}
               style={{
-                padding: "10px 12px",
-                borderRadius: 14,
+                padding: "8px 12px",
+                borderRadius: 12,
                 border: "1px solid rgba(0,0,0,0.14)",
-                background: !img ? "rgba(0,0,0,0.08)" : "rgba(17,24,39,0.92)",
-                color: !img ? "rgba(0,0,0,0.45)" : "white",
+                background: "black",
+                color: "white",
                 fontWeight: 900,
-                cursor: !img ? "not-allowed" : "pointer",
               }}
             >
               Utiliser ce recadrage
@@ -289,28 +276,21 @@ function CropModal(props: {
           </div>
         </div>
 
-        {/* Body */}
-        <div style={{ padding: 14, display: "grid", gridTemplateColumns: "1fr", gap: 12 }}>
-          <div style={{ display: "flex", justifyContent: "space-between", gap: 14, alignItems: "center" }}>
-            <div style={{ fontSize: 12, opacity: 0.75 }}>
-              Déplacer : <b>drag</b> • Zoom : <b>molette</b> ou slider
-            </div>
+        <div style={{ padding: 14, display: "grid", gap: 12 }}>
+          <div style={{ fontSize: 12, opacity: 0.7 }}>Déplacer : drag • Zoom : molette ou slider</div>
 
-            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-              <span style={{ fontSize: 12, opacity: 0.75, fontWeight: 800 }}>Zoom</span>
-              <input
-                type="range"
-                min={0.4}
-                max={4}
-                step={0.02}
-                value={zoom}
-                onChange={(e) => setZoom(Number(e.target.value))}
-                style={{ width: 220 }}
-              />
-              <span style={{ fontSize: 12, opacity: 0.75, width: 52, textAlign: "right" }}>
-                x{zoom.toFixed(2)}
-              </span>
-            </div>
+          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            <span style={{ fontWeight: 800 }}>Zoom</span>
+            <input
+              type="range"
+              min={0.4}
+              max={4}
+              step={0.01}
+              value={zoom}
+              onChange={(e) => setZoom(Number(e.target.value))}
+              style={{ width: 220 }}
+            />
+            <span style={{ fontFamily: "monospace", fontWeight: 800 }}>x{zoom.toFixed(2)}</span>
           </div>
 
           <div
@@ -325,21 +305,20 @@ function CropModal(props: {
             {dataUrl && (
               <img
                 src={dataUrl}
-                alt="to crop"
+                alt=""
                 draggable={false}
                 style={{
                   position: "absolute",
                   left: pos.x,
                   top: pos.y,
-                  width: img ? img.width * zoom : "auto",
-                  height: img ? img.height * zoom : "auto",
+                  transform: `scale(${zoom})`,
+                  transformOrigin: "top left",
                   userSelect: "none",
                   pointerEvents: "none",
                 }}
               />
             )}
 
-            {/* Crop box */}
             <div
               style={{
                 position: "absolute",
@@ -348,24 +327,9 @@ function CropModal(props: {
                 width: cropDims.w,
                 height: cropDims.h,
                 transform: "translate(-50%, -50%)",
-                borderRadius: 14,
                 boxShadow: "0 0 0 9999px rgba(0,0,0,0.35)",
-                outline: "2px solid rgba(255,255,255,0.9)",
-                pointerEvents: "none",
-              }}
-            />
-
-            {/* Crosshair */}
-            <div
-              style={{
-                position: "absolute",
-                left: "50%",
-                top: "50%",
-                width: 22,
-                height: 22,
-                transform: "translate(-50%, -50%)",
-                border: "2px solid rgba(255,255,255,0.9)",
-                borderRadius: 999,
+                borderRadius: 14,
+                outline: "2px solid rgba(255,255,255,0.95)",
                 pointerEvents: "none",
               }}
             />
@@ -380,20 +344,20 @@ function CropModal(props: {
 
 export function RoomDetailsPanel(props: {
   room: Room | null;
+  services: ServiceColor[];
   onSave: (room: Room) => Promise<void>;
   onUploadPhoto: (roomId: string, file: File) => Promise<void>;
 }) {
   const [draft, setDraft] = useState<Room | null>(null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
   const [cropFile, setCropFile] = useState<File | null>(null);
 
   useEffect(() => {
     setDraft(props.room ? { ...props.room } : null);
     setError(null);
   }, [props.room]);
-
-  const hasRoom = useMemo(() => !!props.room && !!draft, [props.room, draft]);
 
   async function save() {
     if (!draft) return;
@@ -410,9 +374,9 @@ export function RoomDetailsPanel(props: {
 
   if (!props.room || !draft) {
     return (
-      <div style={{ padding: 12 }}>
-        <div style={{ fontWeight: 700, marginBottom: 8 }}>Détails</div>
-        <div>Sélectionne une pièce.</div>
+      <div>
+        <div style={{ fontWeight: 900, marginBottom: 6 }}>Détails</div>
+        <div style={{ opacity: 0.7 }}>Sélectionne une pièce.</div>
       </div>
     );
   }
@@ -423,101 +387,194 @@ export function RoomDetailsPanel(props: {
 
   const imgSrc = resolvePhotoUrl(draft.photoUrl);
 
+  const rawService = String(draft.service ?? "").trim();
+  const match = rawService
+    ? props.services.find((s) => s.service.trim() === rawService) ?? null
+    : null;
+
+  // ✅ Sécurité UX :
+  // - si le service stocké n’existe pas dans la palette, on force le select à "Aucun"
+  // - et on affiche "non attribué"
+  const serviceIsRecognized = !rawService || !!match;
+  const selectValue = serviceIsRecognized ? rawService : "";
+
+  const serviceColor = match?.color ?? null;
+
   return (
-    <div style={{ padding: 12, display: "flex", flexDirection: "column", gap: 12 }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-        <div style={{ fontWeight: 800, fontSize: 18 }}>{draft.numero}</div>
-        <button disabled={!hasRoom || saving} onClick={save}>
+    <div style={{ display: "grid", gap: 12 }}>
+      <div style={{ display: "flex", justifyContent: "space-between", gap: 12, alignItems: "center" }}>
+        <div style={{ fontWeight: 900, fontSize: 16 }}>{draft.numero}</div>
+
+        <button className="btn" onClick={save} disabled={saving}>
           {saving ? "Sauvegarde..." : "Enregistrer"}
         </button>
       </div>
 
       {error && (
-        <div style={{ background: "#ffe5e5", padding: 8, border: "1px solid #ffb3b3" }}>
+        <div
+          style={{
+            padding: 10,
+            borderRadius: 12,
+            border: "1px solid rgba(0,0,0,0.12)",
+            background: "rgba(255,0,0,0.06)",
+          }}
+        >
           {error}
         </div>
       )}
 
-      <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
-        <div
-          style={{
-            width: 140,
-            height: 140,
-            borderRadius: 12,
-            border: "1px solid rgba(0,0,0,0.15)",
-            background:
-              "linear-gradient(45deg, rgba(0,0,0,0.04) 25%, transparent 25%, transparent 50%, rgba(0,0,0,0.04) 50%, rgba(0,0,0,0.04) 75%, transparent 75%, transparent)",
-            backgroundSize: "16px 16px",
-            display: "grid",
-            placeItems: "center",
-            overflow: "hidden",
-          }}
-        >
-          {imgSrc ? (
-            <img src={imgSrc} alt="photo" style={{ width: "100%", height: "100%", objectFit: "contain" }} />
-          ) : (
-            <span style={{ opacity: 0.6, fontSize: 12 }}>Pas de photo</span>
-          )}
-        </div>
+      <div style={{ display: "grid", gap: 10 }}>
+        <div style={{ fontWeight: 800, opacity: 0.85 }}>Photo</div>
 
-        <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-          <input
-            type="file"
-            accept="image/png,image/jpeg,image/webp"
-            onChange={(e) => {
-              const f = e.target.files?.[0];
-              if (!f) return;
-              setError(null);
-              setCropFile(f);
-              e.currentTarget.value = "";
+        <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
+          <div
+            style={{
+              width: 96,
+              height: 96,
+              borderRadius: 14,
+              border: "1px solid rgba(0,0,0,0.12)",
+              overflow: "hidden",
+              background: "rgba(0,0,0,0.04)",
+              display: "grid",
+              placeItems: "center",
             }}
-          />
-          <div style={{ fontSize: 12, opacity: 0.7 }}>Recadrage avant upload (modale)</div>
+          >
+            {imgSrc ? (
+              <img src={imgSrc} alt="" style={{ width: "100%", height: "100%", objectFit: "contain" }} />
+            ) : (
+              <span style={{ opacity: 0.6, fontSize: 12 }}>Pas de photo</span>
+            )}
+          </div>
+
+          <div style={{ display: "grid", gap: 8 }}>
+            <input
+              type="file"
+              accept="image/*"
+              onChange={(e) => {
+                const f = e.target.files?.[0];
+                if (!f) return;
+                setError(null);
+                setCropFile(f);
+                e.currentTarget.value = "";
+              }}
+            />
+            <div style={{ opacity: 0.65, fontSize: 12 }}>Recadrage avant upload (modale)</div>
+          </div>
         </div>
       </div>
 
-      <hr />
+      <hr style={{ border: "none", borderTop: "1px solid rgba(0,0,0,0.08)" }} />
 
-      <label style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-        Niveau
-        <input value={draft.niveau ?? ""} onChange={(e) => set("niveau", e.target.value)} />
-      </label>
+      <div style={{ display: "grid", gap: 10 }}>
+        <div style={{ fontWeight: 800, opacity: 0.85 }}>Localisation</div>
 
-      <label style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-        Aile
-        <input value={draft.aile ?? ""} onChange={(e) => set("aile", e.target.value)} />
-      </label>
+        <div className="field">
+          <label className="label">Niveau</label>
+          <input className="input" value={draft.niveau ?? ""} onChange={(e) => set("niveau", e.target.value)} />
+        </div>
 
-      <label style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-        Désignation
-        <input value={draft.designation ?? ""} onChange={(e) => set("designation", e.target.value)} />
-      </label>
+        <div className="field">
+          <label className="label">Aile</label>
+          <input className="input" value={draft.aile ?? ""} onChange={(e) => set("aile", e.target.value)} />
+        </div>
 
-      <label style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-        Service
-        <input value={draft.service ?? ""} onChange={(e) => set("service", e.target.value)} />
-      </label>
+        <div className="field">
+          <label className="label">Désignation</label>
+          <input
+            className="input"
+            value={draft.designation ?? ""}
+            onChange={(e) => set("designation", e.target.value)}
+          />
+        </div>
 
-      <label style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-        Surface
-        <input
-          type="number"
-          value={draft.surface ?? ""}
-          onChange={(e) => set("surface", e.target.value === "" ? null : Number(e.target.value))}
-        />
-      </label>
+        {/* ✅ SERVICE = select + sécurité "non attribué" */}
+        <div className="field">
+          <label className="label" style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            <span>Service</span>
+            {serviceColor && (
+              <span
+                title={serviceColor}
+                style={{
+                  width: 14,
+                  height: 14,
+                  borderRadius: 4,
+                  background: serviceColor,
+                  border: "1px solid rgba(0,0,0,0.18)",
+                  display: "inline-block",
+                }}
+              />
+            )}
+          </label>
 
-      <hr />
+          <select
+            className="select"
+            value={selectValue}
+            onChange={(e) => set("service", e.target.value || null)}
+          >
+            <option value="">— Aucun —</option>
+            {props.services.map((s) => (
+              <option key={s.service} value={s.service}>
+                {s.service}
+              </option>
+            ))}
+          </select>
 
-      <label style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-        Nom de la personne
-        <input value={draft.personneNom ?? ""} onChange={(e) => set("personneNom", e.target.value)} />
-      </label>
+          {!serviceIsRecognized && (
+            <div
+              className="hint"
+              style={{
+                marginTop: 6,
+                padding: "8px 10px",
+                borderRadius: 12,
+                border: "1px solid rgba(0,0,0,0.12)",
+                background: "rgba(0,0,0,0.03)",
+              }}
+            >
+              Service <b>non attribué</b> (valeur actuelle non trouvée dans la palette).
+              <br />
+              Choisis un service puis clique sur <b>Enregistrer</b>.
+            </div>
+          )}
 
-      <label style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-        Téléphone
-        <input value={draft.personneTel ?? ""} onChange={(e) => set("personneTel", e.target.value)} />
-      </label>
+          {serviceIsRecognized && (
+            <div className="hint">La couleur vient de Paramètres. Le service est sauvegardé via “Enregistrer”.</div>
+          )}
+        </div>
+
+        <div className="field">
+          <label className="label">Surface</label>
+          <input
+            className="input"
+            type="number"
+            value={draft.surface ?? ""}
+            onChange={(e) => set("surface", e.target.value === "" ? null : Number(e.target.value))}
+          />
+        </div>
+      </div>
+
+      <hr style={{ border: "none", borderTop: "1px solid rgba(0,0,0,0.08)" }} />
+
+      <div style={{ display: "grid", gap: 10 }}>
+        <div style={{ fontWeight: 800, opacity: 0.85 }}>Contact</div>
+
+        <div className="field">
+          <label className="label">Nom de la personne</label>
+          <input
+            className="input"
+            value={draft.personneNom ?? ""}
+            onChange={(e) => set("personneNom", e.target.value)}
+          />
+        </div>
+
+        <div className="field">
+          <label className="label">Téléphone</label>
+          <input
+            className="input"
+            value={draft.personneTel ?? ""}
+            onChange={(e) => set("personneTel", e.target.value)}
+          />
+        </div>
+      </div>
 
       {cropFile && (
         <CropModal
