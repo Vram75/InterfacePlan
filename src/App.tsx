@@ -4,11 +4,13 @@ import "./App.css";
 import { PdfCanvas } from "./components/PdfCanvas";
 import { SvgOverlay } from "./components/SvgOverlay";
 import type { OverlayRequest } from "./components/SvgOverlay";
+
 import { RoomListPanel } from "./components/RoomListPanel";
 import { RoomDetailsPanel } from "./components/RoomDetailsPanel";
 import { FloatingPanel, type FloatingRect } from "./components/FloatingPanel";
+
 import { api } from "./api";
-import type { Room, Point } from "./types";
+import type { Point, Room, ServiceColor } from "./types";
 
 const SNAP_STORAGE_KEY = "iface.snapEnabled";
 const SNAP_TOGGLE_EVENT = "iface:snap-toggle";
@@ -18,8 +20,10 @@ const GRID_SIZE_KEY = "iface.gridSizePx";
 
 const LAYOUT_KEY = "iface.layout.v1";
 
-type PageView = "dashboard" | "plans" | "settings";
+// ✅ Services (palette)
+const SERVICE_COLORS_KEY = "iface.serviceColors.v1";
 
+type PageView = "dashboard" | "plans" | "settings";
 type PanelKey = "controls" | "rooms" | "details";
 type PanelMode = "dock" | "float";
 
@@ -52,7 +56,6 @@ function readLayout(): LayoutState {
   const parsed = safeParse<LayoutState>(localStorage.getItem(LAYOUT_KEY));
   if (!parsed) return DEFAULT_LAYOUT;
 
-  // soft merge (évite de casser si des champs manquent)
   return {
     mode: { ...DEFAULT_LAYOUT.mode, ...(parsed.mode ?? {}) },
     collapsed: { ...DEFAULT_LAYOUT.collapsed, ...(parsed.collapsed ?? {}) },
@@ -85,7 +88,12 @@ function clampScale(next: number) {
 function isTypingTarget(target: unknown): boolean {
   if (!(target instanceof HTMLElement)) return false;
   const tag = target.tagName;
-  return tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT" || target.getAttribute("contenteditable") === "true";
+  return (
+    tag === "INPUT" ||
+    tag === "TEXTAREA" ||
+    tag === "SELECT" ||
+    target.getAttribute("contenteditable") === "true"
+  );
 }
 
 function readGridEnabled(): boolean {
@@ -98,6 +106,7 @@ function readGridEnabled(): boolean {
     return false;
   }
 }
+
 function writeGridEnabled(v: boolean) {
   try {
     localStorage.setItem(GRID_ENABLED_KEY, v ? "1" : "0");
@@ -114,6 +123,7 @@ function readGridSizePx(): number {
     return 20;
   }
 }
+
 function writeGridSizePx(v: number) {
   try {
     const n = Math.min(200, Math.max(4, Math.round(v)));
@@ -141,6 +151,65 @@ function roomHasPolygonForPage(r: Room | null, pageIndex: number): boolean {
   return roomGetPageIndex(r) === pageIndex;
 }
 
+// --------------------
+// Services helpers
+// --------------------
+function readServiceColors(): ServiceColor[] {
+  const parsed = safeParse<ServiceColor[]>(localStorage.getItem(SERVICE_COLORS_KEY));
+  if (!parsed || !Array.isArray(parsed)) return [];
+  return parsed
+    .filter((x) => x && typeof x.service === "string" && typeof x.color === "string")
+    .map((x) => ({ service: x.service.trim(), color: x.color.trim() }))
+    .filter((x) => x.service.length > 0);
+}
+
+function writeServiceColors(v: ServiceColor[]) {
+  try {
+    localStorage.setItem(SERVICE_COLORS_KEY, JSON.stringify(v));
+  } catch {}
+}
+
+function normalizeServiceName(s: string) {
+  return s.trim();
+}
+
+function hashStringToHue(s: string): number {
+  // simple deterministic hash → hue [0..359]
+  let h = 0;
+  for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) >>> 0;
+  return h % 360;
+}
+
+function hslToHex(h: number, s: number, l: number) {
+  // h [0..360), s/l [0..100]
+  const S = s / 100;
+  const L = l / 100;
+  const C = (1 - Math.abs(2 * L - 1)) * S;
+  const X = C * (1 - Math.abs(((h / 60) % 2) - 1));
+  const m = L - C / 2;
+  let r = 0,
+    g = 0,
+    b = 0;
+  if (0 <= h && h < 60) [r, g, b] = [C, X, 0];
+  else if (60 <= h && h < 120) [r, g, b] = [X, C, 0];
+  else if (120 <= h && h < 180) [r, g, b] = [0, C, X];
+  else if (180 <= h && h < 240) [r, g, b] = [0, X, C];
+  else if (240 <= h && h < 300) [r, g, b] = [X, 0, C];
+  else [r, g, b] = [C, 0, X];
+
+  const toHex = (v: number) => {
+    const n = Math.round((v + m) * 255);
+    return n.toString(16).padStart(2, "0");
+  };
+  return `#${toHex(r)}${toHex(g)}${toHex(b)}`;
+}
+
+function defaultColorForService(service: string): string {
+  const hue = hashStringToHue(service);
+  // sobre, lisible
+  return hslToHex(hue, 55, 72);
+}
+
 export default function App() {
   const [pageView, setPageView] = useState<PageView>("plans");
 
@@ -159,25 +228,51 @@ export default function App() {
   const [gridSizePx, setGridSizePx] = useState<number>(() => readGridSizePx());
 
   // ✅ Multi-pages
-  const [currentPage, setCurrentPage] = useState(0); // 0-based
+  const [currentPage, setCurrentPage] = useState(0);
   const [pageCount, setPageCount] = useState(1);
 
-  // ✅ Requests overlay (delete, etc.)
+  // ✅ Overlay requests
   const [overlayRequest, setOverlayRequest] = useState<OverlayRequest>({ kind: "none" });
 
   // ✅ Dock/Float layout
   const [layout, setLayout] = useState<LayoutState>(() => readLayout());
   useEffect(() => writeLayout(layout), [layout]);
 
+  // ✅ Services palette
+  const [serviceColors, setServiceColors] = useState<ServiceColor[]>(() => readServiceColors());
+  useEffect(() => writeServiceColors(serviceColors), [serviceColors]);
+
   useEffect(() => {
     api.getRooms().then((r) => {
       setRooms(r);
       if (r.length && !selectedRoomId) setSelectedRoomId(r[0].id);
+
+      // Seed palette from existing rooms (if any service already in data)
+      const servicesInRooms = new Set(
+        r.map((x) => (x.service ?? "").trim()).filter((s) => s.length > 0)
+      );
+
+      if (servicesInRooms.size) {
+        setServiceColors((prev) => {
+          const map = new Map(prev.map((p) => [p.service.trim(), p.color]));
+          let changed = false;
+          for (const s of servicesInRooms) {
+            const key = normalizeServiceName(s);
+            if (!map.has(key)) {
+              map.set(key, defaultColorForService(key));
+              changed = true;
+            }
+          }
+          if (!changed) return prev;
+          return Array.from(map.entries())
+            .map(([service, color]) => ({ service, color }))
+            .sort((a, b) => a.service.localeCompare(b.service, "fr"));
+        });
+      }
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // clamp currentPage when PDF changes
   useEffect(() => {
     setCurrentPage((p) => Math.max(0, Math.min(p, Math.max(1, pageCount) - 1)));
   }, [pageCount]);
@@ -188,7 +283,7 @@ export default function App() {
   );
 
   async function commitPolygon(roomId: string, pageIndex: number, poly: Point[]) {
-    // ✅ IMPORTANT: page est obligatoire côté backend
+    // IMPORTANT: page obligatoire côté backend
     const saved = await api.updatePolygon(roomId, { page: pageIndex, polygon: poly });
     setRooms((prev) => prev.map((r) => (r.id === saved.id ? saved : r)));
   }
@@ -196,6 +291,18 @@ export default function App() {
   async function handleSaveRoom(room: Room) {
     const saved = await api.updateRoom(room);
     setRooms((prev) => prev.map((r) => (r.id === saved.id ? saved : r)));
+
+    // si service modifié, s'assurer qu'il existe dans la palette
+    const svc = (saved.service ?? "").trim();
+    if (svc) {
+      setServiceColors((prev) => {
+        const key = normalizeServiceName(svc);
+        if (prev.some((x) => x.service.trim() === key)) return prev;
+        return [...prev, { service: key, color: defaultColorForService(key) }].sort((a, b) =>
+          a.service.localeCompare(b.service, "fr")
+        );
+      });
+    }
   }
 
   async function handleUploadPhoto(roomId: string, file: File) {
@@ -270,7 +377,7 @@ export default function App() {
   }
 
   // -----------------------
-  // Panels content (single source of truth)
+  // Panels content
   // -----------------------
 
   const ControlsPanel = (
@@ -409,7 +516,12 @@ export default function App() {
         </div>
       </div>
       <div className="card-content card-scroll">
-        <RoomDetailsPanel room={selectedRoom} onSave={handleSaveRoom} onUploadPhoto={handleUploadPhoto} />
+        <RoomDetailsPanel
+          room={selectedRoom}
+          services={serviceColors}
+          onSave={handleSaveRoom}
+          onUploadPhoto={handleUploadPhoto}
+        />
       </div>
     </div>
   );
@@ -500,6 +612,61 @@ export default function App() {
     );
   }
 
+  // -----------------------
+  // Settings UI: services palette
+  // -----------------------
+  const [newServiceName, setNewServiceName] = useState("");
+  const [newServiceColor, setNewServiceColor] = useState("#b9c7d6");
+
+  function addService() {
+    const name = normalizeServiceName(newServiceName);
+    if (!name) return;
+
+    setServiceColors((prev) => {
+      if (prev.some((x) => x.service.trim() === name)) return prev;
+      return [...prev, { service: name, color: newServiceColor }].sort((a, b) =>
+        a.service.localeCompare(b.service, "fr")
+      );
+    });
+
+    setNewServiceName("");
+  }
+
+  function updateServiceAt(idx: number, patch: Partial<ServiceColor>) {
+    setServiceColors((prev) => {
+      const out = prev.slice();
+      const cur = out[idx];
+      if (!cur) return prev;
+
+      const next: ServiceColor = {
+        service: patch.service != null ? normalizeServiceName(patch.service) : cur.service,
+        color: patch.color != null ? patch.color : cur.color,
+      };
+
+      out[idx] = next;
+      // tri + uniq
+      const map = new Map<string, string>();
+      for (const it of out) {
+        const k = normalizeServiceName(it.service);
+        if (!k) continue;
+        map.set(k, it.color);
+      }
+      return Array.from(map.entries())
+        .map(([service, color]) => ({ service, color }))
+        .sort((a, b) => a.service.localeCompare(b.service, "fr"));
+    });
+  }
+
+  function removeService(name: string) {
+    const key = normalizeServiceName(name);
+    if (!key) return;
+
+    setServiceColors((prev) => prev.filter((x) => x.service.trim() !== key));
+
+    // option: ne pas écraser les rooms (on laisse la valeur backend)
+    // si tu veux une "cleanup", on pourra faire un bouton dédié plus tard
+  }
+
   return (
     <div className="dash-root">
       {/* TOPBAR */}
@@ -585,9 +752,7 @@ export default function App() {
                 </div>
               </div>
               <div className="card-content">
-                <div className="hint">
-                  L’éditeur multi-pages est dans <b>Plans</b>.
-                </div>
+                <div className="hint">L’éditeur multi-pages est dans <b>Plans</b>.</div>
               </div>
             </div>
           </main>
@@ -599,11 +764,92 @@ export default function App() {
               <div className="card-header">
                 <div>
                   <div className="card-title">Paramètres</div>
-                  <div className="card-subtitle">Préférences</div>
+                  <div className="card-subtitle">Services & couleurs</div>
                 </div>
               </div>
+
               <div className="card-content">
-                <div className="hint">Écran Paramètres (à compléter).</div>
+                <div className="field">
+                  <label className="label">Ajouter un service</label>
+                  <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
+                    <input
+                      className="input"
+                      placeholder="Ex: IT, RH, Direction..."
+                      value={newServiceName}
+                      onChange={(e) => setNewServiceName(e.target.value)}
+                    />
+                    <input
+                      type="color"
+                      value={newServiceColor}
+                      onChange={(e) => setNewServiceColor(e.target.value)}
+                      title="Couleur"
+                      style={{ width: 46, height: 40, border: "none", background: "transparent" }}
+                    />
+                    <button className="btn" onClick={addService} disabled={!newServiceName.trim()}>
+                      Ajouter
+                    </button>
+                  </div>
+                  <div className="hint">
+                    La palette est stockée en local (localStorage). Les pièces gardent leur “service” côté backend.
+                  </div>
+                </div>
+
+                <div style={{ height: 14 }} />
+
+                <div className="card" style={{ boxShadow: "none", border: "1px solid rgba(0,0,0,0.08)" }}>
+                  <div className="card-header">
+                    <div>
+                      <div className="card-title">Palette</div>
+                      <div className="card-subtitle">{serviceColors.length} service(s)</div>
+                    </div>
+                  </div>
+
+                  <div className="card-content">
+                    {serviceColors.length === 0 ? (
+                      <div className="hint">Aucun service. Ajoute-en un ci-dessus.</div>
+                    ) : (
+                      <div style={{ display: "grid", gap: 10 }}>
+                        {serviceColors.map((sc, idx) => (
+                          <div
+                            key={sc.service}
+                            style={{
+                              display: "grid",
+                              gridTemplateColumns: "26px 1fr 70px 90px",
+                              gap: 10,
+                              alignItems: "center",
+                            }}
+                          >
+                            <div
+                              title={sc.color}
+                              style={{
+                                width: 20,
+                                height: 20,
+                                borderRadius: 6,
+                                background: sc.color,
+                                border: "1px solid rgba(0,0,0,0.12)",
+                              }}
+                            />
+                            <input
+                              className="input"
+                              value={sc.service}
+                              onChange={(e) => updateServiceAt(idx, { service: e.target.value })}
+                            />
+                            <input
+                              type="color"
+                              value={sc.color}
+                              onChange={(e) => updateServiceAt(idx, { color: e.target.value })}
+                              title="Couleur"
+                              style={{ width: 62, height: 40, border: "none", background: "transparent" }}
+                            />
+                            <button className="btn" onClick={() => removeService(sc.service)} title="Supprimer">
+                              Supprimer
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
               </div>
             </div>
           </main>
@@ -659,7 +905,7 @@ export default function App() {
               <div className="card-content plan-content">
                 <div className="plan-viewport">
                   <div className="plan-stage">
-                    {/* ✅ IMPORTANT: plan-stage a du padding. plan-layer NON. */}
+                    {/* IMPORTANT: plan-stage peut avoir du padding, plan-layer NON */}
                     <div className="plan-layer">
                       <PdfCanvas
                         pdfUrl="/Pour CHATGPT.pdf"
@@ -674,7 +920,7 @@ export default function App() {
                         height={size.h}
                         page={currentPage}
                         rooms={rooms}
-                        services={[]}
+                        services={serviceColors} // ✅ réactivé
                         selectedRoomId={selectedRoomId}
                         onSelectRoom={setSelectedRoomId}
                         adminMode={adminMode}
@@ -692,13 +938,18 @@ export default function App() {
               </div>
             </div>
 
-            {/* floating panels */}
             {renderFloatingPanels()}
           </main>
         )}
 
-        {/* RIGHT (dock panels only on Plans; sinon vide) */}
-        {pageView === "plans" ? renderDockRight() : <aside className="dash-right"><div className="right-sticky" /></aside>}
+        {/* RIGHT */}
+        {pageView === "plans" ? (
+          renderDockRight()
+        ) : (
+          <aside className="dash-right">
+            <div className="right-sticky" />
+          </aside>
+        )}
       </div>
     </div>
   );
