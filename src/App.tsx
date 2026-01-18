@@ -19,8 +19,6 @@ const GRID_ENABLED_KEY = "iface.gridEnabled";
 const GRID_SIZE_KEY = "iface.gridSizePx";
 
 const LAYOUT_KEY = "iface.layout.v1";
-
-// ✅ Services (palette)
 const SERVICE_COLORS_KEY = "iface.serviceColors.v1";
 
 type PageView = "dashboard" | "plans" | "settings";
@@ -131,24 +129,24 @@ function writeGridSizePx(v: number) {
   } catch {}
 }
 
-function roomGetPageIndex(r: Room | null): number {
-  if (!r) return 0;
-  const p: any = (r as any).page;
-  return typeof p === "number" && Number.isFinite(p) ? p : 0;
-}
+/**
+ * ✅ Règle métier : 1 pièce = 1 polygone par page.
+ * Cette fonction détecte s'il existe déjà un polygone pour la page courante.
+ * Compatible avec plusieurs formes backend : polygon[] ou { polygon: [] } + room.page
+ */
+function roomHasPolygonOnPage(room: any, pageIndex: number): boolean {
+  if (!room) return false;
 
-function roomHasPolygon(r: Room | null): boolean {
-  if (!r) return false;
-  const p: any = (r as any).polygon;
+  const page = typeof room.page === "number" && Number.isFinite(room.page) ? room.page : 0;
+  if (page !== pageIndex) return false;
+
+  const p = room.polygon;
   if (!p) return false;
+
   if (Array.isArray(p)) return p.length >= 3;
   if (Array.isArray(p?.polygon)) return p.polygon.length >= 3;
-  return false;
-}
 
-function roomHasPolygonForPage(r: Room | null, pageIndex: number): boolean {
-  if (!roomHasPolygon(r)) return false;
-  return roomGetPageIndex(r) === pageIndex;
+  return false;
 }
 
 // --------------------
@@ -174,14 +172,12 @@ function normalizeServiceName(s: string) {
 }
 
 function hashStringToHue(s: string): number {
-  // simple deterministic hash → hue [0..359]
   let h = 0;
   for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) >>> 0;
   return h % 360;
 }
 
 function hslToHex(h: number, s: number, l: number) {
-  // h [0..360), s/l [0..100]
   const S = s / 100;
   const L = l / 100;
   const C = (1 - Math.abs(2 * L - 1)) * S;
@@ -206,7 +202,6 @@ function hslToHex(h: number, s: number, l: number) {
 
 function defaultColorForService(service: string): string {
   const hue = hashStringToHue(service);
-  // sobre, lisible
   return hslToHex(hue, 55, 72);
 }
 
@@ -247,7 +242,7 @@ export default function App() {
       setRooms(r);
       if (r.length && !selectedRoomId) setSelectedRoomId(r[0].id);
 
-      // Seed palette from existing rooms (if any service already in data)
+      // Seed palette from existing rooms
       const servicesInRooms = new Set(
         r.map((x) => (x.service ?? "").trim()).filter((s) => s.length > 0)
       );
@@ -283,7 +278,6 @@ export default function App() {
   );
 
   async function commitPolygon(roomId: string, pageIndex: number, poly: Point[]) {
-    // IMPORTANT: page obligatoire côté backend
     const saved = await api.updatePolygon(roomId, { page: pageIndex, polygon: poly });
     setRooms((prev) => prev.map((r) => (r.id === saved.id ? saved : r)));
   }
@@ -292,7 +286,6 @@ export default function App() {
     const saved = await api.updateRoom(room);
     setRooms((prev) => prev.map((r) => (r.id === saved.id ? saved : r)));
 
-    // si service modifié, s'assurer qu'il existe dans la palette
     const svc = (saved.service ?? "").trim();
     if (svc) {
       setServiceColors((prev) => {
@@ -361,7 +354,9 @@ export default function App() {
   }, []);
 
   const canDeletePolygon =
-    adminMode && !!selectedRoomId && roomHasPolygonForPage(selectedRoom, currentPage);
+    adminMode &&
+    !!selectedRoomId &&
+    roomHasPolygonOnPage(rooms.find((x) => x.id === selectedRoomId) as any, currentPage);
 
   function undockPanel(k: PanelKey) {
     setLayout((l) => ({ ...l, mode: { ...l.mode, [k]: "float" } }));
@@ -472,17 +467,32 @@ export default function App() {
               className="select"
               value={drawingRoomId ?? ""}
               onChange={(e) => {
-                setDrawingRoomId(e.target.value || null);
+                const next = e.target.value || null;
+                setDrawingRoomId(next);
                 setDrawSessionId((x) => x + 1);
               }}
             >
               <option value="">— Choisir une pièce —</option>
-              {rooms.map((r) => (
-                <option key={r.id} value={r.id}>
-                  {r.numero}
-                </option>
-              ))}
+
+              {rooms.map((r) => {
+                const already = roomHasPolygonOnPage(r as any, currentPage);
+                return (
+                  <option key={r.id} value={r.id} disabled={already}>
+                    {r.numero}
+                    {already ? " — déjà défini (page)" : ""}
+                  </option>
+                );
+              })}
             </select>
+
+            {drawingRoomId &&
+              roomHasPolygonOnPage(rooms.find((x) => x.id === drawingRoomId) as any, currentPage) && (
+                <div className="hint" style={{ marginTop: 8 }}>
+                  Cette pièce a déjà un polygone sur la page courante.
+                  <br />
+                  Supprime d’abord le polygone pour pouvoir le redessiner.
+                </div>
+              )}
           </div>
         )}
 
@@ -644,7 +654,7 @@ export default function App() {
       };
 
       out[idx] = next;
-      // tri + uniq
+
       const map = new Map<string, string>();
       for (const it of out) {
         const k = normalizeServiceName(it.service);
@@ -660,11 +670,15 @@ export default function App() {
   function removeService(name: string) {
     const key = normalizeServiceName(name);
     if (!key) return;
-
     setServiceColors((prev) => prev.filter((x) => x.service.trim() !== key));
+  }
 
-    // option: ne pas écraser les rooms (on laisse la valeur backend)
-    // si tu veux une "cleanup", on pourra faire un bouton dédié plus tard
+  // ✅ Helper: leave Plans → always reset draw state (prevents “recreate elsewhere”)
+  function leavePlansTo(view: PageView) {
+    setPageView(view);
+    setDrawingRoomId(null);
+    setOverlayRequest({ kind: "none" });
+    setDrawSessionId((x) => x + 1);
   }
 
   return (
@@ -701,7 +715,7 @@ export default function App() {
 
           <button
             className={`nav-item ${pageView === "dashboard" ? "nav-item-active" : ""}`}
-            onClick={() => setPageView("dashboard")}
+            onClick={() => leavePlansTo("dashboard")}
           >
             <span className="nav-icon" aria-hidden="true">
               ⌂
@@ -711,7 +725,10 @@ export default function App() {
 
           <button
             className={`nav-item ${pageView === "plans" ? "nav-item-active" : ""}`}
-            onClick={() => setPageView("plans")}
+            onClick={() => {
+              setPageView("plans");
+              // on ne reset pas forcément à l'entrée, juste on reste cohérent
+            }}
           >
             <span className="nav-icon" aria-hidden="true">
               ▦
@@ -721,7 +738,7 @@ export default function App() {
 
           <button
             className={`nav-item ${pageView === "settings" ? "nav-item-active" : ""}`}
-            onClick={() => setPageView("settings")}
+            onClick={() => leavePlansTo("settings")}
           >
             <span className="nav-icon" aria-hidden="true">
               ⛭
@@ -752,7 +769,9 @@ export default function App() {
                 </div>
               </div>
               <div className="card-content">
-                <div className="hint">L’éditeur multi-pages est dans <b>Plans</b>.</div>
+                <div className="hint">
+                  L’éditeur multi-pages est dans <b>Plans</b>.
+                </div>
               </div>
             </div>
           </main>
@@ -790,7 +809,7 @@ export default function App() {
                     </button>
                   </div>
                   <div className="hint">
-                    La palette est stockée en local (localStorage). Les pièces gardent leur “service” côté backend.
+                    Palette stockée en local (localStorage). Les pièces gardent leur “service” côté backend.
                   </div>
                 </div>
 
@@ -910,7 +929,7 @@ export default function App() {
                       <PdfCanvas
                         pdfUrl="/Pour CHATGPT.pdf"
                         scale={scale}
-                        page={currentPage + 1}
+                        page={currentPage + 1} // PdfCanvas = 1-based
                         onPageCount={setPageCount}
                         onSize={(w, h) => setSize({ w, h })}
                       />
@@ -918,15 +937,17 @@ export default function App() {
                       <SvgOverlay
                         width={size.w}
                         height={size.h}
-                        page={currentPage}
+                        page={currentPage} // Overlay = 0-based
                         rooms={rooms}
-                        services={serviceColors} // ✅ réactivé
+                        services={serviceColors}
                         selectedRoomId={selectedRoomId}
                         onSelectRoom={setSelectedRoomId}
                         adminMode={adminMode}
                         drawingRoomId={drawingRoomId}
                         drawSessionId={drawSessionId}
-                        onPolygonCommit={(roomId, poly) => commitPolygon(roomId, currentPage, poly)}
+                        onPolygonCommit={async (roomId, poly) => {
+                          await commitPolygon(roomId, currentPage, poly);
+                        }}
                         request={overlayRequest}
                         onRequestHandled={() => setOverlayRequest({ kind: "none" })}
                         gridEnabled={gridEnabled}
