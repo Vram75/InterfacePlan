@@ -13,6 +13,7 @@
   --topbar-h: 64px;
   --sidebar-w: 240px;
   --right-w: 420px;
+  --ui-scale: 1;
 }
 
 *{ box-sizing: border-box; }
@@ -28,7 +29,10 @@ body{
 
 /* Root */
 .dash-root{
-  height: 100vh;
+  height: calc(100vh / var(--ui-scale));
+  width: calc(100vw / var(--ui-scale));
+  transform: scale(var(--ui-scale));
+  transform-origin: top left;
   display: grid;
   grid-template-rows: var(--topbar-h) 1fr;
 }
