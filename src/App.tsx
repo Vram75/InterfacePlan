@@ -20,8 +20,6 @@ const GRID_SIZE_KEY = "iface.gridSizePx";
 
 const LAYOUT_KEY = "iface.layout.v1";
 const SERVICE_COLORS_KEY = "iface.serviceColors.v1";
-const RENDER_SCALE_KEY = "iface.renderScale.v1";
-
 const BASE_VIEWPORT = { w: 1440, h: 900 };
 const MIN_UI_SCALE = 0.8;
 const MAX_UI_SCALE = 1;
@@ -128,24 +126,6 @@ function writeGridSizePx(v: number) {
   } catch {}
 }
 
-function readRenderScale(): number {
-  try {
-    const v = localStorage.getItem(RENDER_SCALE_KEY);
-    const n = v == null ? 1 : Number(v);
-    if (!Number.isFinite(n)) return 1;
-    return Math.min(2, Math.max(0.5, Number(n.toFixed(2))));
-  } catch {
-    return 1;
-  }
-}
-
-function writeRenderScale(v: number) {
-  try {
-    const n = Math.min(2, Math.max(0.5, Number(v.toFixed(2))));
-    localStorage.setItem(RENDER_SCALE_KEY, String(n));
-  } catch {}
-}
-
 function isValidSize(n: unknown): n is number {
   return typeof n === "number" && Number.isFinite(n) && n > 0;
 }
@@ -223,8 +203,6 @@ export default function App() {
   const [snapUi, setSnapUi] = useState<boolean>(() => readSnapFromStorage());
   const [gridEnabled, setGridEnabled] = useState<boolean>(() => readGridEnabled());
   const [gridSizePx, setGridSizePx] = useState<number>(() => readGridSizePx());
-  const [renderScale, setRenderScale] = useState<number>(() => readRenderScale());
-
   // ✅ Multi-pages
   const [currentPage, setCurrentPage] = useState(0);
   const [pageCount, setPageCount] = useState(1);
@@ -239,8 +217,6 @@ export default function App() {
   // ✅ Services palette (IMPORTANT: jamais undefined)
   const [services, setServices] = useState<ServiceColor[]>(() => readServiceColors());
   useEffect(() => writeServiceColors(services), [services]);
-  useEffect(() => writeRenderScale(renderScale), [renderScale]);
-
   useEffect(() => {
     function updateUiScale() {
       const scale = computeUiScale(window.innerWidth, window.innerHeight);
@@ -476,39 +452,6 @@ export default function App() {
             <div className="hint">La grille sert aussi au snap si activée.</div>
           </div>
 
-          <div className="field" style={{ marginTop: 10 }}>
-            <label className="label">Résolution du rendu PDF</label>
-            <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
-              <input
-                className="input"
-                type="range"
-                min={0.5}
-                max={2}
-                step={0.1}
-                value={renderScale}
-                onChange={(e) => {
-                  const next = Math.min(2, Math.max(0.5, Number(e.target.value)));
-                  setRenderScale(Number(next.toFixed(2)));
-                }}
-                style={{ flex: 1 }}
-              />
-              <input
-                className="input"
-                type="number"
-                min={0.5}
-                max={2}
-                step={0.1}
-                value={renderScale}
-                onChange={(e) => {
-                  const next = Math.min(2, Math.max(0.5, Number(e.target.value) || 0));
-                  setRenderScale(Number(next.toFixed(2)));
-                }}
-                style={{ width: 90 }}
-              />
-            </div>
-            <div className="hint">Ajuste la netteté sans changer la taille affichée.</div>
-          </div>
-
           <div style={{ marginTop: 10 }}>
             <button
               className="btn"
@@ -739,41 +682,6 @@ export default function App() {
                   <hr style={{ border: "none", borderTop: "1px solid rgba(0,0,0,0.08)", margin: "16px 0" }} />
 
                   <div style={{ display: "grid", gap: 12 }}>
-                    <div style={{ fontWeight: 800, opacity: 0.85 }}>Affichage</div>
-
-                    <div className="field" style={{ maxWidth: 360 }}>
-                      <label className="label">Résolution du rendu PDF</label>
-                      <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
-                        <input
-                          className="input"
-                          type="range"
-                          min={0.5}
-                          max={2}
-                          step={0.1}
-                          value={renderScale}
-                          onChange={(e) => {
-                            const next = Math.min(2, Math.max(0.5, Number(e.target.value)));
-                            setRenderScale(Number(next.toFixed(2)));
-                          }}
-                          style={{ flex: 1 }}
-                        />
-                        <input
-                          className="input"
-                          type="number"
-                          min={0.5}
-                          max={2}
-                          step={0.1}
-                          value={renderScale}
-                          onChange={(e) => {
-                            const next = Math.min(2, Math.max(0.5, Number(e.target.value) || 0));
-                            setRenderScale(Number(next.toFixed(2)));
-                          }}
-                          style={{ width: 90 }}
-                        />
-                      </div>
-                      <div className="hint">Baisse pour alléger le rendu, augmente pour plus de netteté.</div>
-                    </div>
-
                     <div style={{ fontWeight: 800, opacity: 0.85 }}>Services</div>
 
                   <form
@@ -923,7 +831,6 @@ export default function App() {
                       <PdfCanvas
                         pdfUrl="/Pour CHATGPT.pdf"
                         scale={scale}
-                        renderScale={renderScale}
                         page={currentPage + 1}
                         onPageCount={setPageCount}
                         onSize={(w, h) => {
