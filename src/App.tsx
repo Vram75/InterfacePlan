@@ -9,7 +9,7 @@ import { RoomListPanel } from "./components/RoomListPanel";
 import { RoomDetailsPanel } from "./components/RoomDetailsPanel";
 
 import { api } from "./api";
-import type { Room, Point } from "./types";
+import type { Point, Room, ServiceColor } from "./types";
 
 const SNAP_STORAGE_KEY = "iface.snapEnabled";
 const SNAP_TOGGLE_EVENT = "iface:snap-toggle";
@@ -17,38 +17,17 @@ const SNAP_TOGGLE_EVENT = "iface:snap-toggle";
 const GRID_ENABLED_KEY = "iface.gridEnabled";
 const GRID_SIZE_KEY = "iface.gridSizePx";
 
-function readGridEnabled(): boolean {
+const SERVICE_COLORS_KEY = "iface.serviceColors.v1";
+
+type PageView = "dashboard" | "plans" | "settings";
+
+function safeParse<T>(s: string | null): T | null {
+  if (!s) return null;
   try {
-    const v = localStorage.getItem(GRID_ENABLED_KEY);
-    if (v == null) return false;
-    const s = String(v).trim().toLowerCase();
-    return !(s === "0" || s === "false" || s === "off" || s === "no");
+    return JSON.parse(s) as T;
   } catch {
-    return false;
+    return null;
   }
-}
-
-function writeGridEnabled(v: boolean) {
-  try {
-    localStorage.setItem(GRID_ENABLED_KEY, String(v));
-  } catch {}
-}
-
-function readGridSizePx(): number {
-  try {
-    const v = localStorage.getItem(GRID_SIZE_KEY);
-    const n = v == null ? 20 : Number(v);
-    if (!Number.isFinite(n)) return 20;
-    return Math.min(200, Math.max(4, Math.round(n)));
-  } catch {
-    return 20;
-  }
-}
-
-function writeGridSizePx(v: number) {
-  try {
-    localStorage.setItem(GRID_SIZE_KEY, String(v));
-  } catch {}
 }
 
 function readSnapFromStorage(): boolean {
@@ -78,6 +57,60 @@ function isTypingTarget(target: unknown): boolean {
   );
 }
 
+function readGridEnabled(): boolean {
+  try {
+    const v = localStorage.getItem(GRID_ENABLED_KEY);
+    if (v == null) return false;
+    const s = String(v).trim().toLowerCase();
+    return s === "1" || s === "true" || s === "on" || s === "yes";
+  } catch {
+    return false;
+  }
+}
+
+function writeGridEnabled(v: boolean) {
+  try {
+    localStorage.setItem(GRID_ENABLED_KEY, v ? "1" : "0");
+  } catch {}
+}
+
+function readGridSizePx(): number {
+  try {
+    const v = localStorage.getItem(GRID_SIZE_KEY);
+    const n = v == null ? 20 : Number(v);
+    if (!Number.isFinite(n)) return 20;
+    return Math.min(200, Math.max(4, Math.round(n)));
+  } catch {
+    return 20;
+  }
+}
+
+function writeGridSizePx(v: number) {
+  try {
+    const n = Math.min(200, Math.max(4, Math.round(v)));
+    localStorage.setItem(GRID_SIZE_KEY, String(n));
+  } catch {}
+}
+
+function isValidSize(n: unknown): n is number {
+  return typeof n === "number" && Number.isFinite(n) && n > 0;
+}
+
+function readServiceColors(): ServiceColor[] {
+  const parsed = safeParse<ServiceColor[]>(localStorage.getItem(SERVICE_COLORS_KEY));
+  if (!parsed || !Array.isArray(parsed)) return [];
+  return parsed
+    .filter((x) => x && typeof x.service === "string" && typeof x.color === "string")
+    .map((x) => ({ service: x.service.trim(), color: x.color.trim() }))
+    .filter((x) => x.service.length > 0);
+}
+
+function writeServiceColors(v: ServiceColor[]) {
+  try {
+    localStorage.setItem(SERVICE_COLORS_KEY, JSON.stringify(v));
+  } catch {}
+}
+
 // ✅ Multi-pages compat (room.polygons[] ou legacy room.polygon sur page 0)
 function extractPolyForPage(room: any, page: number): Point[] | undefined {
   const polys = room?.polygons;
@@ -104,6 +137,7 @@ function extractPolyForPage(room: any, page: number): Point[] | undefined {
     if (Array.isArray(p)) return p as Point[];
     if (p && Array.isArray(p.polygon)) return p.polygon as Point[];
   }
+
   return undefined;
 }
 
@@ -113,14 +147,8 @@ function roomHasPolygonForPage(r: Room | null, page: number): boolean {
   return !!poly && poly.length >= 3;
 }
 
-type PageView = "dashboard" | "plans" | "settings";
-
-function isValidSize(n: unknown): n is number {
-  return typeof n === "number" && Number.isFinite(n) && n > 0;
-}
-
 export default function App() {
-  const [pageView, setPageView] = useState<PageView>("dashboard");
+  const [pageView, setPageView] = useState<PageView>("plans");
 
   const [rooms, setRooms] = useState<Room[]>([]);
   const [selectedRoomId, setSelectedRoomId] = useState<string | null>(null);
@@ -132,13 +160,18 @@ export default function App() {
   const [scale, setScale] = useState(1.2);
   const [size, setSize] = useState({ w: 800, h: 600 });
 
-  // ✅ Multi-pages PDF (0-based)
-  const [currentPage, setCurrentPage] = useState(0);
-  const [pageCount, setPageCount] = useState(1);
-
   const [snapUi, setSnapUi] = useState<boolean>(() => readSnapFromStorage());
+
   const [gridEnabled, setGridEnabled] = useState<boolean>(() => readGridEnabled());
   const [gridSizePx, setGridSizePx] = useState<number>(() => readGridSizePx());
+
+  // ✅ Services (IMPORTANT: jamais undefined)
+  const [services, setServices] = useState<ServiceColor[]>(() => readServiceColors());
+  useEffect(() => writeServiceColors(services), [services]);
+
+  // ✅ Multi-pages
+  const [currentPage, setCurrentPage] = useState(0);
+  const [pageCount, setPageCount] = useState(1);
 
   const [overlayRequest, setOverlayRequest] = useState<OverlayRequest>({ kind: "none" });
 
@@ -146,18 +179,48 @@ export default function App() {
     api.getRooms().then((r) => {
       setRooms(r);
       if (r.length && !selectedRoomId) setSelectedRoomId(r[0].id);
+
+      // Seed palette à partir des rooms existantes (si service renseigné)
+      const used = new Set(
+        r.map((x) => (x.service ?? "").trim()).filter((s) => s.length > 0)
+      );
+
+      if (used.size) {
+        setServices((prev) => {
+          const map = new Map(prev.map((p) => [p.service.trim(), p.color]));
+          let changed = false;
+          for (const s of used) {
+            const key = s.trim();
+            if (!map.has(key)) {
+              // Couleur fallback stable (simple) si service nouveau
+              const hue = (() => {
+                let h = 0;
+                for (let i = 0; i < key.length; i++) h = (h * 31 + key.charCodeAt(i)) >>> 0;
+                return h % 360;
+              })();
+              const color = `hsl(${hue} 55% 72%)`;
+              map.set(key, color);
+              changed = true;
+            }
+          }
+          if (!changed) return prev;
+          return Array.from(map.entries())
+            .map(([service, color]) => ({ service, color }))
+            .sort((a, b) => a.service.localeCompare(b.service, "fr"));
+        });
+      }
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  useEffect(() => {
+    setCurrentPage((p) => Math.max(0, Math.min(p, Math.max(1, pageCount) - 1)));
+  }, [pageCount]);
 
   const selectedRoom = useMemo(
     () => rooms.find((r) => r.id === selectedRoomId) ?? null,
     [rooms, selectedRoomId]
   );
-
-  useEffect(() => {
-    setCurrentPage((p) => Math.max(0, Math.min(p, Math.max(1, pageCount) - 1)));
-  }, [pageCount]);
 
   async function commitPolygon(roomId: string, page: number, poly: Point[]) {
     const saved = await api.updatePolygon(roomId, { page, polygon: poly });
@@ -174,7 +237,7 @@ export default function App() {
     setRooms((prev) => prev.map((r) => (r.id === saved.id ? saved : r)));
   }
 
-  // Sync Snap UI when shortcut used (S)
+  // Sync snap UI (S)
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.key.toLowerCase() !== "s") return;
@@ -185,7 +248,7 @@ export default function App() {
     return () => window.removeEventListener("keydown", onKey);
   }, []);
 
-  // Sync Snap UI when button toggles (custom event)
+  // Sync snap UI (event)
   useEffect(() => {
     const onToggle = () => setTimeout(() => setSnapUi(readSnapFromStorage()), 0);
     window.addEventListener(SNAP_TOGGLE_EVENT, onToggle as EventListener);
@@ -198,14 +261,12 @@ export default function App() {
   }
 
   function toggleGridFromButton() {
-    setGridEnabled((prev) => {
-      const next = !prev;
-      writeGridEnabled(next);
-      return next;
-    });
+    const next = !gridEnabled;
+    setGridEnabled(next);
+    writeGridEnabled(next);
   }
 
-  // Global zoom shortcuts: '+' and '-'
+  // Zoom shortcuts +/-
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
       if (isTypingTarget(e.target)) return;
@@ -215,7 +276,6 @@ export default function App() {
         setScale((s) => clampScale(s + 0.1));
         return;
       }
-
       if (e.key === "-" || e.key === "_") {
         e.preventDefault();
         setScale((s) => clampScale(s - 0.1));
@@ -230,13 +290,10 @@ export default function App() {
   const canDeletePolygon =
     adminMode && !!selectedRoomId && roomHasPolygonForPage(selectedRoom, currentPage);
 
-  const overlayW = size.w;
-  const overlayH = size.h;
-  const overlayReady = isValidSize(overlayW) && isValidSize(overlayH);
+  const overlayReady = isValidSize(size.w) && isValidSize(size.h);
 
   return (
     <div className="dash-root">
-      {/* TOPBAR */}
       <header className="dash-topbar">
         <div className="brand">
           <div className="brand-badge" aria-hidden="true">
@@ -260,9 +317,7 @@ export default function App() {
         </div>
       </header>
 
-      {/* BODY */}
       <div className="dash-body">
-        {/* SIDEBAR */}
         <aside className="dash-sidebar">
           <div className="nav-title">Navigation</div>
 
@@ -304,11 +359,12 @@ export default function App() {
               <b>S</b> Snap • <b>+</b>/<b>-</b> Zoom • <b>Shift</b> orthogonal
               <br />
               <b>Alt+clic</b> insérer • <b>Delete</b> supprimer sommet
+              <br />
+              <b>Ctrl/⌘</b> drag = déplacer polygone
             </div>
           </div>
         </aside>
 
-        {/* MAIN */}
         {pageView === "dashboard" && (
           <main className="dash-main">
             <div className="card">
@@ -319,9 +375,7 @@ export default function App() {
                 </div>
               </div>
               <div className="card-content">
-                <div className="hint">
-                  L’éditeur multi-pages est dans <b>Plans</b>.
-                </div>
+                <div className="hint">Va dans “Plans” pour éditer.</div>
               </div>
             </div>
           </main>
@@ -333,11 +387,13 @@ export default function App() {
               <div className="card-header">
                 <div>
                   <div className="card-title">Paramètres</div>
-                  <div className="card-subtitle">Préférences</div>
+                  <div className="card-subtitle">Palette services</div>
                 </div>
               </div>
               <div className="card-content">
-                <div className="hint">Écran Paramètres (à compléter).</div>
+                <div className="hint">
+                  (Tu peux compléter cet écran, mais surtout : <b>services</b> ne sera jamais undefined.)
+                </div>
               </div>
             </div>
           </main>
@@ -349,7 +405,7 @@ export default function App() {
               <div className="card-header">
                 <div>
                   <div className="card-title">Plan</div>
-                  <div className="card-subtitle">PDF + overlay</div>
+                  <div className="card-subtitle">PDF multi-pages + overlay</div>
                 </div>
 
                 <div className="card-meta">
@@ -400,20 +456,18 @@ export default function App() {
                         page={currentPage + 1}
                         onPageCount={setPageCount}
                         onSize={(w, h) => {
-                          // ✅ ANTI-NaN: on ignore tout ce qui n’est pas une taille valide
                           if (!isValidSize(w) || !isValidSize(h)) return;
                           setSize({ w, h });
                         }}
                       />
 
-                      {/* ✅ on ne rend l’overlay que quand les dimensions sont valides */}
                       {overlayReady && (
                         <SvgOverlay
-                          width={overlayW}
-                          height={overlayH}
+                          width={size.w}
+                          height={size.h}
                           page={currentPage}
                           rooms={rooms}
-                          services={[]}
+                          services={services}
                           selectedRoomId={selectedRoomId}
                           onSelectRoom={setSelectedRoomId}
                           adminMode={adminMode}
@@ -434,7 +488,6 @@ export default function App() {
           </main>
         )}
 
-        {/* RIGHT */}
         {pageView === "plans" && (
           <aside className="dash-right">
             <div className="right-sticky">
@@ -470,18 +523,10 @@ export default function App() {
                       Grille: {gridEnabled ? "ON" : "OFF"}
                     </button>
 
-                    <button
-                      className="btn btn-icon"
-                      onClick={() => setScale((s) => clampScale(s - 0.1))}
-                      title="Zoom - (-)"
-                    >
+                    <button className="btn btn-icon" onClick={() => setScale((s) => clampScale(s - 0.1))} title="Zoom - (-)">
                       −
                     </button>
-                    <button
-                      className="btn btn-icon"
-                      onClick={() => setScale((s) => clampScale(s + 0.1))}
-                      title="Zoom + (+)"
-                    >
+                    <button className="btn btn-icon" onClick={() => setScale((s) => clampScale(s + 0.1))} title="Zoom + (+)">
                       +
                     </button>
                   </div>
@@ -537,8 +582,6 @@ export default function App() {
                       </select>
                     </div>
                   )}
-
-                  <div className="hint">Multi-pages : chaque polygone est lié à la page courante.</div>
                 </div>
               </div>
 
@@ -549,14 +592,9 @@ export default function App() {
                     <div className="card-subtitle">Liste & sélection</div>
                   </div>
                 </div>
-
                 {/* ✅ pas de card-scroll ici */}
                 <div className="card-content">
-                  <RoomListPanel
-                    rooms={rooms}
-                    selectedRoomId={selectedRoomId}
-                    onSelectRoom={setSelectedRoomId}
-                  />
+                  <RoomListPanel rooms={rooms} selectedRoomId={selectedRoomId} onSelectRoom={setSelectedRoomId} />
                 </div>
               </div>
 
@@ -567,10 +605,14 @@ export default function App() {
                     <div className="card-subtitle">Infos & photo</div>
                   </div>
                 </div>
-
-                {/* ✅ pas de card-scroll ici */}
+                {/* ✅ ICI le fix : services n’est jamais undefined */}
                 <div className="card-content">
-                  <RoomDetailsPanel room={selectedRoom} onSave={handleSaveRoom} onUploadPhoto={handleUploadPhoto} />
+                  <RoomDetailsPanel
+                    room={selectedRoom}
+                    services={services}
+                    onSave={handleSaveRoom}
+                    onUploadPhoto={handleUploadPhoto}
+                  />
                 </div>
               </div>
             </div>
