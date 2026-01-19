@@ -127,12 +127,16 @@ export function PdfCanvas(props: {
 
         const vw = Math.max(1, Math.ceil(viewport.width));
         const vh = Math.max(1, Math.ceil(viewport.height));
+        const dpr = Math.max(1, window.devicePixelRatio || 1);
 
-        canvas.width = vw;
-        canvas.height = vh;
+        canvas.width = Math.round(vw * dpr);
+        canvas.height = Math.round(vh * dpr);
         canvas.style.width = `${vw}px`;
         canvas.style.height = `${vh}px`;
         canvas.style.display = "block";
+
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        ctx.imageSmoothingEnabled = true;
 
         const emitSize = () => {
           const r = canvas.getBoundingClientRect();
