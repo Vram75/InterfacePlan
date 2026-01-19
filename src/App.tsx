@@ -22,7 +22,7 @@ const LAYOUT_KEY = "iface.layout.v1";
 const SERVICE_COLORS_KEY = "iface.serviceColors.v1";
 const BASE_VIEWPORT = { w: 1440, h: 900 };
 const MIN_UI_SCALE = 0.8;
-const MAX_UI_SCALE = 1;
+const MAX_UI_SCALE = 0.9;
 
 type PageView = "dashboard" | "plans" | "settings";
 type PanelKey = "controls" | "rooms" | "details";
