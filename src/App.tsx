@@ -883,8 +883,10 @@ export default function App() {
           <FloatingPanel
             title="Contrôles"
             rect={layout.rect.controls}
-            onRect={(r) => setRect("controls", r)}
+            onRectChange={(r) => setRect("controls", r)}
             onDock={() => dockPanel("controls")}
+            collapsed={layout.collapsed.controls}
+            onToggleCollapsed={() => toggleCollapsed("controls")}
           >
             {ControlsPanel}
           </FloatingPanel>
@@ -894,8 +896,10 @@ export default function App() {
           <FloatingPanel
             title="Pièces"
             rect={layout.rect.rooms}
-            onRect={(r) => setRect("rooms", r)}
+            onRectChange={(r) => setRect("rooms", r)}
             onDock={() => dockPanel("rooms")}
+            collapsed={layout.collapsed.rooms}
+            onToggleCollapsed={() => toggleCollapsed("rooms")}
           >
             {RoomsPanel}
           </FloatingPanel>
@@ -905,8 +909,10 @@ export default function App() {
           <FloatingPanel
             title="Détails"
             rect={layout.rect.details}
-            onRect={(r) => setRect("details", r)}
+            onRectChange={(r) => setRect("details", r)}
             onDock={() => dockPanel("details")}
+            collapsed={layout.collapsed.details}
+            onToggleCollapsed={() => toggleCollapsed("details")}
           >
             {DetailsPanel}
           </FloatingPanel>
