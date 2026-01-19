@@ -476,6 +476,39 @@ export default function App() {
             <div className="hint">La grille sert aussi au snap si activée.</div>
           </div>
 
+          <div className="field" style={{ marginTop: 10 }}>
+            <label className="label">Résolution du rendu PDF</label>
+            <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
+              <input
+                className="input"
+                type="range"
+                min={0.5}
+                max={2}
+                step={0.1}
+                value={renderScale}
+                onChange={(e) => {
+                  const next = Math.min(2, Math.max(0.5, Number(e.target.value)));
+                  setRenderScale(Number(next.toFixed(2)));
+                }}
+                style={{ flex: 1 }}
+              />
+              <input
+                className="input"
+                type="number"
+                min={0.5}
+                max={2}
+                step={0.1}
+                value={renderScale}
+                onChange={(e) => {
+                  const next = Math.min(2, Math.max(0.5, Number(e.target.value) || 0));
+                  setRenderScale(Number(next.toFixed(2)));
+                }}
+                style={{ width: 90 }}
+              />
+            </div>
+            <div className="hint">Ajuste la netteté sans changer la taille affichée.</div>
+          </div>
+
           <div style={{ marginTop: 10 }}>
             <button
               className="btn"
