@@ -21,6 +21,10 @@ const GRID_SIZE_KEY = "iface.gridSizePx";
 const LAYOUT_KEY = "iface.layout.v1";
 const SERVICE_COLORS_KEY = "iface.serviceColors.v1";
 
+const BASE_VIEWPORT = { w: 1440, h: 900 };
+const MIN_UI_SCALE = 0.8;
+const MAX_UI_SCALE = 1;
+
 type PageView = "dashboard" | "plans" | "settings";
 type PanelKey = "controls" | "rooms" | "details";
 type PanelMode = "dock" | "float";
@@ -127,6 +131,11 @@ function isValidSize(n: unknown): n is number {
   return typeof n === "number" && Number.isFinite(n) && n > 0;
 }
 
+function computeUiScale(width: number, height: number) {
+  const scale = Math.min(width / BASE_VIEWPORT.w, height / BASE_VIEWPORT.h);
+  return Math.min(MAX_UI_SCALE, Math.max(MIN_UI_SCALE, Number(scale.toFixed(2))));
+}
+
 /** ✅ Règle métier : 1 pièce = 1 polygone par page. */
 function roomHasPolygonOnPage(room: any, pageIndex: number): boolean {
   if (!room) return false;
@@ -210,6 +219,17 @@ export default function App() {
   // ✅ Services palette (IMPORTANT: jamais undefined)
   const [services, setServices] = useState<ServiceColor[]>(() => readServiceColors());
   useEffect(() => writeServiceColors(services), [services]);
+
+  useEffect(() => {
+    function updateUiScale() {
+      const scale = computeUiScale(window.innerWidth, window.innerHeight);
+      document.documentElement.style.setProperty("--ui-scale", String(scale));
+    }
+
+    updateUiScale();
+    window.addEventListener("resize", updateUiScale);
+    return () => window.removeEventListener("resize", updateUiScale);
+  }, []);
 
   const [newServiceName, setNewServiceName] = useState("");
   const [newServiceColor, setNewServiceColor] = useState(() => defaultColorForService("Service"));
