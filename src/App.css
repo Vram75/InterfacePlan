@@ -29,7 +29,8 @@ body{
 
 /* Root */
 .dash-root{
-  height: calc(100vh / var(--ui-scale));
+  min-height: calc(100vh / var(--ui-scale));
+  height: auto;
   width: calc(100vw / var(--ui-scale));
   transform: scale(var(--ui-scale));
   transform-origin: top left;
@@ -112,12 +113,12 @@ body{
 
 /* Body layout */
 .dash-body{
-  height: calc(100vh - var(--topbar-h));
+  min-height: calc(100vh - var(--topbar-h));
   display: grid;
   grid-template-columns: var(--sidebar-w) 1fr var(--right-w);
   gap: 16px;
   padding: 16px;
-  overflow: hidden;
+  overflow: auto;
 }
 
 /* When panels are floating, collapse the right column so the plan gets bigger */
