@@ -8,6 +8,7 @@ pdfjsLib.GlobalWorkerOptions.workerSrc = pdfWorkerUrl;
 export function PdfCanvas(props: {
   pdfUrl: string;
   scale: number;
+  renderScale?: number;
   page?: number; // défaut 1
   onPageCount?: (n: number) => void;
   onSize?: (w: number, h: number) => void;
@@ -127,7 +128,8 @@ export function PdfCanvas(props: {
 
         const vw = Math.max(1, Math.ceil(viewport.width));
         const vh = Math.max(1, Math.ceil(viewport.height));
-        const dpr = Math.max(1, window.devicePixelRatio || 1);
+        const resolutionScale = Math.min(2, Math.max(0.5, props.renderScale ?? 1));
+        const dpr = Math.max(1, window.devicePixelRatio || 1) * resolutionScale;
 
         canvas.width = Math.round(vw * dpr);
         canvas.height = Math.round(vh * dpr);
@@ -172,7 +174,7 @@ export function PdfCanvas(props: {
       } catch {}
       renderTaskRef.current = null;
     };
-  }, [props.scale, pageNumber, props.pdfUrl, docTick]);
+  }, [props.scale, props.renderScale, pageNumber, props.pdfUrl, docTick]);
 
   return (
     <div style={{ position: "relative" }}>
