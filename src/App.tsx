@@ -7,6 +7,7 @@ import type { OverlayRequest } from "./components/SvgOverlay";
 
 import { RoomListPanel } from "./components/RoomListPanel";
 import { RoomDetailsPanel } from "./components/RoomDetailsPanel";
+import { FloatingPanel, type FloatingRect } from "./components/FloatingPanel";
 
 import { api } from "./api";
 import type { Point, Room, ServiceColor } from "./types";
@@ -17,9 +18,28 @@ const SNAP_TOGGLE_EVENT = "iface:snap-toggle";
 const GRID_ENABLED_KEY = "iface.gridEnabled";
 const GRID_SIZE_KEY = "iface.gridSizePx";
 
+const LAYOUT_KEY = "iface.layout.v1";
 const SERVICE_COLORS_KEY = "iface.serviceColors.v1";
 
 type PageView = "dashboard" | "plans" | "settings";
+type PanelKey = "controls" | "rooms" | "details";
+type PanelMode = "dock" | "float";
+
+type LayoutState = {
+  mode: Record<PanelKey, PanelMode>;
+  collapsed: Record<PanelKey, boolean>;
+  rect: Record<PanelKey, FloatingRect>;
+};
+
+const DEFAULT_LAYOUT: LayoutState = {
+  mode: { controls: "dock", rooms: "dock", details: "dock" },
+  collapsed: { controls: false, rooms: false, details: false },
+  rect: {
+    controls: { x: 40, y: 92, w: 430, h: 560 },
+    rooms: { x: 500, y: 92, w: 420, h: 560 },
+    details: { x: 940, y: 92, w: 460, h: 700 },
+  },
+};
 
 function safeParse<T>(s: string | null): T | null {
   if (!s) return null;
@@ -28,6 +48,22 @@ function safeParse<T>(s: string | null): T | null {
   } catch {
     return null;
   }
+}
+
+function readLayout(): LayoutState {
+  const parsed = safeParse<Partial<LayoutState>>(localStorage.getItem(LAYOUT_KEY));
+  if (!parsed) return DEFAULT_LAYOUT;
+  return {
+    mode: { ...DEFAULT_LAYOUT.mode, ...(parsed.mode ?? {}) } as LayoutState["mode"],
+    collapsed: { ...DEFAULT_LAYOUT.collapsed, ...(parsed.collapsed ?? {}) } as LayoutState["collapsed"],
+    rect: { ...DEFAULT_LAYOUT.rect, ...(parsed.rect ?? {}) } as LayoutState["rect"],
+  };
+}
+
+function writeLayout(v: LayoutState) {
+  try {
+    localStorage.setItem(LAYOUT_KEY, JSON.stringify(v));
+  } catch {}
 }
 
 function readSnapFromStorage(): boolean {
@@ -49,12 +85,7 @@ function clampScale(next: number) {
 function isTypingTarget(target: unknown): boolean {
   if (!(target instanceof HTMLElement)) return false;
   const tag = target.tagName;
-  return (
-    tag === "INPUT" ||
-    tag === "TEXTAREA" ||
-    tag === "SELECT" ||
-    target.getAttribute("contenteditable") === "true"
-  );
+  return tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT" || target.getAttribute("contenteditable") === "true";
 }
 
 function readGridEnabled(): boolean {
@@ -96,6 +127,24 @@ function isValidSize(n: unknown): n is number {
   return typeof n === "number" && Number.isFinite(n) && n > 0;
 }
 
+/** ✅ Règle métier : 1 pièce = 1 polygone par page. */
+function roomHasPolygonOnPage(room: any, pageIndex: number): boolean {
+  if (!room) return false;
+
+  // compat legacy : room.page
+  const page = typeof room.page === "number" && Number.isFinite(room.page) ? room.page : 0;
+  if (page !== pageIndex) return false;
+
+  const p = room.polygon;
+  if (!p) return false;
+  if (Array.isArray(p)) return p.length >= 3;
+  if (Array.isArray(p?.polygon)) return p.polygon.length >= 3;
+  return false;
+}
+
+// --------------------
+// Services helpers
+// --------------------
 function readServiceColors(): ServiceColor[] {
   const parsed = safeParse<ServiceColor[]>(localStorage.getItem(SERVICE_COLORS_KEY));
   if (!parsed || !Array.isArray(parsed)) return [];
@@ -111,40 +160,19 @@ function writeServiceColors(v: ServiceColor[]) {
   } catch {}
 }
 
-// ✅ Multi-pages compat (room.polygons[] ou legacy room.polygon sur page 0)
-function extractPolyForPage(room: any, page: number): Point[] | undefined {
-  const polys = room?.polygons;
-  if (Array.isArray(polys)) {
-    for (const entry of polys) {
-      if (!entry) continue;
-      const entryPage =
-        typeof entry.page === "number"
-          ? entry.page
-          : typeof entry.pageIndex === "number"
-          ? entry.pageIndex
-          : undefined;
-
-      if (entryPage !== page) continue;
-
-      const pts = entry.points ?? entry.polygon ?? entry;
-      if (Array.isArray(pts)) return pts as Point[];
-      if (pts && Array.isArray(pts.polygon)) return pts.polygon as Point[];
-    }
-  }
-
-  if (page === 0) {
-    const p = room?.polygon;
-    if (Array.isArray(p)) return p as Point[];
-    if (p && Array.isArray(p.polygon)) return p.polygon as Point[];
-  }
-
-  return undefined;
+function normalizeServiceName(s: string) {
+  return s.trim();
 }
 
-function roomHasPolygonForPage(r: Room | null, page: number): boolean {
-  if (!r) return false;
-  const poly = extractPolyForPage(r as any, page);
-  return !!poly && poly.length >= 3;
+function hashStringToHue(s: string): number {
+  let h = 0;
+  for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) >>> 0;
+  return h % 360;
+}
+
+function defaultColorForService(service: string): string {
+  const hue = hashStringToHue(service);
+  return `hsl(${hue} 55% 72%)`;
 }
 
 export default function App() {
@@ -161,45 +189,39 @@ export default function App() {
   const [size, setSize] = useState({ w: 800, h: 600 });
 
   const [snapUi, setSnapUi] = useState<boolean>(() => readSnapFromStorage());
-
   const [gridEnabled, setGridEnabled] = useState<boolean>(() => readGridEnabled());
   const [gridSizePx, setGridSizePx] = useState<number>(() => readGridSizePx());
-
-  // ✅ Services (IMPORTANT: jamais undefined)
-  const [services, setServices] = useState<ServiceColor[]>(() => readServiceColors());
-  useEffect(() => writeServiceColors(services), [services]);
 
   // ✅ Multi-pages
   const [currentPage, setCurrentPage] = useState(0);
   const [pageCount, setPageCount] = useState(1);
 
+  // ✅ Overlay requests
   const [overlayRequest, setOverlayRequest] = useState<OverlayRequest>({ kind: "none" });
+
+  // ✅ Dock/Float layout
+  const [layout, setLayout] = useState<LayoutState>(() => readLayout());
+  useEffect(() => writeLayout(layout), [layout]);
+
+  // ✅ Services palette (IMPORTANT: jamais undefined)
+  const [services, setServices] = useState<ServiceColor[]>(() => readServiceColors());
+  useEffect(() => writeServiceColors(services), [services]);
 
   useEffect(() => {
     api.getRooms().then((r) => {
       setRooms(r);
       if (r.length && !selectedRoomId) setSelectedRoomId(r[0].id);
 
-      // Seed palette à partir des rooms existantes (si service renseigné)
-      const used = new Set(
-        r.map((x) => (x.service ?? "").trim()).filter((s) => s.length > 0)
-      );
-
+      // Seed palette from existing rooms
+      const used = new Set(r.map((x) => (x.service ?? "").trim()).filter((s) => s.length > 0));
       if (used.size) {
         setServices((prev) => {
           const map = new Map(prev.map((p) => [p.service.trim(), p.color]));
           let changed = false;
           for (const s of used) {
-            const key = s.trim();
+            const key = normalizeServiceName(s);
             if (!map.has(key)) {
-              // Couleur fallback stable (simple) si service nouveau
-              const hue = (() => {
-                let h = 0;
-                for (let i = 0; i < key.length; i++) h = (h * 31 + key.charCodeAt(i)) >>> 0;
-                return h % 360;
-              })();
-              const color = `hsl(${hue} 55% 72%)`;
-              map.set(key, color);
+              map.set(key, defaultColorForService(key));
               changed = true;
             }
           }
@@ -217,19 +239,27 @@ export default function App() {
     setCurrentPage((p) => Math.max(0, Math.min(p, Math.max(1, pageCount) - 1)));
   }, [pageCount]);
 
-  const selectedRoom = useMemo(
-    () => rooms.find((r) => r.id === selectedRoomId) ?? null,
-    [rooms, selectedRoomId]
-  );
+  const selectedRoom = useMemo(() => rooms.find((r) => r.id === selectedRoomId) ?? null, [rooms, selectedRoomId]);
 
-  async function commitPolygon(roomId: string, page: number, poly: Point[]) {
-    const saved = await api.updatePolygon(roomId, { page, polygon: poly });
+  async function commitPolygon(roomId: string, pageIndex: number, poly: Point[]) {
+    const saved = await api.updatePolygon(roomId, { page: pageIndex, polygon: poly });
     setRooms((prev) => prev.map((r) => (r.id === saved.id ? saved : r)));
   }
 
   async function handleSaveRoom(room: Room) {
     const saved = await api.updateRoom(room);
     setRooms((prev) => prev.map((r) => (r.id === saved.id ? saved : r)));
+
+    const svc = (saved.service ?? "").trim();
+    if (svc) {
+      setServices((prev) => {
+        const key = normalizeServiceName(svc);
+        if (prev.some((x) => x.service.trim() === key)) return prev;
+        return [...prev, { service: key, color: defaultColorForService(key) }].sort((a, b) =>
+          a.service.localeCompare(b.service, "fr")
+        );
+      });
+    }
   }
 
   async function handleUploadPhoto(roomId: string, file: File) {
@@ -237,7 +267,7 @@ export default function App() {
     setRooms((prev) => prev.map((r) => (r.id === saved.id ? saved : r)));
   }
 
-  // Sync snap UI (S)
+  // Snap UI sync (S)
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.key.toLowerCase() !== "s") return;
@@ -248,7 +278,7 @@ export default function App() {
     return () => window.removeEventListener("keydown", onKey);
   }, []);
 
-  // Sync snap UI (event)
+  // Snap UI sync (event)
   useEffect(() => {
     const onToggle = () => setTimeout(() => setSnapUi(readSnapFromStorage()), 0);
     window.addEventListener(SNAP_TOGGLE_EVENT, onToggle as EventListener);
@@ -288,17 +318,212 @@ export default function App() {
   }, []);
 
   const canDeletePolygon =
-    adminMode && !!selectedRoomId && roomHasPolygonForPage(selectedRoom, currentPage);
+    adminMode && !!selectedRoomId && roomHasPolygonOnPage(rooms.find((x) => x.id === selectedRoomId) as any, currentPage);
 
   const overlayReady = isValidSize(size.w) && isValidSize(size.h);
+
+  // -----------------------
+  // Dock/Float helpers
+  // -----------------------
+  function undockPanel(k: PanelKey) {
+    setLayout((l) => ({ ...l, mode: { ...l.mode, [k]: "float" } }));
+  }
+  function dockPanel(k: PanelKey) {
+    setLayout((l) => ({ ...l, mode: { ...l.mode, [k]: "dock" } }));
+  }
+  function toggleCollapsed(k: PanelKey) {
+    setLayout((l) => ({ ...l, collapsed: { ...l.collapsed, [k]: !l.collapsed[k] } }));
+  }
+  function setRect(k: PanelKey, next: FloatingRect) {
+    setLayout((l) => ({ ...l, rect: { ...l.rect, [k]: next } }));
+  }
+
+  // -----------------------
+  // Panels content
+  // -----------------------
+  const ControlsPanel = (
+    <div className="card">
+      <div className="card-header">
+        <div>
+          <div className="card-title">Contrôles</div>
+          <div className="card-subtitle">Édition & zoom</div>
+        </div>
+
+        <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+          <button className="btn" onClick={() => toggleCollapsed("controls")} type="button">
+            {layout.collapsed.controls ? "Déplier" : "Replier"}
+          </button>
+          <button
+            className="btn"
+            onClick={() => (layout.mode.controls === "dock" ? undockPanel("controls") : dockPanel("controls"))}
+            type="button"
+          >
+            {layout.mode.controls === "dock" ? "Détacher" : "Dock"}
+          </button>
+
+          <label className="switch">
+            <input
+              type="checkbox"
+              checked={adminMode}
+              onChange={(e) => {
+                setAdminMode(e.target.checked);
+                setDrawingRoomId(null);
+                setDrawSessionId((x) => x + 1);
+              }}
+            />
+            <span className="switch-track" />
+            <span className="switch-label">Admin</span>
+          </label>
+        </div>
+      </div>
+
+      {!layout.collapsed.controls && (
+        <div className="card-content">
+          <div className="controls-row">
+            <button className="btn" onClick={toggleSnapFromButton} type="button">
+              Snap: {snapUi ? "ON" : "OFF"} (S)
+            </button>
+
+            <button className="btn" onClick={toggleGridFromButton} type="button">
+              Grille: {gridEnabled ? "ON" : "OFF"}
+            </button>
+
+            <button className="btn btn-icon" onClick={() => setScale((s) => clampScale(s - 0.1))} title="Zoom - (-)" type="button">
+              −
+            </button>
+            <button className="btn btn-icon" onClick={() => setScale((s) => clampScale(s + 0.1))} title="Zoom + (+)" type="button">
+              +
+            </button>
+          </div>
+
+          <div className="field" style={{ marginTop: 10 }}>
+            <label className="label">Taille grille (px)</label>
+            <input
+              className="input"
+              type="number"
+              min={4}
+              max={200}
+              step={1}
+              value={gridSizePx}
+              onChange={(e) => {
+                const n = Math.min(200, Math.max(4, Math.round(Number(e.target.value) || 0)));
+                setGridSizePx(n);
+                writeGridSizePx(n);
+              }}
+            />
+            <div className="hint">La grille sert aussi au snap si activée.</div>
+          </div>
+
+          <div style={{ marginTop: 10 }}>
+            <button
+              className="btn"
+              disabled={!canDeletePolygon}
+              onClick={() => {
+                if (!selectedRoomId) return;
+                setOverlayRequest({ kind: "deletePolygon", roomId: selectedRoomId });
+              }}
+              type="button"
+            >
+              Supprimer polygone (page)
+            </button>
+          </div>
+
+          {adminMode && (
+            <div className="field">
+              <label className="label">Dessiner un polygone pour…</label>
+              <select
+                className="select"
+                value={drawingRoomId ?? ""}
+                onChange={(e) => {
+                  const next = e.target.value || null;
+                  setDrawingRoomId(next);
+                  setDrawSessionId((x) => x + 1);
+                }}
+              >
+                <option value="">— Choisir une pièce —</option>
+                {rooms.map((r) => {
+                  const already = roomHasPolygonOnPage(r as any, currentPage);
+                  return (
+                    <option key={r.id} value={r.id} disabled={already}>
+                      {r.numero} {already ? " — déjà défini (page)" : ""}
+                    </option>
+                  );
+                })}
+              </select>
+            </div>
+          )}
+
+          <div className="hint">Page: {currentPage + 1}/{pageCount} • Zoom = PDF + overlay</div>
+        </div>
+      )}
+    </div>
+  );
+
+  const RoomsPanel = (
+    <div className="card">
+      <div className="card-header">
+        <div>
+          <div className="card-title">Pièces</div>
+          <div className="card-subtitle">Liste & sélection</div>
+        </div>
+
+        <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+          <button className="btn" onClick={() => toggleCollapsed("rooms")} type="button">
+            {layout.collapsed.rooms ? "Déplier" : "Replier"}
+          </button>
+          <button
+            className="btn"
+            onClick={() => (layout.mode.rooms === "dock" ? undockPanel("rooms") : dockPanel("rooms"))}
+            type="button"
+          >
+            {layout.mode.rooms === "dock" ? "Détacher" : "Dock"}
+          </button>
+        </div>
+      </div>
+
+      {!layout.collapsed.rooms && (
+        <div className="card-content">
+          <RoomListPanel rooms={rooms} selectedRoomId={selectedRoomId} onSelectRoom={setSelectedRoomId} />
+        </div>
+      )}
+    </div>
+  );
+
+  const DetailsPanel = (
+    <div className="card">
+      <div className="card-header">
+        <div>
+          <div className="card-title">Détails</div>
+          <div className="card-subtitle">Infos & photo</div>
+        </div>
+
+        <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+          <button className="btn" onClick={() => toggleCollapsed("details")} type="button">
+            {layout.collapsed.details ? "Déplier" : "Replier"}
+          </button>
+          <button
+            className="btn"
+            onClick={() => (layout.mode.details === "dock" ? undockPanel("details") : dockPanel("details"))}
+            type="button"
+          >
+            {layout.mode.details === "dock" ? "Détacher" : "Dock"}
+          </button>
+        </div>
+      </div>
+
+      {!layout.collapsed.details && (
+        <div className="card-content">
+          <RoomDetailsPanel room={selectedRoom} services={services} onSave={handleSaveRoom} onUploadPhoto={handleUploadPhoto} />
+        </div>
+      )}
+    </div>
+  );
 
   return (
     <div className="dash-root">
       <header className="dash-topbar">
         <div className="brand">
-          <div className="brand-badge" aria-hidden="true">
-            ▦
-          </div>
+          <div className="brand-badge" aria-hidden="true">▦</div>
           <div className="brand-text">
             <div className="brand-title">Interface</div>
             <div className="brand-subtitle">Plan d’étage • édition</div>
@@ -307,47 +532,30 @@ export default function App() {
 
         <div className="topbar-actions">
           <div className="search">
-            <span className="search-icon" aria-hidden="true">
-              ⌕
-            </span>
+            <span className="search-icon" aria-hidden="true">⌕</span>
             <input className="search-input" placeholder="Rechercher…" />
           </div>
-
           <div className="pill">{rooms.length} pièce(s)</div>
         </div>
       </header>
 
       <div className="dash-body">
+        {/* Sidebar */}
         <aside className="dash-sidebar">
           <div className="nav-title">Navigation</div>
 
-          <button
-            className={`nav-item ${pageView === "dashboard" ? "nav-item-active" : ""}`}
-            onClick={() => setPageView("dashboard")}
-          >
-            <span className="nav-icon" aria-hidden="true">
-              ⌂
-            </span>
+          <button className={`nav-item ${pageView === "dashboard" ? "nav-item-active" : ""}`} onClick={() => setPageView("dashboard")} type="button">
+            <span className="nav-icon" aria-hidden="true">⌂</span>
             Dashboard
           </button>
 
-          <button
-            className={`nav-item ${pageView === "plans" ? "nav-item-active" : ""}`}
-            onClick={() => setPageView("plans")}
-          >
-            <span className="nav-icon" aria-hidden="true">
-              ▦
-            </span>
+          <button className={`nav-item ${pageView === "plans" ? "nav-item-active" : ""}`} onClick={() => setPageView("plans")} type="button">
+            <span className="nav-icon" aria-hidden="true">▦</span>
             Plans
           </button>
 
-          <button
-            className={`nav-item ${pageView === "settings" ? "nav-item-active" : ""}`}
-            onClick={() => setPageView("settings")}
-          >
-            <span className="nav-icon" aria-hidden="true">
-              ⛭
-            </span>
+          <button className={`nav-item ${pageView === "settings" ? "nav-item-active" : ""}`} onClick={() => setPageView("settings")} type="button">
+            <span className="nav-icon" aria-hidden="true">⛭</span>
             Paramètres
           </button>
 
@@ -365,6 +573,7 @@ export default function App() {
           </div>
         </aside>
 
+        {/* Main */}
         {pageView === "dashboard" && (
           <main className="dash-main">
             <div className="card">
@@ -387,12 +596,49 @@ export default function App() {
               <div className="card-header">
                 <div>
                   <div className="card-title">Paramètres</div>
-                  <div className="card-subtitle">Palette services</div>
+                  <div className="card-subtitle">Layout & palette</div>
+                </div>
+
+                <div style={{ display: "flex", gap: 8 }}>
+                  <button
+                    className="btn"
+                    type="button"
+                    onClick={() => setLayout(DEFAULT_LAYOUT)}
+                    title="Réinitialiser la disposition (dock/float + tailles)"
+                  >
+                    Reset layout
+                  </button>
+                  <button
+                    className="btn"
+                    type="button"
+                    onClick={() => {
+                      setLayout((l) => ({
+                        ...l,
+                        mode: { controls: "dock", rooms: "dock", details: "dock" },
+                      }));
+                    }}
+                  >
+                    Tout dock
+                  </button>
+                  <button
+                    className="btn"
+                    type="button"
+                    onClick={() => {
+                      setLayout((l) => ({
+                        ...l,
+                        mode: { controls: "float", rooms: "float", details: "float" },
+                        collapsed: { controls: false, rooms: true, details: true },
+                      }));
+                    }}
+                  >
+                    Tout flottant
+                  </button>
                 </div>
               </div>
+
               <div className="card-content">
                 <div className="hint">
-                  (Tu peux compléter cet écran, mais surtout : <b>services</b> ne sera jamais undefined.)
+                  Ici tu peux gérer la disposition des panneaux. Les couleurs de services sont auto-seed depuis tes pièces.
                 </div>
               </div>
             </div>
@@ -412,6 +658,7 @@ export default function App() {
                   <button
                     className="btn btn-icon"
                     title="Page précédente"
+                    type="button"
                     onClick={() => {
                       setCurrentPage((p) => Math.max(0, p - 1));
                       setDrawingRoomId(null);
@@ -430,6 +677,7 @@ export default function App() {
                   <button
                     className="btn btn-icon"
                     title="Page suivante"
+                    type="button"
                     onClick={() => {
                       setCurrentPage((p) => Math.min(pageCount - 1, p + 1));
                       setDrawingRoomId(null);
@@ -456,6 +704,7 @@ export default function App() {
                         page={currentPage + 1}
                         onPageCount={setPageCount}
                         onSize={(w, h) => {
+                          // ✅ anti-NaN : on ignore toute taille invalide
                           if (!isValidSize(w) || !isValidSize(h)) return;
                           setSize({ w, h });
                         }}
@@ -488,135 +737,49 @@ export default function App() {
           </main>
         )}
 
+        {/* Docked right column (only docked panels appear here) */}
         {pageView === "plans" && (
           <aside className="dash-right">
             <div className="right-sticky">
-              <div className="card">
-                <div className="card-header">
-                  <div>
-                    <div className="card-title">Contrôles</div>
-                    <div className="card-subtitle">Édition & zoom</div>
-                  </div>
-
-                  <label className="switch">
-                    <input
-                      type="checkbox"
-                      checked={adminMode}
-                      onChange={(e) => {
-                        setAdminMode(e.target.checked);
-                        setDrawingRoomId(null);
-                        setDrawSessionId((x) => x + 1);
-                      }}
-                    />
-                    <span className="switch-track" />
-                    <span className="switch-label">Admin</span>
-                  </label>
-                </div>
-
-                <div className="card-content">
-                  <div className="controls-row">
-                    <button className="btn" onClick={toggleSnapFromButton}>
-                      Snap: {snapUi ? "ON" : "OFF"} (S)
-                    </button>
-
-                    <button className="btn" onClick={toggleGridFromButton}>
-                      Grille: {gridEnabled ? "ON" : "OFF"}
-                    </button>
-
-                    <button className="btn btn-icon" onClick={() => setScale((s) => clampScale(s - 0.1))} title="Zoom - (-)">
-                      −
-                    </button>
-                    <button className="btn btn-icon" onClick={() => setScale((s) => clampScale(s + 0.1))} title="Zoom + (+)">
-                      +
-                    </button>
-                  </div>
-
-                  <div className="field" style={{ marginTop: 10 }}>
-                    <label className="label">Taille grille (px)</label>
-                    <input
-                      className="input"
-                      type="number"
-                      min={4}
-                      max={200}
-                      step={1}
-                      value={gridSizePx}
-                      onChange={(e) => {
-                        const n = Math.min(200, Math.max(4, Math.round(Number(e.target.value) || 0)));
-                        setGridSizePx(n);
-                        writeGridSizePx(n);
-                      }}
-                    />
-                    <div className="hint">La grille sert aussi au snap si activée.</div>
-                  </div>
-
-                  <div style={{ marginTop: 10 }}>
-                    <button
-                      className="btn"
-                      disabled={!canDeletePolygon}
-                      onClick={() => {
-                        if (!selectedRoomId) return;
-                        setOverlayRequest({ kind: "deletePolygon", roomId: selectedRoomId });
-                      }}
-                    >
-                      Supprimer polygone (page)
-                    </button>
-                  </div>
-
-                  {adminMode && (
-                    <div className="field">
-                      <label className="label">Dessiner un polygone pour…</label>
-                      <select
-                        className="select"
-                        value={drawingRoomId ?? ""}
-                        onChange={(e) => {
-                          setDrawingRoomId(e.target.value || null);
-                          setDrawSessionId((x) => x + 1);
-                        }}
-                      >
-                        <option value="">— Choisir une pièce —</option>
-                        {rooms.map((r) => (
-                          <option key={r.id} value={r.id}>
-                            {r.numero}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              <div className="card">
-                <div className="card-header">
-                  <div>
-                    <div className="card-title">Pièces</div>
-                    <div className="card-subtitle">Liste & sélection</div>
-                  </div>
-                </div>
-                {/* ✅ pas de card-scroll ici */}
-                <div className="card-content">
-                  <RoomListPanel rooms={rooms} selectedRoomId={selectedRoomId} onSelectRoom={setSelectedRoomId} />
-                </div>
-              </div>
-
-              <div className="card">
-                <div className="card-header">
-                  <div>
-                    <div className="card-title">Détails</div>
-                    <div className="card-subtitle">Infos & photo</div>
-                  </div>
-                </div>
-                {/* ✅ ICI le fix : services n’est jamais undefined */}
-                <div className="card-content">
-                  <RoomDetailsPanel
-                    room={selectedRoom}
-                    services={services}
-                    onSave={handleSaveRoom}
-                    onUploadPhoto={handleUploadPhoto}
-                  />
-                </div>
-              </div>
+              {layout.mode.controls === "dock" && ControlsPanel}
+              {layout.mode.rooms === "dock" && RoomsPanel}
+              {layout.mode.details === "dock" && DetailsPanel}
             </div>
           </aside>
+        )}
+
+        {/* Floating panels */}
+        {pageView === "plans" && layout.mode.controls === "float" && (
+          <FloatingPanel
+            title="Contrôles"
+            rect={layout.rect.controls}
+            onRect={(r) => setRect("controls", r)}
+            onDock={() => dockPanel("controls")}
+          >
+            {ControlsPanel}
+          </FloatingPanel>
+        )}
+
+        {pageView === "plans" && layout.mode.rooms === "float" && (
+          <FloatingPanel
+            title="Pièces"
+            rect={layout.rect.rooms}
+            onRect={(r) => setRect("rooms", r)}
+            onDock={() => dockPanel("rooms")}
+          >
+            {RoomsPanel}
+          </FloatingPanel>
+        )}
+
+        {pageView === "plans" && layout.mode.details === "float" && (
+          <FloatingPanel
+            title="Détails"
+            rect={layout.rect.details}
+            onRect={(r) => setRect("details", r)}
+            onDock={() => dockPanel("details")}
+          >
+            {DetailsPanel}
+          </FloatingPanel>
         )}
       </div>
     </div>
