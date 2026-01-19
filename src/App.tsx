@@ -359,6 +359,9 @@ export default function App() {
     adminMode && !!selectedRoomId && roomHasPolygonOnPage(rooms.find((x) => x.id === selectedRoomId) as any, currentPage);
 
   const overlayReady = isValidSize(size.w) && isValidSize(size.h);
+  const hasDockedPanel =
+    layout.mode.controls === "dock" || layout.mode.rooms === "dock" || layout.mode.details === "dock";
+  const shouldCollapseRight = pageView !== "plans" || !hasDockedPanel;
 
   // -----------------------
   // Dock/Float helpers
@@ -577,7 +580,7 @@ export default function App() {
         </div>
       </header>
 
-      <div className="dash-body">
+      <div className={`dash-body ${shouldCollapseRight ? "right-collapsed" : ""}`}>
         {/* Sidebar */}
         <aside className="dash-sidebar">
           <div className="nav-title">Navigation</div>
