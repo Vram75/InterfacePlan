@@ -175,6 +175,10 @@ function defaultColorForService(service: string): string {
   return `hsl(${hue} 55% 72%)`;
 }
 
+function sortServices(list: ServiceColor[]) {
+  return [...list].sort((a, b) => a.service.localeCompare(b.service, "fr"));
+}
+
 export default function App() {
   const [pageView, setPageView] = useState<PageView>("plans");
 
@@ -207,6 +211,10 @@ export default function App() {
   const [services, setServices] = useState<ServiceColor[]>(() => readServiceColors());
   useEffect(() => writeServiceColors(services), [services]);
 
+  const [newServiceName, setNewServiceName] = useState("");
+  const [newServiceColor, setNewServiceColor] = useState(() => defaultColorForService("Service"));
+  const [newServiceColorTouched, setNewServiceColorTouched] = useState(false);
+
   useEffect(() => {
     api.getRooms().then((r) => {
       setRooms(r);
@@ -226,9 +234,7 @@ export default function App() {
             }
           }
           if (!changed) return prev;
-          return Array.from(map.entries())
-            .map(([service, color]) => ({ service, color }))
-            .sort((a, b) => a.service.localeCompare(b.service, "fr"));
+          return sortServices(Array.from(map.entries()).map(([service, color]) => ({ service, color })));
         });
       }
     });
@@ -255,9 +261,7 @@ export default function App() {
       setServices((prev) => {
         const key = normalizeServiceName(svc);
         if (prev.some((x) => x.service.trim() === key)) return prev;
-        return [...prev, { service: key, color: defaultColorForService(key) }].sort((a, b) =>
-          a.service.localeCompare(b.service, "fr")
-        );
+        return sortServices([...prev, { service: key, color: defaultColorForService(key) }]);
       });
     }
   }
@@ -265,6 +269,20 @@ export default function App() {
   async function handleUploadPhoto(roomId: string, file: File) {
     const saved = await api.uploadPhoto(roomId, file);
     setRooms((prev) => prev.map((r) => (r.id === saved.id ? saved : r)));
+  }
+
+  function handleAddService() {
+    const name = normalizeServiceName(newServiceName);
+    if (!name) return;
+    const color = newServiceColor?.trim() || defaultColorForService(name);
+    setServices((prev) => {
+      const map = new Map(prev.map((s) => [s.service.trim(), s.color]));
+      map.set(name, color);
+      return sortServices(Array.from(map.entries()).map(([service, value]) => ({ service, color: value })));
+    });
+    setNewServiceName("");
+    setNewServiceColor(defaultColorForService("Service"));
+    setNewServiceColorTouched(false);
   }
 
   // Snap UI sync (S)
@@ -639,6 +657,98 @@ export default function App() {
               <div className="card-content">
                 <div className="hint">
                   Ici tu peux gérer la disposition des panneaux. Les couleurs de services sont auto-seed depuis tes pièces.
+                </div>
+
+                <hr style={{ border: "none", borderTop: "1px solid rgba(0,0,0,0.08)", margin: "16px 0" }} />
+
+                <div style={{ display: "grid", gap: 12 }}>
+                  <div style={{ fontWeight: 800, opacity: 0.85 }}>Services</div>
+
+                  <form
+                    onSubmit={(e) => {
+                      e.preventDefault();
+                      handleAddService();
+                    }}
+                    style={{ display: "flex", flexWrap: "wrap", gap: 10, alignItems: "flex-end" }}
+                  >
+                    <div className="field" style={{ minWidth: 220, flex: "1 1 220px" }}>
+                      <label className="label">Nom du service</label>
+                      <input
+                        className="input"
+                        value={newServiceName}
+                        placeholder="Ex: Cardiologie"
+                        onChange={(e) => {
+                          const next = e.target.value;
+                          setNewServiceName(next);
+                          if (!newServiceColorTouched) {
+                            const trimmed = next.trim();
+                            setNewServiceColor(defaultColorForService(trimmed || "Service"));
+                          }
+                        }}
+                      />
+                    </div>
+
+                    <div className="field" style={{ width: 140 }}>
+                      <label className="label">Couleur</label>
+                      <input
+                        className="input"
+                        type="color"
+                        value={newServiceColor}
+                        onChange={(e) => {
+                          setNewServiceColorTouched(true);
+                          setNewServiceColor(e.target.value);
+                        }}
+                      />
+                    </div>
+
+                    <button className="btn" type="submit" disabled={!newServiceName.trim()}>
+                      Ajouter / mettre à jour
+                    </button>
+                  </form>
+
+                  <div style={{ display: "grid", gap: 8 }}>
+                    {services.length === 0 && <div className="hint">Aucun service défini. Ajoute-en un ci-dessus.</div>}
+
+                    {services.map((service) => (
+                      <div
+                        key={service.service}
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          gap: 10,
+                          padding: "8px 10px",
+                          borderRadius: 12,
+                          border: "1px solid rgba(0,0,0,0.08)",
+                          background: "rgba(0,0,0,0.02)",
+                        }}
+                      >
+                        <div style={{ flex: 1, fontWeight: 600 }}>{service.service}</div>
+
+                        <input
+                          className="input"
+                          type="color"
+                          value={service.color}
+                          onChange={(e) => {
+                            const next = e.target.value;
+                            setServices((prev) =>
+                              prev.map((s) => (s.service === service.service ? { ...s, color: next } : s))
+                            );
+                          }}
+                        />
+
+                        <button
+                          className="btn"
+                          type="button"
+                          onClick={() => {
+                            if (!window.confirm(`Supprimer le service “${service.service}” ?`)) return;
+                            setServices((prev) => prev.filter((s) => s.service !== service.service));
+                          }}
+                        >
+                          Supprimer
+                        </button>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               </div>
             </div>
