@@ -4,13 +4,52 @@ import "./App.css";
 import { PdfCanvas } from "./components/PdfCanvas";
 import { SvgOverlay } from "./components/SvgOverlay";
 import type { OverlayRequest } from "./components/SvgOverlay";
+
 import { RoomListPanel } from "./components/RoomListPanel";
 import { RoomDetailsPanel } from "./components/RoomDetailsPanel";
+
 import { api } from "./api";
 import type { Room, Point } from "./types";
 
 const SNAP_STORAGE_KEY = "iface.snapEnabled";
 const SNAP_TOGGLE_EVENT = "iface:snap-toggle";
+
+const GRID_ENABLED_KEY = "iface.gridEnabled";
+const GRID_SIZE_KEY = "iface.gridSizePx";
+
+function readGridEnabled(): boolean {
+  try {
+    const v = localStorage.getItem(GRID_ENABLED_KEY);
+    if (v == null) return false;
+    const s = String(v).trim().toLowerCase();
+    return !(s === "0" || s === "false" || s === "off" || s === "no");
+  } catch {
+    return false;
+  }
+}
+
+function writeGridEnabled(v: boolean) {
+  try {
+    localStorage.setItem(GRID_ENABLED_KEY, String(v));
+  } catch {}
+}
+
+function readGridSizePx(): number {
+  try {
+    const v = localStorage.getItem(GRID_SIZE_KEY);
+    const n = v == null ? 20 : Number(v);
+    if (!Number.isFinite(n)) return 20;
+    return Math.min(200, Math.max(4, Math.round(n)));
+  } catch {
+    return 20;
+  }
+}
+
+function writeGridSizePx(v: number) {
+  try {
+    localStorage.setItem(GRID_SIZE_KEY, String(v));
+  } catch {}
+}
 
 function readSnapFromStorage(): boolean {
   try {
@@ -39,16 +78,50 @@ function isTypingTarget(target: unknown): boolean {
   );
 }
 
-function roomHasPolygon(r: Room | null): boolean {
+// ✅ Multi-pages compat (room.polygons[] ou legacy room.polygon sur page 0)
+function extractPolyForPage(room: any, page: number): Point[] | undefined {
+  const polys = room?.polygons;
+  if (Array.isArray(polys)) {
+    for (const entry of polys) {
+      if (!entry) continue;
+      const entryPage =
+        typeof entry.page === "number"
+          ? entry.page
+          : typeof entry.pageIndex === "number"
+          ? entry.pageIndex
+          : undefined;
+
+      if (entryPage !== page) continue;
+
+      const pts = entry.points ?? entry.polygon ?? entry;
+      if (Array.isArray(pts)) return pts as Point[];
+      if (pts && Array.isArray(pts.polygon)) return pts.polygon as Point[];
+    }
+  }
+
+  if (page === 0) {
+    const p = room?.polygon;
+    if (Array.isArray(p)) return p as Point[];
+    if (p && Array.isArray(p.polygon)) return p.polygon as Point[];
+  }
+  return undefined;
+}
+
+function roomHasPolygonForPage(r: Room | null, page: number): boolean {
   if (!r) return false;
-  const p: any = (r as any).polygon;
-  if (!p) return false;
-  if (Array.isArray(p)) return p.length >= 3;
-  if (Array.isArray(p?.polygon)) return p.polygon.length >= 3;
-  return false;
+  const poly = extractPolyForPage(r as any, page);
+  return !!poly && poly.length >= 3;
+}
+
+type PageView = "dashboard" | "plans" | "settings";
+
+function isValidSize(n: unknown): n is number {
+  return typeof n === "number" && Number.isFinite(n) && n > 0;
 }
 
 export default function App() {
+  const [pageView, setPageView] = useState<PageView>("dashboard");
+
   const [rooms, setRooms] = useState<Room[]>([]);
   const [selectedRoomId, setSelectedRoomId] = useState<string | null>(null);
 
@@ -59,9 +132,14 @@ export default function App() {
   const [scale, setScale] = useState(1.2);
   const [size, setSize] = useState({ w: 800, h: 600 });
 
-  const [snapUi, setSnapUi] = useState<boolean>(() => readSnapFromStorage());
+  // ✅ Multi-pages PDF (0-based)
+  const [currentPage, setCurrentPage] = useState(0);
+  const [pageCount, setPageCount] = useState(1);
 
-  // ✅ Requests vers l’overlay (delete, etc.)
+  const [snapUi, setSnapUi] = useState<boolean>(() => readSnapFromStorage());
+  const [gridEnabled, setGridEnabled] = useState<boolean>(() => readGridEnabled());
+  const [gridSizePx, setGridSizePx] = useState<number>(() => readGridSizePx());
+
   const [overlayRequest, setOverlayRequest] = useState<OverlayRequest>({ kind: "none" });
 
   useEffect(() => {
@@ -77,8 +155,22 @@ export default function App() {
     [rooms, selectedRoomId]
   );
 
-  async function commitPolygon(roomId: string, poly: Point[]) {
-    const saved = await api.updatePolygon(roomId, { page: 0, polygon: poly });
+  useEffect(() => {
+    setCurrentPage((p) => Math.max(0, Math.min(p, Math.max(1, pageCount) - 1)));
+  }, [pageCount]);
+
+  async function commitPolygon(roomId: string, page: number, poly: Point[]) {
+    const saved = await api.updatePolygon(roomId, { page, polygon: poly });
+    setRooms((prev) => prev.map((r) => (r.id === saved.id ? saved : r)));
+  }
+
+  async function handleSaveRoom(room: Room) {
+    const saved = await api.updateRoom(room);
+    setRooms((prev) => prev.map((r) => (r.id === saved.id ? saved : r)));
+  }
+
+  async function handleUploadPhoto(roomId: string, file: File) {
+    const saved = await api.uploadPhoto(roomId, file);
     setRooms((prev) => prev.map((r) => (r.id === saved.id ? saved : r)));
   }
 
@@ -105,6 +197,14 @@ export default function App() {
     setTimeout(() => setSnapUi(readSnapFromStorage()), 0);
   }
 
+  function toggleGridFromButton() {
+    setGridEnabled((prev) => {
+      const next = !prev;
+      writeGridEnabled(next);
+      return next;
+    });
+  }
+
   // Global zoom shortcuts: '+' and '-'
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
@@ -127,7 +227,12 @@ export default function App() {
     return () => window.removeEventListener("keydown", onKeyDown);
   }, []);
 
-  const canDeletePolygon = adminMode && !!selectedRoomId && roomHasPolygon(selectedRoom);
+  const canDeletePolygon =
+    adminMode && !!selectedRoomId && roomHasPolygonForPage(selectedRoom, currentPage);
+
+  const overlayW = size.w;
+  const overlayH = size.h;
+  const overlayReady = isValidSize(overlayW) && isValidSize(overlayH);
 
   return (
     <div className="dash-root">
@@ -160,19 +265,31 @@ export default function App() {
         {/* SIDEBAR */}
         <aside className="dash-sidebar">
           <div className="nav-title">Navigation</div>
-          <button className="nav-item nav-item-active">
+
+          <button
+            className={`nav-item ${pageView === "dashboard" ? "nav-item-active" : ""}`}
+            onClick={() => setPageView("dashboard")}
+          >
             <span className="nav-icon" aria-hidden="true">
               ⌂
             </span>
             Dashboard
           </button>
-          <button className="nav-item">
+
+          <button
+            className={`nav-item ${pageView === "plans" ? "nav-item-active" : ""}`}
+            onClick={() => setPageView("plans")}
+          >
             <span className="nav-icon" aria-hidden="true">
               ▦
             </span>
             Plans
           </button>
-          <button className="nav-item">
+
+          <button
+            className={`nav-item ${pageView === "settings" ? "nav-item-active" : ""}`}
+            onClick={() => setPageView("settings")}
+          >
             <span className="nav-icon" aria-hidden="true">
               ⛭
             </span>
@@ -192,169 +309,273 @@ export default function App() {
         </aside>
 
         {/* MAIN */}
-        <main className="dash-main">
-          <div className="card plan-card">
-            <div className="card-header">
-              <div>
-                <div className="card-title">Plan</div>
-                <div className="card-subtitle">PDF + overlay</div>
-              </div>
-
-              <div className="card-meta">
-                <span className="meta-chip">Zoom x{scale.toFixed(2)}</span>
-                <span className="meta-chip">Sélection: {selectedRoom?.numero ?? "—"}</span>
-              </div>
-            </div>
-
-            <div className="card-content plan-content">
-              <div className="plan-viewport">
-                <div className="plan-stage">
-                  <PdfCanvas
-                    pdfUrl="/Pour CHATGPT.pdf"
-                    scale={scale}
-                    onSize={(w, h) => setSize({ w, h })}
-                  />
-
-                  <SvgOverlay
-                    width={size.w}
-                    height={size.h}
-                    rooms={rooms}
-                    services={[]}
-                    selectedRoomId={selectedRoomId}
-                    onSelectRoom={setSelectedRoomId}
-                    adminMode={adminMode}
-                    drawingRoomId={drawingRoomId}
-                    drawSessionId={drawSessionId}
-                    onPolygonCommit={commitPolygon}
-                    request={overlayRequest}
-                    onRequestHandled={() => setOverlayRequest({ kind: "none" })}
-                  />
-                </div>
-              </div>
-            </div>
-          </div>
-        </main>
-
-        {/* RIGHT */}
-        <aside className="dash-right">
-          <div className="right-sticky">
+        {pageView === "dashboard" && (
+          <main className="dash-main">
             <div className="card">
               <div className="card-header">
                 <div>
-                  <div className="card-title">Contrôles</div>
-                  <div className="card-subtitle">Édition & zoom</div>
+                  <div className="card-title">Dashboard</div>
+                  <div className="card-subtitle">Accueil</div>
+                </div>
+              </div>
+              <div className="card-content">
+                <div className="hint">
+                  L’éditeur multi-pages est dans <b>Plans</b>.
+                </div>
+              </div>
+            </div>
+          </main>
+        )}
+
+        {pageView === "settings" && (
+          <main className="dash-main">
+            <div className="card">
+              <div className="card-header">
+                <div>
+                  <div className="card-title">Paramètres</div>
+                  <div className="card-subtitle">Préférences</div>
+                </div>
+              </div>
+              <div className="card-content">
+                <div className="hint">Écran Paramètres (à compléter).</div>
+              </div>
+            </div>
+          </main>
+        )}
+
+        {pageView === "plans" && (
+          <main className="dash-main">
+            <div className="card plan-card">
+              <div className="card-header">
+                <div>
+                  <div className="card-title">Plan</div>
+                  <div className="card-subtitle">PDF + overlay</div>
                 </div>
 
-                <label className="switch">
-                  <input
-                    type="checkbox"
-                    checked={adminMode}
-                    onChange={(e) => {
-                      setAdminMode(e.target.checked);
+                <div className="card-meta">
+                  <button
+                    className="btn btn-icon"
+                    title="Page précédente"
+                    onClick={() => {
+                      setCurrentPage((p) => Math.max(0, p - 1));
                       setDrawingRoomId(null);
+                      setOverlayRequest({ kind: "none" });
                       setDrawSessionId((x) => x + 1);
                     }}
-                  />
-                  <span className="switch-track" />
-                  <span className="switch-label">Admin</span>
-                </label>
+                    disabled={currentPage <= 0}
+                  >
+                    ◀
+                  </button>
+
+                  <span className="meta-chip">
+                    Page {Math.min(pageCount, currentPage + 1)} / {pageCount}
+                  </span>
+
+                  <button
+                    className="btn btn-icon"
+                    title="Page suivante"
+                    onClick={() => {
+                      setCurrentPage((p) => Math.min(pageCount - 1, p + 1));
+                      setDrawingRoomId(null);
+                      setOverlayRequest({ kind: "none" });
+                      setDrawSessionId((x) => x + 1);
+                    }}
+                    disabled={currentPage >= pageCount - 1}
+                  >
+                    ▶
+                  </button>
+
+                  <span className="meta-chip">Zoom x{scale.toFixed(2)}</span>
+                  <span className="meta-chip">Sélection: {selectedRoom?.numero ?? "—"}</span>
+                </div>
               </div>
 
-              <div className="card-content">
-                <div className="controls-row">
-                  <button className="btn" onClick={toggleSnapFromButton}>
-                    Snap: {snapUi ? "ON" : "OFF"} (S)
-                  </button>
+              <div className="card-content plan-content">
+                <div className="plan-viewport">
+                  <div className="plan-stage">
+                    <div className="plan-layer">
+                      <PdfCanvas
+                        pdfUrl="/Pour CHATGPT.pdf"
+                        scale={scale}
+                        page={currentPage + 1}
+                        onPageCount={setPageCount}
+                        onSize={(w, h) => {
+                          // ✅ ANTI-NaN: on ignore tout ce qui n’est pas une taille valide
+                          if (!isValidSize(w) || !isValidSize(h)) return;
+                          setSize({ w, h });
+                        }}
+                      />
 
-                  <button
-                    className="btn btn-icon"
-                    onClick={() => setScale((s) => clampScale(s - 0.1))}
-                    title="Zoom - (-)"
-                  >
-                    −
-                  </button>
-                  <button
-                    className="btn btn-icon"
-                    onClick={() => setScale((s) => clampScale(s + 0.1))}
-                    title="Zoom + (+)"
-                  >
-                    +
-                  </button>
+                      {/* ✅ on ne rend l’overlay que quand les dimensions sont valides */}
+                      {overlayReady && (
+                        <SvgOverlay
+                          width={overlayW}
+                          height={overlayH}
+                          page={currentPage}
+                          rooms={rooms}
+                          services={[]}
+                          selectedRoomId={selectedRoomId}
+                          onSelectRoom={setSelectedRoomId}
+                          adminMode={adminMode}
+                          drawingRoomId={drawingRoomId}
+                          drawSessionId={drawSessionId}
+                          onPolygonCommit={(roomId, poly) => commitPolygon(roomId, currentPage, poly)}
+                          request={overlayRequest}
+                          onRequestHandled={() => setOverlayRequest({ kind: "none" })}
+                          gridEnabled={gridEnabled}
+                          gridSizePx={gridSizePx}
+                        />
+                      )}
+                    </div>
+                  </div>
                 </div>
+              </div>
+            </div>
+          </main>
+        )}
 
-                {/* ✅ SUPPRESSION POLYGONE */}
-                <div style={{ marginTop: 10 }}>
-                  <button
-                    className="btn"
-                    disabled={!canDeletePolygon}
-                    onClick={() => {
-                      if (!selectedRoomId) return;
-                      setOverlayRequest({ kind: "deletePolygon", roomId: selectedRoomId });
-                    }}
-                    title={!canDeletePolygon ? "Sélectionne une pièce avec un polygone" : "Supprimer le polygone"}
-                  >
-                    Supprimer polygone
-                  </button>
-                </div>
+        {/* RIGHT */}
+        {pageView === "plans" && (
+          <aside className="dash-right">
+            <div className="right-sticky">
+              <div className="card">
+                <div className="card-header">
+                  <div>
+                    <div className="card-title">Contrôles</div>
+                    <div className="card-subtitle">Édition & zoom</div>
+                  </div>
 
-                {adminMode && (
-                  <div className="field">
-                    <label className="label">Dessiner un polygone pour…</label>
-                    <select
-                      className="select"
-                      value={drawingRoomId ?? ""}
+                  <label className="switch">
+                    <input
+                      type="checkbox"
+                      checked={adminMode}
                       onChange={(e) => {
-                        setDrawingRoomId(e.target.value || null);
+                        setAdminMode(e.target.checked);
+                        setDrawingRoomId(null);
                         setDrawSessionId((x) => x + 1);
                       }}
+                    />
+                    <span className="switch-track" />
+                    <span className="switch-label">Admin</span>
+                  </label>
+                </div>
+
+                <div className="card-content">
+                  <div className="controls-row">
+                    <button className="btn" onClick={toggleSnapFromButton}>
+                      Snap: {snapUi ? "ON" : "OFF"} (S)
+                    </button>
+
+                    <button className="btn" onClick={toggleGridFromButton}>
+                      Grille: {gridEnabled ? "ON" : "OFF"}
+                    </button>
+
+                    <button
+                      className="btn btn-icon"
+                      onClick={() => setScale((s) => clampScale(s - 0.1))}
+                      title="Zoom - (-)"
                     >
-                      <option value="">— Choisir une pièce —</option>
-                      {rooms.map((r) => (
-                        <option key={r.id} value={r.id}>
-                          {r.numero}
-                        </option>
-                      ))}
-                    </select>
+                      −
+                    </button>
+                    <button
+                      className="btn btn-icon"
+                      onClick={() => setScale((s) => clampScale(s + 0.1))}
+                      title="Zoom + (+)"
+                    >
+                      +
+                    </button>
                   </div>
-                )}
 
-                <div className="hint">Zoom ne concerne que la zone de dessin (PDF + overlay).</div>
-              </div>
-            </div>
+                  <div className="field" style={{ marginTop: 10 }}>
+                    <label className="label">Taille grille (px)</label>
+                    <input
+                      className="input"
+                      type="number"
+                      min={4}
+                      max={200}
+                      step={1}
+                      value={gridSizePx}
+                      onChange={(e) => {
+                        const n = Math.min(200, Math.max(4, Math.round(Number(e.target.value) || 0)));
+                        setGridSizePx(n);
+                        writeGridSizePx(n);
+                      }}
+                    />
+                    <div className="hint">La grille sert aussi au snap si activée.</div>
+                  </div>
 
-            <div className="card">
-              <div className="card-header">
-                <div>
-                  <div className="card-title">Pièces</div>
-                  <div className="card-subtitle">Liste & sélection</div>
+                  <div style={{ marginTop: 10 }}>
+                    <button
+                      className="btn"
+                      disabled={!canDeletePolygon}
+                      onClick={() => {
+                        if (!selectedRoomId) return;
+                        setOverlayRequest({ kind: "deletePolygon", roomId: selectedRoomId });
+                      }}
+                    >
+                      Supprimer polygone (page)
+                    </button>
+                  </div>
+
+                  {adminMode && (
+                    <div className="field">
+                      <label className="label">Dessiner un polygone pour…</label>
+                      <select
+                        className="select"
+                        value={drawingRoomId ?? ""}
+                        onChange={(e) => {
+                          setDrawingRoomId(e.target.value || null);
+                          setDrawSessionId((x) => x + 1);
+                        }}
+                      >
+                        <option value="">— Choisir une pièce —</option>
+                        {rooms.map((r) => (
+                          <option key={r.id} value={r.id}>
+                            {r.numero}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
+
+                  <div className="hint">Multi-pages : chaque polygone est lié à la page courante.</div>
                 </div>
               </div>
 
-              {/* ✅ IMPORTANT : pas de card-scroll ici → pas d’ascenseur interne */}
-              <div className="card-content">
-                <RoomListPanel
-                  rooms={rooms}
-                  selectedRoomId={selectedRoomId}
-                  onSelectRoom={setSelectedRoomId}
-                />
-              </div>
-            </div>
+              <div className="card">
+                <div className="card-header">
+                  <div>
+                    <div className="card-title">Pièces</div>
+                    <div className="card-subtitle">Liste & sélection</div>
+                  </div>
+                </div>
 
-            <div className="card">
-              <div className="card-header">
-                <div>
-                  <div className="card-title">Détails</div>
-                  <div className="card-subtitle">Infos & photo</div>
+                {/* ✅ pas de card-scroll ici */}
+                <div className="card-content">
+                  <RoomListPanel
+                    rooms={rooms}
+                    selectedRoomId={selectedRoomId}
+                    onSelectRoom={setSelectedRoomId}
+                  />
                 </div>
               </div>
 
-              {/* ✅ IMPORTANT : pas de card-scroll ici → pas d’ascenseur interne */}
-              <div className="card-content">
-                <RoomDetailsPanel room={selectedRoom} />
+              <div className="card">
+                <div className="card-header">
+                  <div>
+                    <div className="card-title">Détails</div>
+                    <div className="card-subtitle">Infos & photo</div>
+                  </div>
+                </div>
+
+                {/* ✅ pas de card-scroll ici */}
+                <div className="card-content">
+                  <RoomDetailsPanel room={selectedRoom} onSave={handleSaveRoom} onUploadPhoto={handleUploadPhoto} />
+                </div>
               </div>
             </div>
-          </div>
-        </aside>
+          </aside>
+        )}
       </div>
     </div>
   );
