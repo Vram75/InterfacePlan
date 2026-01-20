@@ -161,6 +161,10 @@ function normalizeServiceName(s: string) {
   return s.trim();
 }
 
+function serviceKey(s: string) {
+  return normalizeServiceName(s).toLowerCase();
+}
+
 function hashStringToHue(s: string): number {
   let h = 0;
   for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) >>> 0;
@@ -168,7 +172,7 @@ function hashStringToHue(s: string): number {
 }
 
 function defaultColorForService(service: string): string {
-  const hue = hashStringToHue(service);
+  const hue = hashStringToHue(service.trim());
   return `hsl(${hue} 55% 72%)`;
 }
 
@@ -186,7 +190,6 @@ function useIsNarrow(thresholdPx: number) {
     const onChange = () => setIsNarrow(mql.matches);
     onChange();
 
-    // Safari fallback
     if ("addEventListener" in mql) mql.addEventListener("change", onChange);
     else (mql as any).addListener(onChange);
 
@@ -235,7 +238,6 @@ export default function App() {
   const isNarrow = useIsNarrow(1200);
   const [rightDrawerOpen, setRightDrawerOpen] = useState(false);
 
-  // Close drawer when leaving narrow mode OR leaving plans
   useEffect(() => {
     if (!isNarrow) setRightDrawerOpen(false);
   }, [isNarrow]);
@@ -244,6 +246,7 @@ export default function App() {
     if (pageView !== "plans") setRightDrawerOpen(false);
   }, [pageView]);
 
+  // Settings: add service inputs
   const [newServiceName, setNewServiceName] = useState("");
   const [newServiceColor, setNewServiceColor] = useState(() => defaultColorForService("Service"));
   const [newServiceColorTouched, setNewServiceColorTouched] = useState(false);
@@ -253,20 +256,23 @@ export default function App() {
       setRooms(r);
       if (r.length && !selectedRoomId) setSelectedRoomId(r[0].id);
 
+      // Seed palette from existing rooms
       const used = new Set(r.map((x) => (x.service ?? "").trim()).filter((s) => s.length > 0));
       if (used.size) {
         setServices((prev) => {
-          const map = new Map(prev.map((p) => [p.service.trim(), p.color]));
+          const map = new Map(prev.map((p) => [serviceKey(p.service), p]));
           let changed = false;
+
           for (const s of used) {
-            const key = normalizeServiceName(s);
+            const key = serviceKey(s);
             if (!map.has(key)) {
-              map.set(key, defaultColorForService(key));
+              map.set(key, { service: normalizeServiceName(s), color: defaultColorForService(s) });
               changed = true;
             }
           }
           if (!changed) return prev;
-          return sortServices(Array.from(map.entries()).map(([service, color]) => ({ service, color })));
+
+          return sortServices(Array.from(map.values()));
         });
       }
     });
@@ -291,9 +297,9 @@ export default function App() {
     const svc = (saved.service ?? "").trim();
     if (svc) {
       setServices((prev) => {
-        const key = normalizeServiceName(svc);
-        if (prev.some((x) => x.service.trim() === key)) return prev;
-        return sortServices([...prev, { service: key, color: defaultColorForService(key) }]);
+        const key = serviceKey(svc);
+        if (prev.some((x) => serviceKey(x.service) === key)) return prev;
+        return sortServices([...prev, { service: normalizeServiceName(svc), color: defaultColorForService(svc) }]);
       });
     }
   }
@@ -303,22 +309,84 @@ export default function App() {
     setRooms((prev) => prev.map((r) => (r.id === saved.id ? saved : r)));
   }
 
-  function handleAddService() {
+  // ------- Services manager (réparation) -------
+  function addService() {
     const name = normalizeServiceName(newServiceName);
     if (!name) return;
 
-    const color = newServiceColor?.trim() || defaultColorForService(name);
+    const color = (newServiceColor || "").trim() || defaultColorForService(name);
+    const key = serviceKey(name);
 
     setServices((prev) => {
-      const map = new Map(prev.map((s) => [s.service.trim(), s.color]));
-      map.set(name, color);
-      return sortServices(Array.from(map.entries()).map(([service, value]) => ({ service, color: value })));
+      const map = new Map<string, ServiceColor>();
+      for (const s of prev) map.set(serviceKey(s.service), { service: normalizeServiceName(s.service), color: (s.color || "").trim() });
+      map.set(key, { service: name, color });
+      return sortServices(Array.from(map.values()).filter((x) => x.service.length > 0));
     });
 
     setNewServiceName("");
     setNewServiceColor(defaultColorForService("Service"));
     setNewServiceColorTouched(false);
   }
+
+  function updateService(index: number, patch: Partial<ServiceColor>) {
+    setServices((prev) => {
+      const next = prev.slice();
+      const current = next[index];
+      if (!current) return prev;
+
+      const updated: ServiceColor = {
+        service: patch.service != null ? patch.service : current.service,
+        color: patch.color != null ? patch.color : current.color,
+      };
+
+      updated.service = normalizeServiceName(updated.service);
+      updated.color = (updated.color || "").trim();
+
+      // Rebuild map to remove duplicates case-insensitive
+      const map = new Map<string, ServiceColor>();
+      next[index] = updated;
+
+      for (const s of next) {
+        const name = normalizeServiceName(s.service);
+        if (!name) continue;
+        const k = serviceKey(name);
+        const color = (s.color || "").trim() || defaultColorForService(name);
+
+        // If duplicates exist, keep the latest occurrence
+        map.set(k, { service: name, color });
+      }
+
+      return sortServices(Array.from(map.values()));
+    });
+  }
+
+  function removeService(index: number) {
+    setServices((prev) => prev.filter((_, i) => i !== index));
+  }
+
+  function seedServicesFromRooms() {
+    const used = new Set(rooms.map((x) => (x.service ?? "").trim()).filter((s) => s.length > 0));
+    if (!used.size) return;
+
+    setServices((prev) => {
+      const map = new Map(prev.map((p) => [serviceKey(p.service), { service: normalizeServiceName(p.service), color: (p.color || "").trim() }]));
+      let changed = false;
+      for (const s of used) {
+        const k = serviceKey(s);
+        if (!map.has(k)) {
+          map.set(k, { service: normalizeServiceName(s), color: defaultColorForService(s) });
+          changed = true;
+        }
+      }
+      return changed ? sortServices(Array.from(map.values())) : prev;
+    });
+  }
+
+  function resetServices() {
+    setServices([]);
+  }
+  // --------------------------------------------
 
   // Snap UI sync (S)
   useEffect(() => {
@@ -359,7 +427,6 @@ export default function App() {
         setScale((s) => clampScale(s + 0.1));
         return;
       }
-
       if (e.key === "-" || e.key === "_") {
         e.preventDefault();
         setScale((s) => clampScale(s - 0.1));
@@ -695,6 +762,7 @@ export default function App() {
           </main>
         )}
 
+        {/* ✅ Settings: services manager complet */}
         {pageView === "settings" && (
           <main className="dash-main">
             <div className="card">
@@ -704,9 +772,17 @@ export default function App() {
                   <div className="card-subtitle">Services & layout</div>
                 </div>
 
-                <button className="btn btn-mini" type="button" onClick={() => setLayout(DEFAULT_LAYOUT)}>
-                  Reset layout
-                </button>
+                <div className="settings-actions">
+                  <button className="btn btn-mini" type="button" onClick={seedServicesFromRooms} title="Ajoute les services présents dans les pièces">
+                    Seed depuis pièces
+                  </button>
+                  <button className="btn btn-mini" type="button" onClick={resetServices} title="Vide la palette">
+                    Vider
+                  </button>
+                  <button className="btn btn-mini" type="button" onClick={() => setLayout(DEFAULT_LAYOUT)}>
+                    Reset layout
+                  </button>
+                </div>
               </div>
 
               <div className="card-content">
@@ -718,9 +794,10 @@ export default function App() {
                       placeholder="Nom"
                       value={newServiceName}
                       onChange={(e) => {
-                        setNewServiceName(e.target.value);
+                        const v = e.target.value;
+                        setNewServiceName(v);
                         if (!newServiceColorTouched) {
-                          setNewServiceColor(defaultColorForService(e.target.value || "Service"));
+                          setNewServiceColor(defaultColorForService(v || "Service"));
                         }
                       }}
                     />
@@ -733,13 +810,45 @@ export default function App() {
                         setNewServiceColor(e.target.value);
                       }}
                     />
-                    <button className="btn btn-mini" type="button" onClick={handleAddService}>
+                    <button className="btn btn-mini" type="button" onClick={addService}>
                       Ajouter
                     </button>
                   </div>
+                  <div className="hint">Les doublons sont fusionnés (insensible à la casse).</div>
                 </div>
 
-                <div className="hint">Ces services alimentent le select dans “Détails” et les couleurs sur le plan.</div>
+                <div className="settings-divider" />
+
+                <div className="settings-title">Services ({services.length})</div>
+
+                {services.length === 0 ? (
+                  <div className="hint">Aucun service défini. Ajoute-en un au-dessus.</div>
+                ) : (
+                  <div className="service-list">
+                    {services.map((s, idx) => (
+                      <div className="service-row" key={`${serviceKey(s.service)}-${idx}`}>
+                        <div className="swatch" style={{ background: s.color || "#ddd" }} title={s.color} />
+                        <input
+                          className="select"
+                          value={s.service}
+                          onChange={(e) => updateService(idx, { service: e.target.value })}
+                        />
+                        <input
+                          className="select"
+                          value={s.color}
+                          onChange={(e) => updateService(idx, { color: e.target.value })}
+                        />
+                        <button className="btn btn-mini" type="button" onClick={() => removeService(idx)}>
+                          Suppr.
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                <div className="hint" style={{ marginTop: 12 }}>
+                  Dans “Détails”, si une pièce n’a pas de service ou un service non présent ici, elle doit afficher <b>non attribué</b>.
+                </div>
               </div>
             </div>
           </main>
