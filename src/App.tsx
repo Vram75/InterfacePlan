@@ -20,9 +20,6 @@ const GRID_SIZE_KEY = "iface.gridSizePx";
 
 const LAYOUT_KEY = "iface.layout.v1";
 const SERVICE_COLORS_KEY = "iface.serviceColors.v1";
-const BASE_VIEWPORT = { w: 1440, h: 900 };
-const MIN_UI_SCALE = 0.8;
-const MAX_UI_SCALE = 0.9;
 
 type PageView = "dashboard" | "plans" | "settings";
 type PanelKey = "controls" | "rooms" | "details";
@@ -130,19 +127,11 @@ function isValidSize(n: unknown): n is number {
   return typeof n === "number" && Number.isFinite(n) && n > 0;
 }
 
-function computeUiScale(width: number, height: number) {
-  const scale = Math.min(width / BASE_VIEWPORT.w, height / BASE_VIEWPORT.h);
-  return Math.min(MAX_UI_SCALE, Math.max(MIN_UI_SCALE, Number(scale.toFixed(2))));
-}
-
-/** ✅ Règle métier : 1 pièce = 1 polygone par page. */
+/** ✅ 1 pièce = 1 polygone par page */
 function roomHasPolygonOnPage(room: any, pageIndex: number): boolean {
   if (!room) return false;
-
-  // compat legacy : room.page
   const page = typeof room.page === "number" && Number.isFinite(room.page) ? room.page : 0;
   if (page !== pageIndex) return false;
-
   const p = room.polygon;
   if (!p) return false;
   if (Array.isArray(p)) return p.length >= 3;
@@ -187,6 +176,29 @@ function sortServices(list: ServiceColor[]) {
   return [...list].sort((a, b) => a.service.localeCompare(b.service, "fr"));
 }
 
+function useIsNarrow(thresholdPx: number) {
+  const [isNarrow, setIsNarrow] = useState(() => window.matchMedia?.(`(max-width: ${thresholdPx}px)`)?.matches ?? false);
+
+  useEffect(() => {
+    const mql = window.matchMedia?.(`(max-width: ${thresholdPx}px)`);
+    if (!mql) return;
+
+    const onChange = () => setIsNarrow(mql.matches);
+    onChange();
+
+    // Safari fallback
+    if ("addEventListener" in mql) mql.addEventListener("change", onChange);
+    else (mql as any).addListener(onChange);
+
+    return () => {
+      if ("removeEventListener" in mql) mql.removeEventListener("change", onChange);
+      else (mql as any).removeListener(onChange);
+    };
+  }, [thresholdPx]);
+
+  return isNarrow;
+}
+
 export default function App() {
   const [pageView, setPageView] = useState<PageView>("plans");
 
@@ -203,6 +215,7 @@ export default function App() {
   const [snapUi, setSnapUi] = useState<boolean>(() => readSnapFromStorage());
   const [gridEnabled, setGridEnabled] = useState<boolean>(() => readGridEnabled());
   const [gridSizePx, setGridSizePx] = useState<number>(() => readGridSizePx());
+
   // ✅ Multi-pages
   const [currentPage, setCurrentPage] = useState(0);
   const [pageCount, setPageCount] = useState(1);
@@ -214,19 +227,22 @@ export default function App() {
   const [layout, setLayout] = useState<LayoutState>(() => readLayout());
   useEffect(() => writeLayout(layout), [layout]);
 
-  // ✅ Services palette (IMPORTANT: jamais undefined)
+  // ✅ Services palette (jamais undefined)
   const [services, setServices] = useState<ServiceColor[]>(() => readServiceColors());
   useEffect(() => writeServiceColors(services), [services]);
-  useEffect(() => {
-    function updateUiScale() {
-      const scale = computeUiScale(window.innerWidth, window.innerHeight);
-      document.documentElement.style.setProperty("--ui-scale", String(scale));
-    }
 
-    updateUiScale();
-    window.addEventListener("resize", updateUiScale);
-    return () => window.removeEventListener("resize", updateUiScale);
-  }, []);
+  // Drawer (solution 2)
+  const isNarrow = useIsNarrow(1200);
+  const [rightDrawerOpen, setRightDrawerOpen] = useState(false);
+
+  // Close drawer when leaving narrow mode OR leaving plans
+  useEffect(() => {
+    if (!isNarrow) setRightDrawerOpen(false);
+  }, [isNarrow]);
+
+  useEffect(() => {
+    if (pageView !== "plans") setRightDrawerOpen(false);
+  }, [pageView]);
 
   const [newServiceName, setNewServiceName] = useState("");
   const [newServiceColor, setNewServiceColor] = useState(() => defaultColorForService("Service"));
@@ -237,7 +253,6 @@ export default function App() {
       setRooms(r);
       if (r.length && !selectedRoomId) setSelectedRoomId(r[0].id);
 
-      // Seed palette from existing rooms
       const used = new Set(r.map((x) => (x.service ?? "").trim()).filter((s) => s.length > 0));
       if (used.size) {
         setServices((prev) => {
@@ -291,12 +306,15 @@ export default function App() {
   function handleAddService() {
     const name = normalizeServiceName(newServiceName);
     if (!name) return;
+
     const color = newServiceColor?.trim() || defaultColorForService(name);
+
     setServices((prev) => {
       const map = new Map(prev.map((s) => [s.service.trim(), s.color]));
       map.set(name, color);
       return sortServices(Array.from(map.entries()).map(([service, value]) => ({ service, color: value })));
     });
+
     setNewServiceName("");
     setNewServiceColor(defaultColorForService("Service"));
     setNewServiceColorTouched(false);
@@ -341,6 +359,7 @@ export default function App() {
         setScale((s) => clampScale(s + 0.1));
         return;
       }
+
       if (e.key === "-" || e.key === "_") {
         e.preventDefault();
         setScale((s) => clampScale(s - 0.1));
@@ -356,9 +375,12 @@ export default function App() {
     adminMode && !!selectedRoomId && roomHasPolygonOnPage(rooms.find((x) => x.id === selectedRoomId) as any, currentPage);
 
   const overlayReady = isValidSize(size.w) && isValidSize(size.h);
-  const hasDockedPanel =
-    layout.mode.controls === "dock" || layout.mode.rooms === "dock" || layout.mode.details === "dock";
+
+  const hasDockedPanel = layout.mode.controls === "dock" || layout.mode.rooms === "dock" || layout.mode.details === "dock";
   const shouldCollapseRight = pageView !== "plans" || !hasDockedPanel;
+
+  // In narrow mode: right column becomes a drawer, never "collapsed" by grid
+  const effectiveRightCollapsed = !isNarrow && shouldCollapseRight;
 
   // -----------------------
   // Dock/Float helpers
@@ -366,12 +388,15 @@ export default function App() {
   function undockPanel(k: PanelKey) {
     setLayout((l) => ({ ...l, mode: { ...l.mode, [k]: "float" } }));
   }
+
   function dockPanel(k: PanelKey) {
     setLayout((l) => ({ ...l, mode: { ...l.mode, [k]: "dock" } }));
   }
+
   function toggleCollapsed(k: PanelKey) {
     setLayout((l) => ({ ...l, collapsed: { ...l.collapsed, [k]: !l.collapsed[k] } }));
   }
+
   function setRect(k: PanelKey, next: FloatingRect) {
     setLayout((l) => ({ ...l, rect: { ...l.rect, [k]: next } }));
   }
@@ -388,11 +413,12 @@ export default function App() {
         </div>
 
         <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-          <button className="btn" onClick={() => toggleCollapsed("controls")} type="button">
+          <button className="btn btn-mini" onClick={() => toggleCollapsed("controls")} type="button">
             {layout.collapsed.controls ? "Déplier" : "Replier"}
           </button>
+
           <button
-            className="btn"
+            className="btn btn-mini"
             onClick={() => (layout.mode.controls === "dock" ? undockPanel("controls") : dockPanel("controls"))}
             type="button"
           >
@@ -429,6 +455,7 @@ export default function App() {
             <button className="btn btn-icon" onClick={() => setScale((s) => clampScale(s - 0.1))} title="Zoom - (-)" type="button">
               −
             </button>
+
             <button className="btn btn-icon" onClick={() => setScale((s) => clampScale(s + 0.1))} title="Zoom + (+)" type="button">
               +
             </button>
@@ -437,7 +464,7 @@ export default function App() {
           <div className="field" style={{ marginTop: 10 }}>
             <label className="label">Taille grille (px)</label>
             <input
-              className="input"
+              className="select"
               type="number"
               min={4}
               max={200}
@@ -506,11 +533,12 @@ export default function App() {
         </div>
 
         <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-          <button className="btn" onClick={() => toggleCollapsed("rooms")} type="button">
+          <button className="btn btn-mini" onClick={() => toggleCollapsed("rooms")} type="button">
             {layout.collapsed.rooms ? "Déplier" : "Replier"}
           </button>
+
           <button
-            className="btn"
+            className="btn btn-mini"
             onClick={() => (layout.mode.rooms === "dock" ? undockPanel("rooms") : dockPanel("rooms"))}
             type="button"
           >
@@ -536,11 +564,12 @@ export default function App() {
         </div>
 
         <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-          <button className="btn" onClick={() => toggleCollapsed("details")} type="button">
+          <button className="btn btn-mini" onClick={() => toggleCollapsed("details")} type="button">
             {layout.collapsed.details ? "Déplier" : "Replier"}
           </button>
+
           <button
-            className="btn"
+            className="btn btn-mini"
             onClick={() => (layout.mode.details === "dock" ? undockPanel("details") : dockPanel("details"))}
             type="button"
           >
@@ -557,11 +586,29 @@ export default function App() {
     </div>
   );
 
+  const rightDrawerButtonVisible = pageView === "plans" && isNarrow && hasDockedPanel;
+
   return (
     <div className="dash-root">
+      {/* Drawer backdrop */}
+      {rightDrawerButtonVisible && rightDrawerOpen && (
+        <div
+          className="drawer-backdrop"
+          onClick={() => setRightDrawerOpen(false)}
+          aria-label="Fermer le panneau"
+          role="button"
+          tabIndex={0}
+          onKeyDown={(e) => {
+            if (e.key === "Escape") setRightDrawerOpen(false);
+          }}
+        />
+      )}
+
       <header className="dash-topbar">
         <div className="brand">
-          <div className="brand-badge" aria-hidden="true">▦</div>
+          <div className="brand-badge" aria-hidden="true">
+            ▦
+          </div>
           <div className="brand-text">
             <div className="brand-title">Interface</div>
             <div className="brand-subtitle">Plan d’étage • édition</div>
@@ -569,31 +616,51 @@ export default function App() {
         </div>
 
         <div className="topbar-actions">
+          {rightDrawerButtonVisible && (
+            <button
+              className="btn btn-mini"
+              type="button"
+              onClick={() => setRightDrawerOpen((v) => !v)}
+              aria-expanded={rightDrawerOpen}
+            >
+              {rightDrawerOpen ? "Fermer panneaux" : "Panneaux"}
+            </button>
+          )}
+
           <div className="search">
-            <span className="search-icon" aria-hidden="true">⌕</span>
+            <span className="search-icon" aria-hidden="true">
+              ⌕
+            </span>
             <input className="search-input" placeholder="Rechercher…" />
           </div>
+
           <div className="pill">{rooms.length} pièce(s)</div>
         </div>
       </header>
 
-      <div className={`dash-body ${shouldCollapseRight ? "right-collapsed" : ""}`}>
+      <div className={`dash-body ${effectiveRightCollapsed ? "right-collapsed" : ""} ${isNarrow ? "is-narrow" : ""}`}>
         {/* Sidebar */}
         <aside className="dash-sidebar">
           <div className="nav-title">Navigation</div>
 
           <button className={`nav-item ${pageView === "dashboard" ? "nav-item-active" : ""}`} onClick={() => setPageView("dashboard")} type="button">
-            <span className="nav-icon" aria-hidden="true">⌂</span>
+            <span className="nav-icon" aria-hidden="true">
+              ⌂
+            </span>
             Dashboard
           </button>
 
           <button className={`nav-item ${pageView === "plans" ? "nav-item-active" : ""}`} onClick={() => setPageView("plans")} type="button">
-            <span className="nav-icon" aria-hidden="true">▦</span>
+            <span className="nav-icon" aria-hidden="true">
+              ▦
+            </span>
             Plans
           </button>
 
           <button className={`nav-item ${pageView === "settings" ? "nav-item-active" : ""}`} onClick={() => setPageView("settings")} type="button">
-            <span className="nav-icon" aria-hidden="true">⛭</span>
+            <span className="nav-icon" aria-hidden="true">
+              ⛭
+            </span>
             Paramètres
           </button>
 
@@ -634,142 +701,45 @@ export default function App() {
               <div className="card-header">
                 <div>
                   <div className="card-title">Paramètres</div>
-                  <div className="card-subtitle">Layout & palette</div>
+                  <div className="card-subtitle">Services & layout</div>
                 </div>
 
-                <div style={{ display: "flex", gap: 8 }}>
-                  <button
-                    className="btn"
-                    type="button"
-                    onClick={() => setLayout(DEFAULT_LAYOUT)}
-                    title="Réinitialiser la disposition (dock/float + tailles)"
-                  >
-                    Reset layout
-                  </button>
-                  <button
-                    className="btn"
-                    type="button"
-                    onClick={() => {
-                      setLayout((l) => ({
-                        ...l,
-                        mode: { controls: "dock", rooms: "dock", details: "dock" },
-                      }));
-                    }}
-                  >
-                    Tout dock
-                  </button>
-                  <button
-                    className="btn"
-                    type="button"
-                    onClick={() => {
-                      setLayout((l) => ({
-                        ...l,
-                        mode: { controls: "float", rooms: "float", details: "float" },
-                        collapsed: { controls: false, rooms: true, details: true },
-                      }));
-                    }}
-                  >
-                    Tout flottant
-                  </button>
-                </div>
+                <button className="btn btn-mini" type="button" onClick={() => setLayout(DEFAULT_LAYOUT)}>
+                  Reset layout
+                </button>
               </div>
 
-                <div className="card-content">
-                  <div className="hint">
-                    Ici tu peux gérer la disposition des panneaux. Les couleurs de services sont auto-seed depuis tes pièces.
-                  </div>
-
-                  <hr style={{ border: "none", borderTop: "1px solid rgba(0,0,0,0.08)", margin: "16px 0" }} />
-
-                  <div style={{ display: "grid", gap: 12 }}>
-                    <div style={{ fontWeight: 800, opacity: 0.85 }}>Services</div>
-
-                  <form
-                    onSubmit={(e) => {
-                      e.preventDefault();
-                      handleAddService();
-                    }}
-                    style={{ display: "flex", flexWrap: "wrap", gap: 10, alignItems: "flex-end" }}
-                  >
-                    <div className="field" style={{ minWidth: 220, flex: "1 1 220px" }}>
-                      <label className="label">Nom du service</label>
-                      <input
-                        className="input"
-                        value={newServiceName}
-                        placeholder="Ex: Cardiologie"
-                        onChange={(e) => {
-                          const next = e.target.value;
-                          setNewServiceName(next);
-                          if (!newServiceColorTouched) {
-                            const trimmed = next.trim();
-                            setNewServiceColor(defaultColorForService(trimmed || "Service"));
-                          }
-                        }}
-                      />
-                    </div>
-
-                    <div className="field" style={{ width: 140 }}>
-                      <label className="label">Couleur</label>
-                      <input
-                        className="input"
-                        type="color"
-                        value={newServiceColor}
-                        onChange={(e) => {
-                          setNewServiceColorTouched(true);
-                          setNewServiceColor(e.target.value);
-                        }}
-                      />
-                    </div>
-
-                    <button className="btn" type="submit" disabled={!newServiceName.trim()}>
-                      Ajouter / mettre à jour
+              <div className="card-content">
+                <div className="field">
+                  <label className="label">Ajouter un service</label>
+                  <div className="settings-row">
+                    <input
+                      className="select"
+                      placeholder="Nom"
+                      value={newServiceName}
+                      onChange={(e) => {
+                        setNewServiceName(e.target.value);
+                        if (!newServiceColorTouched) {
+                          setNewServiceColor(defaultColorForService(e.target.value || "Service"));
+                        }
+                      }}
+                    />
+                    <input
+                      className="select"
+                      placeholder="Couleur (ex: #aabbcc ou hsl(...))"
+                      value={newServiceColor}
+                      onChange={(e) => {
+                        setNewServiceColorTouched(true);
+                        setNewServiceColor(e.target.value);
+                      }}
+                    />
+                    <button className="btn btn-mini" type="button" onClick={handleAddService}>
+                      Ajouter
                     </button>
-                  </form>
-
-                  <div style={{ display: "grid", gap: 8 }}>
-                    {services.length === 0 && <div className="hint">Aucun service défini. Ajoute-en un ci-dessus.</div>}
-
-                    {services.map((service) => (
-                      <div
-                        key={service.service}
-                        style={{
-                          display: "flex",
-                          alignItems: "center",
-                          gap: 10,
-                          padding: "8px 10px",
-                          borderRadius: 12,
-                          border: "1px solid rgba(0,0,0,0.08)",
-                          background: "rgba(0,0,0,0.02)",
-                        }}
-                      >
-                        <div style={{ flex: 1, fontWeight: 600 }}>{service.service}</div>
-
-                        <input
-                          className="input"
-                          type="color"
-                          value={service.color}
-                          onChange={(e) => {
-                            const next = e.target.value;
-                            setServices((prev) =>
-                              prev.map((s) => (s.service === service.service ? { ...s, color: next } : s))
-                            );
-                          }}
-                        />
-
-                        <button
-                          className="btn"
-                          type="button"
-                          onClick={() => {
-                            if (!window.confirm(`Supprimer le service “${service.service}” ?`)) return;
-                            setServices((prev) => prev.filter((s) => s.service !== service.service));
-                          }}
-                        >
-                          Supprimer
-                        </button>
-                      </div>
-                    ))}
                   </div>
                 </div>
+
+                <div className="hint">Ces services alimentent le select dans “Détails” et les couleurs sur le plan.</div>
               </div>
             </div>
           </main>
@@ -825,7 +795,7 @@ export default function App() {
               </div>
 
               <div className="card-content plan-content">
-                <div className="plan-viewport">
+                <div className="plan-viewport no-scrollbar">
                   <div className="plan-stage">
                     <div className="plan-layer">
                       <PdfCanvas
@@ -834,7 +804,6 @@ export default function App() {
                         page={currentPage + 1}
                         onPageCount={setPageCount}
                         onSize={(w, h) => {
-                          // ✅ anti-NaN : on ignore toute taille invalide
                           if (!isValidSize(w) || !isValidSize(h)) return;
                           setSize({ w, h });
                         }}
@@ -867,10 +836,10 @@ export default function App() {
           </main>
         )}
 
-        {/* Docked right column (only docked panels appear here) */}
+        {/* Right column (dock) -> becomes drawer when narrow */}
         {pageView === "plans" && (
-          <aside className="dash-right">
-            <div className="right-sticky">
+          <aside className={`dash-right ${isNarrow ? "dash-right-drawer" : ""} ${rightDrawerOpen ? "is-open" : ""}`}>
+            <div className="right-sticky no-scrollbar">
               {layout.mode.controls === "dock" && ControlsPanel}
               {layout.mode.rooms === "dock" && RoomsPanel}
               {layout.mode.details === "dock" && DetailsPanel}
