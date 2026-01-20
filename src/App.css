@@ -28,8 +28,8 @@ body{
 
 /* ---- Utilities ---- */
 .no-scrollbar{
-  scrollbar-width: none;        /* Firefox */
-  -ms-overflow-style: none;     /* IE/Edge */
+  scrollbar-width: none;
+  -ms-overflow-style: none;
 }
 .no-scrollbar::-webkit-scrollbar{
   width: 0;
@@ -124,12 +124,11 @@ body{
   grid-template-columns: var(--sidebar-w) 1fr var(--right-w);
   gap: 16px;
   padding: 16px;
-  overflow: hidden; /* ✅ dashboard = pas de scroll global visible */
+  overflow: hidden;
 }
 
 .dash-sidebar, .dash-main, .dash-right { min-width: 0; min-height: 0; }
 
-/* When panels are floating, collapse right column (desktop only) */
 .dash-body.right-collapsed{
   grid-template-columns: var(--sidebar-w) 1fr 0px;
 }
@@ -256,7 +255,7 @@ body{
 }
 .plan-viewport{
   height: 100%;
-  overflow: auto; /* scroll possible mais scrollbar masquée via .no-scrollbar */
+  overflow: auto;
   border-radius: 16px;
   border: 1px solid var(--stroke);
   background: rgba(255,255,255,0.55);
@@ -284,7 +283,7 @@ body{
 }
 .right-sticky{
   height: 100%;
-  overflow: auto; /* scroll possible mais masqué */
+  overflow: auto;
   display: flex;
   flex-direction: column;
   gap: 12px;
@@ -396,12 +395,52 @@ body{
   text-transform: uppercase;
 }
 
-/* Settings */
+/* ----------------
+   Settings (services)
+   ---------------- */
 .settings-row{
   display: grid;
   grid-template-columns: 1fr 1fr auto;
   gap: 10px;
   align-items: center;
+}
+
+.settings-actions{
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.settings-divider{
+  margin: 14px 0;
+  height: 1px;
+  background: rgba(20, 32, 50, 0.08);
+}
+
+.settings-title{
+  font-weight: 900;
+  margin-bottom: 8px;
+}
+
+.service-list{
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.service-row{
+  display: grid;
+  grid-template-columns: 18px 1fr 1fr auto;
+  gap: 10px;
+  align-items: center;
+}
+
+.swatch{
+  width: 16px;
+  height: 16px;
+  border-radius: 6px;
+  border: 1px solid rgba(0,0,0,0.14);
 }
 
 /* -------------------------------
@@ -415,14 +454,13 @@ body{
   backdrop-filter: blur(2px);
 }
 
-/* Under 1200px, right column becomes off-canvas drawer */
 @media (max-width: 1200px){
   .dash-body{
     grid-template-columns: var(--sidebar-w) 1fr;
   }
 
   .dash-right{
-    display: block; /* keep it in DOM */
+    display: block;
   }
 
   .dash-right.dash-right-drawer,
@@ -450,7 +488,7 @@ body{
 
   .right-sticky{
     height: 100%;
-    overflow: auto; /* scroll possible mais masqué */
+    overflow: auto;
   }
 }
 
