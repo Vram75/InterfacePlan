@@ -82,6 +82,13 @@ function clampScale(next: number) {
   return Math.min(3, Math.max(0.4, +next.toFixed(2)));
 }
 
+function createServiceId() {
+  if (typeof crypto !== "undefined" && "randomUUID" in crypto) {
+    return crypto.randomUUID();
+  }
+  return `svc_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
+}
+
 function isTypingTarget(target: unknown): boolean {
   if (!(target instanceof HTMLElement)) return false;
   const tag = target.tagName;
@@ -193,7 +200,7 @@ function sanitizeServiceColor(service: string, color: string | undefined | null)
 }
 
 function readServiceColors(): ServiceColor[] {
-  const parsed = safeParse<ServiceColor[]>(localStorage.getItem(SERVICE_COLORS_KEY));
+  const parsed = safeParse<Array<Partial<ServiceColor>>>(localStorage.getItem(SERVICE_COLORS_KEY));
   if (!parsed || !Array.isArray(parsed)) return [];
 
   // ✅ migration/sanitization hex-only
@@ -204,7 +211,8 @@ function readServiceColors(): ServiceColor[] {
     if (!name) continue;
     const key = serviceKey(name);
     const color = sanitizeServiceColor(name, (x as any).color);
-    map.set(key, { service: name, color });
+    const id = typeof (x as any).id === "string" ? (x as any).id : createServiceId();
+    map.set(key, { id, service: name, color });
   }
   return sortServices(Array.from(map.values()));
 }
@@ -299,14 +307,19 @@ export default function App() {
       const used = new Set(r.map((x) => (x.service ?? "").trim()).filter((s) => s.length > 0));
       if (used.size) {
         setServices((prev) => {
-          const map = new Map(prev.map((p) => [serviceKey(p.service), { service: normalizeServiceName(p.service), color: sanitizeServiceColor(p.service, p.color) }]));
+          const map = new Map(
+            prev.map((p) => [
+              serviceKey(p.service),
+              { id: p.id || createServiceId(), service: normalizeServiceName(p.service), color: sanitizeServiceColor(p.service, p.color) },
+            ]),
+          );
           let changed = false;
 
           for (const s of used) {
             const name = normalizeServiceName(s);
             const key = serviceKey(name);
             if (!map.has(key)) {
-              map.set(key, { service: name, color: defaultColorForService(name) });
+              map.set(key, { id: createServiceId(), service: name, color: defaultColorForService(name) });
               changed = true;
             }
           }
@@ -340,7 +353,7 @@ export default function App() {
         const name = normalizeServiceName(svc);
         const key = serviceKey(name);
         if (prev.some((x) => serviceKey(x.service) === key)) return prev;
-        return sortServices([...prev, { service: name, color: defaultColorForService(name) }]);
+        return sortServices([...prev, { id: createServiceId(), service: name, color: defaultColorForService(name) }]);
       });
     }
   }
@@ -363,9 +376,9 @@ export default function App() {
       for (const s of prev) {
         const n = normalizeServiceName(s.service);
         if (!n) continue;
-        map.set(serviceKey(n), { service: n, color: sanitizeServiceColor(n, s.color) });
+        map.set(serviceKey(n), { id: s.id || createServiceId(), service: n, color: sanitizeServiceColor(n, s.color) });
       }
-      map.set(key, { service: name, color });
+      map.set(key, { id: createServiceId(), service: name, color });
       return sortServices(Array.from(map.values()));
     });
 
@@ -381,6 +394,7 @@ export default function App() {
       if (!current) return prev;
 
       const updated: ServiceColor = {
+        id: current.id || createServiceId(),
         service: patch.service != null ? patch.service : current.service,
         color: patch.color != null ? patch.color : current.color,
       };
@@ -395,7 +409,7 @@ export default function App() {
       for (const s of next) {
         const name = normalizeServiceName(s.service);
         if (!name) continue;
-        map.set(serviceKey(name), { service: name, color: sanitizeServiceColor(name, s.color) });
+        map.set(serviceKey(name), { id: s.id || createServiceId(), service: name, color: sanitizeServiceColor(name, s.color) });
       }
       return sortServices(Array.from(map.values()));
     });
@@ -410,13 +424,18 @@ export default function App() {
     if (!used.size) return;
 
     setServices((prev) => {
-      const map = new Map(prev.map((p) => [serviceKey(p.service), { service: normalizeServiceName(p.service), color: sanitizeServiceColor(p.service, p.color) }]));
+      const map = new Map(
+        prev.map((p) => [
+          serviceKey(p.service),
+          { id: p.id || createServiceId(), service: normalizeServiceName(p.service), color: sanitizeServiceColor(p.service, p.color) },
+        ]),
+      );
       let changed = false;
       for (const s of used) {
         const name = normalizeServiceName(s);
         const k = serviceKey(name);
         if (!map.has(k)) {
-          map.set(k, { service: name, color: defaultColorForService(name) });
+          map.set(k, { id: createServiceId(), service: name, color: defaultColorForService(name) });
           changed = true;
         }
       }
@@ -867,7 +886,7 @@ export default function App() {
                 ) : (
                   <div className="service-list">
                     {services.map((s, idx) => (
-                      <div className="service-row" key={`${serviceKey(s.service)}-${idx}`}>
+                      <div className="service-row" key={s.id}>
                         <div className="swatch" style={{ background: sanitizeServiceColor(s.service, s.color) }} title={sanitizeServiceColor(s.service, s.color)} />
 
                         <input className="select" value={s.service} onChange={(e) => updateService(idx, { service: e.target.value })} />
