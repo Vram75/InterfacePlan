@@ -28,6 +28,11 @@ type PanelState = {
   collapsed: boolean;
 };
 
+type WorkspaceSize = {
+  w: number;
+  h: number;
+};
+
 function safeParse<T>(s: string | null): T | null {
   if (!s) return null;
   try {
@@ -215,6 +220,7 @@ export default function App() {
     rooms: 2,
     details: 3,
   });
+  const [workspaceSize, setWorkspaceSize] = useState<WorkspaceSize>({ w: 0, h: 0 });
 
   useEffect(() => {
     api.getRooms().then((r) => {
@@ -241,6 +247,18 @@ export default function App() {
       }
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    if (!workspaceRef.current || typeof ResizeObserver === "undefined") return;
+    const element = workspaceRef.current;
+    const updateSize = () => {
+      setWorkspaceSize({ w: element.clientWidth, h: element.clientHeight });
+    };
+    updateSize();
+    const observer = new ResizeObserver(updateSize);
+    observer.observe(element);
+    return () => observer.disconnect();
   }, []);
 
   const selectedRoom = useMemo(() => rooms.find((r) => r.id === selectedRoomId) ?? null, [rooms, selectedRoomId]);
@@ -419,6 +437,35 @@ export default function App() {
       window.removeEventListener("mouseup", onUp);
     };
   }, []);
+
+  useEffect(() => {
+    if (!workspaceSize.w || !workspaceSize.h) return;
+    setPanelState((prev) => {
+      const planWidth = Math.max(320, Math.min(1100, workspaceSize.w - 32));
+      const planHeight = Math.max(320, Math.min(780, workspaceSize.h - 32));
+      const sideWidth = 360;
+      const sideHeight = 420;
+      const clamp = (value: number, max: number) => Math.max(16, Math.min(value, Math.max(16, max)));
+
+      return {
+        plan: {
+          ...prev.plan,
+          x: clamp(prev.plan.x, workspaceSize.w - planWidth - 16),
+          y: clamp(prev.plan.y, workspaceSize.h - planHeight - 16),
+        },
+        rooms: {
+          ...prev.rooms,
+          x: clamp(prev.rooms.x, workspaceSize.w - sideWidth - 16),
+          y: clamp(prev.rooms.y, workspaceSize.h - sideHeight - 16),
+        },
+        details: {
+          ...prev.details,
+          x: clamp(prev.details.x, workspaceSize.w - sideWidth - 16),
+          y: clamp(prev.details.y, workspaceSize.h - sideHeight - 16),
+        },
+      };
+    });
+  }, [workspaceSize]);
 
   const canDeletePolygon = adminMode && !!selectedRoomId && roomHasPolygonOnPage(selectedRoom as any, currentPage);
   const overlayReady = isValidSize(size.w) && isValidSize(size.h);

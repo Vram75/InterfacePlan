@@ -232,8 +232,8 @@ body{
 }
 
 .panel-plan{
-  width: min(1100px, 70vw);
-  height: min(780px, 78vh);
+  width: min(1100px, calc(100% - 32px));
+  height: min(780px, calc(100% - 32px));
 }
 
 .panel-side{
