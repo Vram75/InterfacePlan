@@ -180,7 +180,7 @@ function writeServiceColors(v: ServiceColor[]) {
 export default function App() {
   const [pageView, setPageView] = useState<PageView>("dashboard");
   const workspaceRef = useRef<HTMLDivElement | null>(null);
-  const dragState = useRef<{ id: PanelId; offsetX: number; offsetY: number } | null>(null);
+  const dragState = useRef<{ id: PanelId; offsetX: number; offsetY: number; width: number; height: number } | null>(null);
 
   const [rooms, setRooms] = useState<Room[]>([]);
   const [selectedRoomId, setSelectedRoomId] = useState<string | null>(null);
@@ -416,10 +416,14 @@ export default function App() {
   useEffect(() => {
     const onMove = (e: MouseEvent) => {
       if (!dragState.current || !workspaceRef.current) return;
-      const { id, offsetX, offsetY } = dragState.current;
+      const { id, offsetX, offsetY, width, height } = dragState.current;
       const bounds = workspaceRef.current.getBoundingClientRect();
-      const nextX = e.clientX - bounds.left - offsetX;
-      const nextY = e.clientY - bounds.top - offsetY;
+      const rawX = e.clientX - bounds.left - offsetX;
+      const rawY = e.clientY - bounds.top - offsetY;
+      const maxX = Math.max(16, bounds.width - width - 16);
+      const maxY = Math.max(16, bounds.height - height - 16);
+      const nextX = Math.max(16, Math.min(rawX, maxX));
+      const nextY = Math.max(16, Math.min(rawY, maxY));
       setPanelState((prev) => ({
         ...prev,
         [id]: { ...prev[id], x: nextX, y: nextY },
@@ -479,6 +483,8 @@ export default function App() {
       id,
       offsetX: event.clientX - panelRect.left,
       offsetY: event.clientY - panelRect.top,
+      width: panelRect.width,
+      height: panelRect.height,
     };
     event.preventDefault();
     setPanelZ((prev) => {
