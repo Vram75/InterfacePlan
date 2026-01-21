@@ -17,4 +17,4 @@ export type Room = {
   polygon?: Point[] | null;
 };
 
-export type ServiceColor = { service: string; color: string };
+export type ServiceColor = { id: string; service: string; color: string };
