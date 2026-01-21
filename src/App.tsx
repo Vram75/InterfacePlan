@@ -437,12 +437,20 @@ export default function App() {
       if (!dragState.current || !workspaceRef.current) return;
       const { id, offsetX, offsetY } = dragState.current;
       const bounds = workspaceRef.current.getBoundingClientRect();
-      const nextX = e.clientX - bounds.left - offsetX;
-      const nextY = e.clientY - bounds.top - offsetY;
-      setPanelState((prev) => ({
-        ...prev,
-        [id]: { ...prev[id], x: nextX, y: nextY },
-      }));
+      const padding = 12;
+      const collapsedHeight = 64;
+      setPanelState((prev) => {
+        const panel = prev[id];
+        const panelHeight = panel.collapsed ? collapsedHeight : panel.height;
+        const maxX = Math.max(padding, Math.floor(bounds.width - panel.width - padding));
+        const maxY = Math.max(padding, Math.floor(bounds.height - panelHeight - padding));
+        const nextX = Math.min(maxX, Math.max(padding, e.clientX - bounds.left - offsetX));
+        const nextY = Math.min(maxY, Math.max(padding, e.clientY - offsetY - bounds.top));
+        return {
+          ...prev,
+          [id]: { ...panel, x: nextX, y: nextY },
+        };
+      });
     };
 
     const onUp = () => {
