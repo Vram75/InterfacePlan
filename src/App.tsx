@@ -91,7 +91,7 @@ function isValidSize(n: unknown): n is number {
   return typeof n === "number" && Number.isFinite(n) && n > 0;
 }
 
-/** Compat multi-pages : 1 pièce = 1 polygone sur une page */
+/** 1 pièce = 1 polygone par page */
 function roomHasPolygonOnPage(room: any, pageIndex: number): boolean {
   if (!room) return false;
   const page = typeof room.page === "number" && Number.isFinite(room.page) ? room.page : 0;
@@ -104,14 +104,66 @@ function roomHasPolygonOnPage(room: any, pageIndex: number): boolean {
   return false;
 }
 
+// --------------------
+// Services (HEX only + picker)
+// --------------------
+function normalizeServiceName(s: string) {
+  return s.trim();
+}
+function serviceKey(s: string) {
+  return normalizeServiceName(s).toLowerCase();
+}
+function hashString(s: string): number {
+  let h = 2166136261 >>> 0;
+  for (let i = 0; i < s.length; i++) {
+    h ^= s.charCodeAt(i);
+    h = Math.imul(h, 16777619) >>> 0;
+  }
+  return h >>> 0;
+}
+function clamp255(n: number) {
+  return Math.max(0, Math.min(255, n | 0));
+}
+function toHexByte(n: number) {
+  return clamp255(n).toString(16).padStart(2, "0");
+}
+function isHexColor(v: string): boolean {
+  return /^#[0-9a-fA-F]{6}$/.test(v.trim());
+}
+function defaultColorForService(service: string): string {
+  const s = service.trim() || "service";
+  const h = hashString(s);
+  const r = 160 + ((h >> 16) & 0x3f);
+  const g = 160 + ((h >> 8) & 0x3f);
+  const b = 160 + (h & 0x3f);
+  return `#${toHexByte(r)}${toHexByte(g)}${toHexByte(b)}`;
+}
+function sanitizeServiceColor(service: string, color: string | undefined | null): string {
+  const c = (color || "").trim();
+  if (isHexColor(c)) return c;
+  return defaultColorForService(service);
+}
+function sortServices(list: ServiceColor[]) {
+  return [...list].sort((a, b) => a.service.localeCompare(b.service, "fr"));
+}
 function readServiceColors(): ServiceColor[] {
   const parsed = safeParse<ServiceColor[]>(localStorage.getItem(SERVICE_COLORS_KEY));
   if (!parsed || !Array.isArray(parsed)) return [];
-  return parsed
-    .filter((x) => x && typeof x.service === "string" && typeof x.color === "string")
-    .map((x) => ({ service: x.service.trim(), color: x.color.trim() }))
-    .filter((x) => x.service.length > 0);
+  const map = new Map<string, ServiceColor>();
+  for (const x of parsed) {
+    if (!x || typeof x.service !== "string") continue;
+    const name = normalizeServiceName(x.service);
+    if (!name) continue;
+    map.set(serviceKey(name), { service: name, color: sanitizeServiceColor(name, (x as any).color) });
+  }
+  return sortServices(Array.from(map.values()));
 }
+function writeServiceColors(v: ServiceColor[]) {
+  try {
+    localStorage.setItem(SERVICE_COLORS_KEY, JSON.stringify(v));
+  } catch {}
+}
+// --------------------
 
 export default function App() {
   const [pageView, setPageView] = useState<PageView>("dashboard");
@@ -126,7 +178,6 @@ export default function App() {
   const [scale, setScale] = useState(1.2);
   const [size, setSize] = useState({ w: 800, h: 600 });
 
-  // ✅ Multi-pages
   const [currentPage, setCurrentPage] = useState(0);
   const [pageCount, setPageCount] = useState(1);
 
@@ -136,13 +187,38 @@ export default function App() {
 
   const [overlayRequest, setOverlayRequest] = useState<OverlayRequest>({ kind: "none" });
 
-  // ✅ IMPORTANT : services DOIT exister (sinon RoomDetailsPanel crash)
+  // ✅ services palette (never undefined)
   const [services, setServices] = useState<ServiceColor[]>(() => readServiceColors());
+  useEffect(() => writeServiceColors(services), [services]);
+
+  // Settings inputs
+  const [newServiceName, setNewServiceName] = useState("");
+  const [newServiceColor, setNewServiceColor] = useState<string>("#aab4c2");
+  const [newServiceColorTouched, setNewServiceColorTouched] = useState(false);
 
   useEffect(() => {
     api.getRooms().then((r) => {
       setRooms(r);
       if (r.length && !selectedRoomId) setSelectedRoomId(r[0].id);
+
+      // Seed services from rooms (non-destructive)
+      const used = new Set(r.map((x) => (x.service ?? "").trim()).filter((s) => s.length > 0));
+      if (used.size) {
+        setServices((prev) => {
+          const map = new Map(prev.map((p) => [serviceKey(p.service), { service: normalizeServiceName(p.service), color: sanitizeServiceColor(p.service, p.color) }]));
+          let changed = false;
+          for (const s of used) {
+            const name = normalizeServiceName(s);
+            const key = serviceKey(name);
+            if (!map.has(key)) {
+              map.set(key, { service: name, color: defaultColorForService(name) });
+              changed = true;
+            }
+          }
+          const next = sortServices(Array.from(map.values()));
+          return changed ? next : prev;
+        });
+      }
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -154,7 +230,7 @@ export default function App() {
   }, [pageCount]);
 
   async function commitPolygon(roomId: string, page: number, poly: Point[]) {
-    const saved = await api.updatePolygon(roomId, { page, polygon: poly }); // ⚠️ page obligatoire
+    const saved = await api.updatePolygon(roomId, { page, polygon: poly });
     setRooms((prev) => prev.map((r) => (r.id === saved.id ? saved : r)));
   }
 
@@ -167,6 +243,84 @@ export default function App() {
     const saved = await api.uploadPhoto(roomId, file);
     setRooms((prev) => prev.map((r) => (r.id === saved.id ? saved : r)));
   }
+
+  // ---- Services UI actions
+  function addService() {
+    const name = normalizeServiceName(newServiceName);
+    if (!name) return;
+
+    const color = isHexColor(newServiceColor) ? newServiceColor : defaultColorForService(name);
+    const key = serviceKey(name);
+
+    setServices((prev) => {
+      const map = new Map<string, ServiceColor>();
+      for (const s of prev) {
+        const n = normalizeServiceName(s.service);
+        if (!n) continue;
+        map.set(serviceKey(n), { service: n, color: sanitizeServiceColor(n, s.color) });
+      }
+      map.set(key, { service: name, color });
+      return sortServices(Array.from(map.values()));
+    });
+
+    setNewServiceName("");
+    setNewServiceColor("#aab4c2");
+    setNewServiceColorTouched(false);
+  }
+
+  function updateService(index: number, patch: Partial<ServiceColor>) {
+    setServices((prev) => {
+      const next = prev.slice();
+      const cur = next[index];
+      if (!cur) return prev;
+
+      const updated: ServiceColor = {
+        service: patch.service != null ? patch.service : cur.service,
+        color: patch.color != null ? patch.color : cur.color,
+      };
+
+      updated.service = normalizeServiceName(updated.service);
+      updated.color = sanitizeServiceColor(updated.service || cur.service, updated.color);
+
+      next[index] = updated;
+
+      const map = new Map<string, ServiceColor>();
+      for (const s of next) {
+        const name = normalizeServiceName(s.service);
+        if (!name) continue;
+        map.set(serviceKey(name), { service: name, color: sanitizeServiceColor(name, s.color) });
+      }
+      return sortServices(Array.from(map.values()));
+    });
+  }
+
+  function removeService(index: number) {
+    setServices((prev) => prev.filter((_, i) => i !== index));
+  }
+
+  function seedServicesFromRooms() {
+    const used = new Set(rooms.map((x) => (x.service ?? "").trim()).filter((s) => s.length > 0));
+    if (!used.size) return;
+
+    setServices((prev) => {
+      const map = new Map(prev.map((p) => [serviceKey(p.service), { service: normalizeServiceName(p.service), color: sanitizeServiceColor(p.service, p.color) }]));
+      let changed = false;
+      for (const s of used) {
+        const name = normalizeServiceName(s);
+        const k = serviceKey(name);
+        if (!map.has(k)) {
+          map.set(k, { service: name, color: defaultColorForService(name) });
+          changed = true;
+        }
+      }
+      return changed ? sortServices(Array.from(map.values())) : prev;
+    });
+  }
+
+  function resetServices() {
+    setServices([]);
+  }
+  // ----
 
   // Sync Snap UI when shortcut used (S)
   useEffect(() => {
@@ -221,14 +375,11 @@ export default function App() {
     return () => window.removeEventListener("keydown", onKeyDown);
   }, []);
 
-  const canDeletePolygon =
-    adminMode && !!selectedRoomId && roomHasPolygonOnPage(rooms.find((x) => x.id === selectedRoomId) as any, currentPage);
-
+  const canDeletePolygon = adminMode && !!selectedRoomId && roomHasPolygonOnPage(selectedRoom as any, currentPage);
   const overlayReady = isValidSize(size.w) && isValidSize(size.h);
 
   return (
     <div className="dash-root">
-      {/* TOPBAR */}
       <header className="dash-topbar">
         <div className="brand">
           <div className="brand-badge" aria-hidden="true">
@@ -252,9 +403,7 @@ export default function App() {
         </div>
       </header>
 
-      {/* BODY */}
       <div className="dash-body">
-        {/* SIDEBAR */}
         <aside className="dash-sidebar">
           <div className="nav-title">Navigation</div>
 
@@ -293,7 +442,6 @@ export default function App() {
           </div>
         </aside>
 
-        {/* MAIN */}
         {pageView === "dashboard" && (
           <main className="dash-main">
             <div className="card">
@@ -312,17 +460,100 @@ export default function App() {
           </main>
         )}
 
+        {/* ✅ Paramètres > Services restauré */}
         {pageView === "settings" && (
           <main className="dash-main">
             <div className="card">
               <div className="card-header">
                 <div>
                   <div className="card-title">Paramètres</div>
-                  <div className="card-subtitle">Préférences</div>
+                  <div className="card-subtitle">Services</div>
+                </div>
+
+                <div className="settings-actions">
+                  <button className="btn btn-mini" type="button" onClick={seedServicesFromRooms} title="Ajoute les services présents dans les pièces">
+                    Seed depuis pièces
+                  </button>
+                  <button className="btn btn-mini" type="button" onClick={resetServices} title="Vide la palette">
+                    Vider
+                  </button>
                 </div>
               </div>
+
               <div className="card-content">
-                <div className="hint">Écran Paramètres (services etc.).</div>
+                <div className="field">
+                  <label className="label">Ajouter un service</label>
+                  <div className="settings-row">
+                    <input
+                      className="select"
+                      placeholder="Nom"
+                      value={newServiceName}
+                      onChange={(e) => {
+                        const v = e.target.value;
+                        setNewServiceName(v);
+                        if (!newServiceColorTouched) setNewServiceColor(defaultColorForService(v || "Service"));
+                      }}
+                    />
+
+                    <div className="color-cell">
+                      <input
+                        className="color-input"
+                        type="color"
+                        value={isHexColor(newServiceColor) ? newServiceColor : "#aab4c2"}
+                        onChange={(e) => {
+                          setNewServiceColorTouched(true);
+                          setNewServiceColor(e.target.value);
+                        }}
+                        aria-label="Couleur"
+                        title="Choisir une couleur"
+                      />
+                      <span className="color-hex">{(isHexColor(newServiceColor) ? newServiceColor : "#aab4c2").toUpperCase()}</span>
+                    </div>
+
+                    <button className="btn btn-mini" type="button" onClick={addService}>
+                      Ajouter
+                    </button>
+                  </div>
+
+                  <div className="hint">Couleurs stockées en HEX (#RRGGBB). Pas de HSL.</div>
+                </div>
+
+                <div className="settings-divider" />
+
+                <div className="settings-title">Services ({services.length})</div>
+
+                {services.length === 0 ? (
+                  <div className="hint">Aucun service défini.</div>
+                ) : (
+                  <div className="service-list">
+                    {services.map((s, idx) => (
+                      <div className="service-row" key={`${serviceKey(s.service)}-${idx}`}>
+                        <div className="swatch" style={{ background: sanitizeServiceColor(s.service, s.color) }} />
+
+                        <input className="select" value={s.service} onChange={(e) => updateService(idx, { service: e.target.value })} />
+
+                        <div className="color-cell">
+                          <input
+                            className="color-input"
+                            type="color"
+                            value={sanitizeServiceColor(s.service, s.color)}
+                            onChange={(e) => updateService(idx, { color: e.target.value })}
+                            aria-label={`Couleur ${s.service}`}
+                          />
+                          <span className="color-hex">{sanitizeServiceColor(s.service, s.color).toUpperCase()}</span>
+                        </div>
+
+                        <button className="btn btn-mini" type="button" onClick={() => removeService(idx)}>
+                          Suppr.
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                <div className="hint" style={{ marginTop: 12 }}>
+                  Dans “Détails”, si une pièce n’a pas de service ou un service non présent ici, afficher <b>non attribué</b>.
+                </div>
               </div>
             </div>
           </main>
@@ -337,7 +568,7 @@ export default function App() {
                   <div className="card-subtitle">PDF + overlay</div>
                 </div>
 
-                {/* ✅ Barre du haut du panneau Plan = toutes les options "Contrôles" */}
+                {/* barre du plan */}
                 <div className="plan-header-right">
                   <div className="card-meta">
                     <button
@@ -427,7 +658,6 @@ export default function App() {
                           if (!selectedRoomId) return;
                           setOverlayRequest({ kind: "deletePolygon", roomId: selectedRoomId });
                         }}
-                        title={!canDeletePolygon ? "Aucun polygone sur cette page pour la pièce sélectionnée" : "Supprimer le polygone (page courante)"}
                       >
                         Supprimer polygone
                       </button>
@@ -472,7 +702,6 @@ export default function App() {
               <div className="card-content plan-content">
                 <div className="plan-viewport">
                   <div className="plan-stage">
-                    {/* ✅ repère stable PDF + SVG */}
                     <div className="plan-layer">
                       <PdfCanvas
                         pdfUrl="/Pour CHATGPT.pdf"
@@ -491,7 +720,7 @@ export default function App() {
                           height={size.h}
                           page={currentPage}
                           rooms={rooms}
-                          services={services} // ✅ IMPORTANT
+                          services={services}
                           selectedRoomId={selectedRoomId}
                           onSelectRoom={setSelectedRoomId}
                           adminMode={adminMode}
@@ -512,7 +741,6 @@ export default function App() {
           </main>
         )}
 
-        {/* RIGHT */}
         {pageView === "plans" && (
           <aside className="dash-right">
             <div className="right-sticky">
@@ -536,12 +764,7 @@ export default function App() {
                   </div>
                 </div>
                 <div className="card-content card-scroll">
-                  <RoomDetailsPanel
-                    room={selectedRoom}
-                    services={services}          // ✅ FIX: jamais undefined
-                    onSave={handleSaveRoom}      // ✅ comme GitHub
-                    onUploadPhoto={handleUploadPhoto} // ✅ comme GitHub
-                  />
+                  <RoomDetailsPanel room={selectedRoom} services={services} onSave={handleSaveRoom} onUploadPhoto={handleUploadPhoto} />
                 </div>
               </div>
             </div>
