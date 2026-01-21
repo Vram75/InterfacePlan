@@ -25,6 +25,8 @@ type PanelId = "plan" | "rooms" | "details";
 type PanelState = {
   x: number;
   y: number;
+  width: number;
+  height: number;
   collapsed: boolean;
 };
 
@@ -176,6 +178,7 @@ export default function App() {
   const [pageView, setPageView] = useState<PageView>("dashboard");
   const workspaceRef = useRef<HTMLDivElement | null>(null);
   const dragState = useRef<{ id: PanelId; offsetX: number; offsetY: number } | null>(null);
+  const resizeState = useRef<{ id: PanelId; startX: number; startY: number; startWidth: number; startHeight: number } | null>(null);
 
   const [rooms, setRooms] = useState<Room[]>([]);
   const [selectedRoomId, setSelectedRoomId] = useState<string | null>(null);
@@ -205,10 +208,20 @@ export default function App() {
   const [newServiceColor, setNewServiceColor] = useState<string>("#aab4c2");
   const [newServiceColorTouched, setNewServiceColorTouched] = useState(false);
 
-  const [panelState, setPanelState] = useState<Record<PanelId, PanelState>>({
-    plan: { x: 32, y: 24, collapsed: false },
-    rooms: { x: 860, y: 24, collapsed: false },
-    details: { x: 860, y: 380, collapsed: false },
+  const [panelState, setPanelState] = useState<Record<PanelId, PanelState>>(() => {
+    const viewportWidth = typeof window === "undefined" ? 1200 : window.innerWidth;
+    const viewportHeight = typeof window === "undefined" ? 900 : window.innerHeight;
+    return {
+      plan: {
+        x: 32,
+        y: 24,
+        width: Math.min(1100, Math.round(viewportWidth * 0.7)),
+        height: Math.min(780, Math.round(viewportHeight * 0.78)),
+        collapsed: false,
+      },
+      rooms: { x: 860, y: 24, width: 360, height: 420, collapsed: false },
+      details: { x: 860, y: 380, width: 360, height: 420, collapsed: false },
+    };
   });
   const [panelZ, setPanelZ] = useState<Record<PanelId, number>>({
     plan: 1,
@@ -397,19 +410,52 @@ export default function App() {
 
   useEffect(() => {
     const onMove = (e: MouseEvent) => {
+      if (resizeState.current && workspaceRef.current) {
+        const { id, startX, startY, startWidth, startHeight } = resizeState.current;
+        const bounds = workspaceRef.current.getBoundingClientRect();
+        const minSizes: Record<PanelId, { width: number; height: number }> = {
+          plan: { width: 520, height: 360 },
+          rooms: { width: 280, height: 220 },
+          details: { width: 280, height: 220 },
+        };
+        const deltaX = e.clientX - startX;
+        const deltaY = e.clientY - startY;
+        setPanelState((prev) => {
+          const panel = prev[id];
+          const min = minSizes[id];
+          const maxWidth = Math.max(min.width, Math.floor(bounds.width - panel.x - 24));
+          const maxHeight = Math.max(min.height, Math.floor(bounds.height - panel.y - 24));
+          const nextWidth = Math.min(maxWidth, Math.max(min.width, Math.round(startWidth + deltaX)));
+          const nextHeight = Math.min(maxHeight, Math.max(min.height, Math.round(startHeight + deltaY)));
+          return {
+            ...prev,
+            [id]: { ...panel, width: nextWidth, height: nextHeight },
+          };
+        });
+        return;
+      }
       if (!dragState.current || !workspaceRef.current) return;
       const { id, offsetX, offsetY } = dragState.current;
       const bounds = workspaceRef.current.getBoundingClientRect();
-      const nextX = e.clientX - bounds.left - offsetX;
-      const nextY = e.clientY - bounds.top - offsetY;
-      setPanelState((prev) => ({
-        ...prev,
-        [id]: { ...prev[id], x: nextX, y: nextY },
-      }));
+      const padding = 12;
+      const collapsedHeight = 64;
+      setPanelState((prev) => {
+        const panel = prev[id];
+        const panelHeight = panel.collapsed ? collapsedHeight : panel.height;
+        const maxX = Math.max(padding, Math.floor(bounds.width - panel.width - padding));
+        const maxY = Math.max(padding, Math.floor(bounds.height - panelHeight - padding));
+        const nextX = Math.min(maxX, Math.max(padding, e.clientX - bounds.left - offsetX));
+        const nextY = Math.min(maxY, Math.max(padding, e.clientY - offsetY - bounds.top));
+        return {
+          ...prev,
+          [id]: { ...panel, x: nextX, y: nextY },
+        };
+      });
     };
 
     const onUp = () => {
       dragState.current = null;
+      resizeState.current = null;
     };
 
     window.addEventListener("mousemove", onMove);
@@ -434,6 +480,22 @@ export default function App() {
       offsetY: event.clientY - panelRect.top,
     };
     event.preventDefault();
+    setPanelZ((prev) => {
+      const max = Math.max(...Object.values(prev));
+      return { ...prev, [id]: max + 1 };
+    });
+  }
+
+  function handlePanelResizeMouseDown(id: PanelId, event: MouseEvent<HTMLButtonElement>) {
+    event.stopPropagation();
+    event.preventDefault();
+    resizeState.current = {
+      id,
+      startX: event.clientX,
+      startY: event.clientY,
+      startWidth: panelState[id].width,
+      startHeight: panelState[id].height,
+    };
     setPanelZ((prev) => {
       const max = Math.max(...Object.values(prev));
       return { ...prev, [id]: max + 1 };
@@ -607,7 +669,12 @@ export default function App() {
             <div className="plans-workspace" ref={workspaceRef}>
               <section
                 className="panel panel-plan"
-                style={{ transform: `translate3d(${panelState.plan.x}px, ${panelState.plan.y}px, 0)`, zIndex: panelZ.plan }}
+                style={{
+                  transform: `translate3d(${panelState.plan.x}px, ${panelState.plan.y}px, 0)`,
+                  zIndex: panelZ.plan,
+                  width: panelState.plan.width,
+                  height: panelState.plan.collapsed ? undefined : panelState.plan.height,
+                }}
                 data-collapsed={panelState.plan.collapsed}
               >
                 <div className="panel-header" onMouseDown={(e) => handlePanelMouseDown("plan", e)}>
@@ -800,11 +867,22 @@ export default function App() {
                     </div>
                   </div>
                 )}
+                <button
+                  className="panel-resizer"
+                  type="button"
+                  aria-label="Redimensionner le panneau plan"
+                  onMouseDown={(e) => handlePanelResizeMouseDown("plan", e)}
+                />
               </section>
 
               <section
                 className="panel panel-side"
-                style={{ transform: `translate3d(${panelState.rooms.x}px, ${panelState.rooms.y}px, 0)`, zIndex: panelZ.rooms }}
+                style={{
+                  transform: `translate3d(${panelState.rooms.x}px, ${panelState.rooms.y}px, 0)`,
+                  zIndex: panelZ.rooms,
+                  width: panelState.rooms.width,
+                  height: panelState.rooms.collapsed ? undefined : panelState.rooms.height,
+                }}
                 data-collapsed={panelState.rooms.collapsed}
               >
                 <div className="panel-header" onMouseDown={(e) => handlePanelMouseDown("rooms", e)}>
@@ -831,11 +909,22 @@ export default function App() {
                     <RoomListPanel rooms={rooms} selectedRoomId={selectedRoomId} onSelectRoom={setSelectedRoomId} />
                   </div>
                 )}
+                <button
+                  className="panel-resizer"
+                  type="button"
+                  aria-label="Redimensionner le panneau pièces"
+                  onMouseDown={(e) => handlePanelResizeMouseDown("rooms", e)}
+                />
               </section>
 
               <section
                 className="panel panel-side"
-                style={{ transform: `translate3d(${panelState.details.x}px, ${panelState.details.y}px, 0)`, zIndex: panelZ.details }}
+                style={{
+                  transform: `translate3d(${panelState.details.x}px, ${panelState.details.y}px, 0)`,
+                  zIndex: panelZ.details,
+                  width: panelState.details.width,
+                  height: panelState.details.collapsed ? undefined : panelState.details.height,
+                }}
                 data-collapsed={panelState.details.collapsed}
               >
                 <div className="panel-header" onMouseDown={(e) => handlePanelMouseDown("details", e)}>
@@ -862,6 +951,12 @@ export default function App() {
                     <RoomDetailsPanel room={selectedRoom} services={services} onSave={handleSaveRoom} onUploadPhoto={handleUploadPhoto} />
                   </div>
                 )}
+                <button
+                  className="panel-resizer"
+                  type="button"
+                  aria-label="Redimensionner le panneau détails"
+                  onMouseDown={(e) => handlePanelResizeMouseDown("details", e)}
+                />
               </section>
             </div>
           </main>
