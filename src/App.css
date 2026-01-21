@@ -230,7 +230,6 @@ body{
 
 .panel-side{
   width: 360px;
-  max-height: 420px;
 }
 
 .panel-header{
@@ -280,7 +279,8 @@ body{
 .panel-scroll{
   overflow: auto;
   padding-right: 8px;
-  max-height: 320px;
+  flex: 1;
+  min-height: 0;
 }
 
 .panel[data-collapsed="true"]{
