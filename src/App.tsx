@@ -140,23 +140,8 @@ function roomHasPolygonOnPage(room: any, pageIndex: number): boolean {
 }
 
 // --------------------
-// Services helpers
+// Services helpers (HEX only + color picker)
 // --------------------
-function readServiceColors(): ServiceColor[] {
-  const parsed = safeParse<ServiceColor[]>(localStorage.getItem(SERVICE_COLORS_KEY));
-  if (!parsed || !Array.isArray(parsed)) return [];
-  return parsed
-    .filter((x) => x && typeof x.service === "string" && typeof x.color === "string")
-    .map((x) => ({ service: x.service.trim(), color: x.color.trim() }))
-    .filter((x) => x.service.length > 0);
-}
-
-function writeServiceColors(v: ServiceColor[]) {
-  try {
-    localStorage.setItem(SERVICE_COLORS_KEY, JSON.stringify(v));
-  } catch {}
-}
-
 function normalizeServiceName(s: string) {
   return s.trim();
 }
@@ -165,15 +150,69 @@ function serviceKey(s: string) {
   return normalizeServiceName(s).toLowerCase();
 }
 
-function hashStringToHue(s: string): number {
-  let h = 0;
-  for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) >>> 0;
-  return h % 360;
+function hashString(s: string): number {
+  let h = 2166136261 >>> 0; // FNV-ish
+  for (let i = 0; i < s.length; i++) {
+    h ^= s.charCodeAt(i);
+    h = Math.imul(h, 16777619) >>> 0;
+  }
+  return h >>> 0;
 }
 
+function clamp255(n: number) {
+  return Math.max(0, Math.min(255, n | 0));
+}
+
+function toHexByte(n: number) {
+  return clamp255(n).toString(16).padStart(2, "0");
+}
+
+function isHexColor(v: string): boolean {
+  return /^#[0-9a-fA-F]{6}$/.test(v.trim());
+}
+
+/**
+ * ✅ Couleur par défaut STABLE en HEX (#RRGGBB), sans HSL.
+ * (on force une palette douce/lisible)
+ */
 function defaultColorForService(service: string): string {
-  const hue = hashStringToHue(service.trim());
-  return `hsl(${hue} 55% 72%)`;
+  const s = service.trim() || "service";
+  const h = hashString(s);
+  // dérive 3 composantes + "adouci" vers des couleurs pastel
+  const r = 160 + ((h >> 16) & 0x3f); // 160..223
+  const g = 160 + ((h >> 8) & 0x3f);
+  const b = 160 + (h & 0x3f);
+  return `#${toHexByte(r)}${toHexByte(g)}${toHexByte(b)}`;
+}
+
+function sanitizeServiceColor(service: string, color: string | undefined | null): string {
+  const c = (color || "").trim();
+  if (isHexColor(c)) return c;
+  // Migration: si ancienne valeur hsl()/autre -> défaut hex stable
+  return defaultColorForService(service);
+}
+
+function readServiceColors(): ServiceColor[] {
+  const parsed = safeParse<ServiceColor[]>(localStorage.getItem(SERVICE_COLORS_KEY));
+  if (!parsed || !Array.isArray(parsed)) return [];
+
+  // ✅ migration/sanitization hex-only
+  const map = new Map<string, ServiceColor>();
+  for (const x of parsed) {
+    if (!x || typeof x.service !== "string") continue;
+    const name = normalizeServiceName(x.service);
+    if (!name) continue;
+    const key = serviceKey(name);
+    const color = sanitizeServiceColor(name, (x as any).color);
+    map.set(key, { service: name, color });
+  }
+  return sortServices(Array.from(map.values()));
+}
+
+function writeServiceColors(v: ServiceColor[]) {
+  try {
+    localStorage.setItem(SERVICE_COLORS_KEY, JSON.stringify(v));
+  } catch {}
 }
 
 function sortServices(list: ServiceColor[]) {
@@ -230,7 +269,7 @@ export default function App() {
   const [layout, setLayout] = useState<LayoutState>(() => readLayout());
   useEffect(() => writeLayout(layout), [layout]);
 
-  // ✅ Services palette (jamais undefined)
+  // ✅ Services palette (jamais undefined) + migration hex
   const [services, setServices] = useState<ServiceColor[]>(() => readServiceColors());
   useEffect(() => writeServiceColors(services), [services]);
 
@@ -248,7 +287,7 @@ export default function App() {
 
   // Settings: add service inputs
   const [newServiceName, setNewServiceName] = useState("");
-  const [newServiceColor, setNewServiceColor] = useState(() => defaultColorForService("Service"));
+  const [newServiceColor, setNewServiceColor] = useState<string>("#aab4c2");
   const [newServiceColorTouched, setNewServiceColorTouched] = useState(false);
 
   useEffect(() => {
@@ -260,19 +299,20 @@ export default function App() {
       const used = new Set(r.map((x) => (x.service ?? "").trim()).filter((s) => s.length > 0));
       if (used.size) {
         setServices((prev) => {
-          const map = new Map(prev.map((p) => [serviceKey(p.service), p]));
+          const map = new Map(prev.map((p) => [serviceKey(p.service), { service: normalizeServiceName(p.service), color: sanitizeServiceColor(p.service, p.color) }]));
           let changed = false;
 
           for (const s of used) {
-            const key = serviceKey(s);
+            const name = normalizeServiceName(s);
+            const key = serviceKey(name);
             if (!map.has(key)) {
-              map.set(key, { service: normalizeServiceName(s), color: defaultColorForService(s) });
+              map.set(key, { service: name, color: defaultColorForService(name) });
               changed = true;
             }
           }
-          if (!changed) return prev;
 
-          return sortServices(Array.from(map.values()));
+          const next = sortServices(Array.from(map.values()));
+          return changed ? next : prev;
         });
       }
     });
@@ -297,9 +337,10 @@ export default function App() {
     const svc = (saved.service ?? "").trim();
     if (svc) {
       setServices((prev) => {
-        const key = serviceKey(svc);
+        const name = normalizeServiceName(svc);
+        const key = serviceKey(name);
         if (prev.some((x) => serviceKey(x.service) === key)) return prev;
-        return sortServices([...prev, { service: normalizeServiceName(svc), color: defaultColorForService(svc) }]);
+        return sortServices([...prev, { service: name, color: defaultColorForService(name) }]);
       });
     }
   }
@@ -309,23 +350,27 @@ export default function App() {
     setRooms((prev) => prev.map((r) => (r.id === saved.id ? saved : r)));
   }
 
-  // ------- Services manager (réparation) -------
+  // ------- Services manager (HEX + color picker) -------
   function addService() {
     const name = normalizeServiceName(newServiceName);
     if (!name) return;
 
-    const color = (newServiceColor || "").trim() || defaultColorForService(name);
+    const color = isHexColor(newServiceColor) ? newServiceColor : defaultColorForService(name);
     const key = serviceKey(name);
 
     setServices((prev) => {
       const map = new Map<string, ServiceColor>();
-      for (const s of prev) map.set(serviceKey(s.service), { service: normalizeServiceName(s.service), color: (s.color || "").trim() });
+      for (const s of prev) {
+        const n = normalizeServiceName(s.service);
+        if (!n) continue;
+        map.set(serviceKey(n), { service: n, color: sanitizeServiceColor(n, s.color) });
+      }
       map.set(key, { service: name, color });
-      return sortServices(Array.from(map.values()).filter((x) => x.service.length > 0));
+      return sortServices(Array.from(map.values()));
     });
 
     setNewServiceName("");
-    setNewServiceColor(defaultColorForService("Service"));
+    setNewServiceColor("#aab4c2");
     setNewServiceColorTouched(false);
   }
 
@@ -341,22 +386,17 @@ export default function App() {
       };
 
       updated.service = normalizeServiceName(updated.service);
-      updated.color = (updated.color || "").trim();
+      updated.color = sanitizeServiceColor(updated.service || current.service, updated.color);
 
-      // Rebuild map to remove duplicates case-insensitive
-      const map = new Map<string, ServiceColor>();
       next[index] = updated;
 
+      // Rebuild map to remove duplicates case-insensitive (keep last)
+      const map = new Map<string, ServiceColor>();
       for (const s of next) {
         const name = normalizeServiceName(s.service);
         if (!name) continue;
-        const k = serviceKey(name);
-        const color = (s.color || "").trim() || defaultColorForService(name);
-
-        // If duplicates exist, keep the latest occurrence
-        map.set(k, { service: name, color });
+        map.set(serviceKey(name), { service: name, color: sanitizeServiceColor(name, s.color) });
       }
-
       return sortServices(Array.from(map.values()));
     });
   }
@@ -370,12 +410,13 @@ export default function App() {
     if (!used.size) return;
 
     setServices((prev) => {
-      const map = new Map(prev.map((p) => [serviceKey(p.service), { service: normalizeServiceName(p.service), color: (p.color || "").trim() }]));
+      const map = new Map(prev.map((p) => [serviceKey(p.service), { service: normalizeServiceName(p.service), color: sanitizeServiceColor(p.service, p.color) }]));
       let changed = false;
       for (const s of used) {
-        const k = serviceKey(s);
+        const name = normalizeServiceName(s);
+        const k = serviceKey(name);
         if (!map.has(k)) {
-          map.set(k, { service: normalizeServiceName(s), color: defaultColorForService(s) });
+          map.set(k, { service: name, color: defaultColorForService(name) });
           changed = true;
         }
       }
@@ -684,12 +725,7 @@ export default function App() {
 
         <div className="topbar-actions">
           {rightDrawerButtonVisible && (
-            <button
-              className="btn btn-mini"
-              type="button"
-              onClick={() => setRightDrawerOpen((v) => !v)}
-              aria-expanded={rightDrawerOpen}
-            >
+            <button className="btn btn-mini" type="button" onClick={() => setRightDrawerOpen((v) => !v)} aria-expanded={rightDrawerOpen}>
               {rightDrawerOpen ? "Fermer panneaux" : "Panneaux"}
             </button>
           )}
@@ -762,7 +798,7 @@ export default function App() {
           </main>
         )}
 
-        {/* ✅ Settings: services manager complet */}
+        {/* Settings: color picker */}
         {pageView === "settings" && (
           <main className="dash-main">
             <div className="card">
@@ -796,25 +832,30 @@ export default function App() {
                       onChange={(e) => {
                         const v = e.target.value;
                         setNewServiceName(v);
-                        if (!newServiceColorTouched) {
-                          setNewServiceColor(defaultColorForService(v || "Service"));
-                        }
+                        if (!newServiceColorTouched) setNewServiceColor(defaultColorForService(v || "Service"));
                       }}
                     />
-                    <input
-                      className="select"
-                      placeholder="Couleur (ex: #aabbcc ou hsl(...))"
-                      value={newServiceColor}
-                      onChange={(e) => {
-                        setNewServiceColorTouched(true);
-                        setNewServiceColor(e.target.value);
-                      }}
-                    />
+
+                    <div className="color-cell">
+                      <input
+                        className="color-input"
+                        type="color"
+                        value={isHexColor(newServiceColor) ? newServiceColor : "#aab4c2"}
+                        onChange={(e) => {
+                          setNewServiceColorTouched(true);
+                          setNewServiceColor(e.target.value);
+                        }}
+                        aria-label="Couleur"
+                        title="Choisir une couleur"
+                      />
+                      <span className="color-hex">{isHexColor(newServiceColor) ? newServiceColor.toUpperCase() : "#AAB4C2"}</span>
+                    </div>
+
                     <button className="btn btn-mini" type="button" onClick={addService}>
                       Ajouter
                     </button>
                   </div>
-                  <div className="hint">Les doublons sont fusionnés (insensible à la casse).</div>
+                  <div className="hint">Couleurs stockées en HEX (#RRGGBB). Pas de HSL.</div>
                 </div>
 
                 <div className="settings-divider" />
@@ -827,17 +868,21 @@ export default function App() {
                   <div className="service-list">
                     {services.map((s, idx) => (
                       <div className="service-row" key={`${serviceKey(s.service)}-${idx}`}>
-                        <div className="swatch" style={{ background: s.color || "#ddd" }} title={s.color} />
-                        <input
-                          className="select"
-                          value={s.service}
-                          onChange={(e) => updateService(idx, { service: e.target.value })}
-                        />
-                        <input
-                          className="select"
-                          value={s.color}
-                          onChange={(e) => updateService(idx, { color: e.target.value })}
-                        />
+                        <div className="swatch" style={{ background: sanitizeServiceColor(s.service, s.color) }} title={sanitizeServiceColor(s.service, s.color)} />
+
+                        <input className="select" value={s.service} onChange={(e) => updateService(idx, { service: e.target.value })} />
+
+                        <div className="color-cell">
+                          <input
+                            className="color-input"
+                            type="color"
+                            value={sanitizeServiceColor(s.service, s.color)}
+                            onChange={(e) => updateService(idx, { color: e.target.value })}
+                            aria-label={`Couleur ${s.service}`}
+                          />
+                          <span className="color-hex">{sanitizeServiceColor(s.service, s.color).toUpperCase()}</span>
+                        </div>
+
                         <button className="btn btn-mini" type="button" onClick={() => removeService(idx)}>
                           Suppr.
                         </button>
@@ -847,7 +892,7 @@ export default function App() {
                 )}
 
                 <div className="hint" style={{ marginTop: 12 }}>
-                  Dans “Détails”, si une pièce n’a pas de service ou un service non présent ici, elle doit afficher <b>non attribué</b>.
+                  Dans “Détails”, si une pièce n’a pas de service ou un service non présent ici, afficher <b>non attribué</b>.
                 </div>
               </div>
             </div>
