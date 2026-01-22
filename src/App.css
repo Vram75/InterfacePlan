@@ -483,9 +483,15 @@ body{
 
 .settings-row{
   display: grid;
-  grid-template-columns: 1fr auto auto;
+   grid-template-columns: minmax(220px, 1fr) 190px 110px; /* nom / couleur / bouton */
   gap: 10px;
   align-items: center;
+}
+
+/* évite les inputs trop grands */
+.service-row .select{
+  width: 100%;
+  min-width: 0;
 }
 
 .settings-divider{
@@ -507,7 +513,7 @@ body{
 
 .service-row{
   display: grid;
-  grid-template-columns: 18px 1fr auto auto;
+  grid-template-columns: 18px minmax(220px, 1fr) 190px 110px; /* swatch / nom / couleur / bouton */
   gap: 10px;
   align-items: center;
 }
