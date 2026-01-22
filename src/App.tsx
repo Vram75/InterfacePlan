@@ -19,7 +19,7 @@ const GRID_SIZE_KEY = "iface.gridSizePx";
 
 const SERVICE_COLORS_KEY = "iface.serviceColors.v1";
 
-// ✅ Pro: filter toggle persistence (optional)
+// ✅ Pro: filter toggle persistence
 const PAGES_ONLY_WITH_POLYS_KEY = "iface.pages.onlyWithPolys";
 
 type PageView = "dashboard" | "plans" | "settings";
@@ -278,10 +278,10 @@ export default function App() {
   const [currentPage, setCurrentPage] = useState(0); // 0-based
   const [pageCount, setPageCount] = useState(1);
 
-  // ✅ Pro: sidebar page filter
+  // Pro: sidebar page filter
   const [pageFilter, setPageFilter] = useState("");
 
-  // ✅ Pro: toggle only pages with polygons
+  // ✅ toggle only pages with polygons (persisted)
   const [onlyWithPolys, setOnlyWithPolys] = useState<boolean>(() => readBool(PAGES_ONLY_WITH_POLYS_KEY, false));
   useEffect(() => {
     writeBool(PAGES_ONLY_WITH_POLYS_KEY, onlyWithPolys);
@@ -359,7 +359,11 @@ export default function App() {
 
   const pagesWithPolygons = useMemo(() => new Set<number>(pagesPolyStats.keys()), [pagesPolyStats]);
 
-  // ✅ Pro: visible pages according to filter + toggle "only with polys"
+  // ✅ Counter: X / Y
+  const pagesWithPolygonsCount = useMemo(() => pagesWithPolygons.size, [pagesWithPolygons]);
+  const totalPagesCount = useMemo(() => Math.max(1, pageCount), [pageCount]);
+
+  // Visible pages according to filter + toggle "only with polys"
   const visiblePages = useMemo(() => {
     const total = Math.max(1, pageCount);
     const parsed = parsePageFilter(pageFilter, total);
@@ -380,8 +384,6 @@ export default function App() {
     }
 
     if (!onlyWithPolys) return base;
-
-    // filter by pages having polygons
     return base.filter((p) => pagesWithPolygons.has(p));
   }, [pageCount, pageFilter, onlyWithPolys, pagesWithPolygons]);
 
@@ -404,13 +406,12 @@ export default function App() {
     goToPageIndex(currentPage + 1);
   }
 
-  // ✅ If toggle hides the current page, jump to first visible (when possible)
+  // If toggle hides the current page, jump to first visible (when possible)
   useEffect(() => {
     if (pageView !== "plans") return;
     if (!onlyWithPolys) return;
     if (pagesWithPolygons.has(currentPage)) return;
 
-    // if current page has no poly, try first visible page with polys
     const next = visiblePages[0];
     if (typeof next === "number") goToPageIndex(next);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -705,7 +706,7 @@ export default function App() {
             Paramètres
           </button>
 
-          {/* ✅ UNIQUE sélection pages = sidebar + filtre pro + toggle */}
+          {/* Pages */}
           {pageView === "plans" && (
             <>
               <div className="nav-divider" />
@@ -730,14 +731,10 @@ export default function App() {
               </div>
 
               <label className="mini-switch" title="N’afficher que les pages qui ont des polygones">
-                <input
-                  type="checkbox"
-                  checked={onlyWithPolys}
-                  onChange={(e) => setOnlyWithPolys(e.target.checked)}
-                />
+                <input type="checkbox" checked={onlyWithPolys} onChange={(e) => setOnlyWithPolys(e.target.checked)} />
                 <span className="mini-switch-track" />
-                <span className="mini-switch-text">Avec polygones uniquement</span>
-              </label>
+                <span className="mini-switch-text">Polygones uniquement</span>
+                </label>
 
               <div className="sidebar-pages">
                 {visiblePages.length === 0 ? (
@@ -919,10 +916,9 @@ export default function App() {
                   <div className="card-subtitle">PDF multi-pages + overlay</div>
                 </div>
 
-                {/* Barre du haut du panneau Plan (sans sélection pages) */}
                 <div className="plan-header-right">
                   <div className="card-meta">
-                    <button className="btn btn-icon" title="Page précédente (PageUp)" type="button" onClick={goPrevPage} disabled={currentPage <= 0}>
+                    <button className="btn btn-icon" title="Page précédente (PageUp)" type="button" onClick={() => goToPageIndex(currentPage - 1)} disabled={currentPage <= 0}>
                       ◀
                     </button>
 
@@ -934,7 +930,7 @@ export default function App() {
                       className="btn btn-icon"
                       title="Page suivante (PageDown)"
                       type="button"
-                      onClick={goNextPage}
+                      onClick={() => goToPageIndex(currentPage + 1)}
                       disabled={currentPage >= Math.max(1, pageCount) - 1}
                     >
                       ▶
@@ -944,7 +940,6 @@ export default function App() {
                     <span className="meta-chip">Sélection: {selectedRoom?.numero ?? "—"}</span>
                   </div>
 
-                  {/* Toolbar */}
                   <div className="plan-toolbar">
                     <div className="plan-toolbar-row">
                       <label className="switch" title="Activer/désactiver l’édition">
@@ -1105,8 +1100,14 @@ export default function App() {
                   <RoomDetailsPanel
                     room={selectedRoom}
                     services={services.map(({ uid: _uid, ...rest }) => rest)}
-                    onSave={handleSaveRoom}
-                    onUploadPhoto={handleUploadPhoto}
+                    onSave={async (room) => {
+                      const saved = await api.updateRoom(room);
+                      setRooms((prev) => prev.map((r) => (r.id === saved.id ? saved : r)));
+                    }}
+                    onUploadPhoto={async (roomId, file) => {
+                      const saved = await api.uploadPhoto(roomId, file);
+                      setRooms((prev) => prev.map((r) => (r.id === saved.id ? saved : r)));
+                    }}
                   />
                 </div>
               </div>
