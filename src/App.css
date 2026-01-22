@@ -175,6 +175,7 @@ body{
   border-color: var(--stroke-strong);
   box-shadow: var(--shadow-soft);
 }
+
 .nav-icon{
   width: 26px;
   height: 26px;
@@ -192,7 +193,7 @@ body{
   margin: 12px 0 6px;
 }
 
-/* ✅ Sidebar pages tools */
+/* Sidebar pages tools */
 .sidebar-pages-tools{
   position: relative;
   display: flex;
@@ -234,7 +235,7 @@ body{
   background: rgba(255,255,255,0.95);
 }
 
-/* ✅ NEW: mini switch (sidebar) */
+/* ✅ Mini switch (sidebar) — compact, aligned, no counter */
 .mini-switch{
   display: flex;
   align-items: center;
@@ -247,9 +248,10 @@ body{
   user-select: none;
 }
 .mini-switch input{ display: none; }
+
 .mini-switch-track{
-  width: 40px;
-  height: 22px;
+  width: 34px;
+  height: 18px;
   border-radius: 999px;
   border: 1px solid rgba(20, 32, 50, 0.12);
   background: rgba(255,255,255,0.75);
@@ -262,8 +264,8 @@ body{
   position: absolute;
   top: 2px;
   left: 2px;
-  width: 18px;
-  height: 18px;
+  width: 14px;
+  height: 14px;
   border-radius: 999px;
   background: rgba(17,24,39,0.85);
   transition: transform 160ms ease;
@@ -273,13 +275,15 @@ body{
   border-color: rgba(59,130,246,0.26);
 }
 .mini-switch input:checked + .mini-switch-track::after{
-  transform: translateX(18px);
+  transform: translateX(16px);
   background: rgba(17,24,39,0.92);
 }
+
 .mini-switch-text{
   font-size: 12px;
   font-weight: 800;
   color: rgba(17,24,39,0.75);
+  white-space: nowrap;
 }
 
 .sidebar-pages{
