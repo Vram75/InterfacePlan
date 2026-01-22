@@ -239,7 +239,7 @@ body{
   padding: 14px 16px;
   border-bottom: 1px solid var(--stroke);
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
   gap: 12px;
   background: rgba(255,255,255,0.45);
@@ -313,7 +313,7 @@ body{
   line-height: 0;
 }
 
-/* Toolbar in plan header */
+/* Right block in plan header */
 .plan-header-right{
   display: flex;
   flex-direction: column;
@@ -322,6 +322,75 @@ body{
   min-width: 0;
 }
 
+/* ✅ Multi-pages advanced bar */
+.plan-pagesbar{
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  width: 100%;
+  flex-wrap: wrap;
+}
+
+.page-strip{
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.page-btn{
+  position: relative;
+  border: 1px solid var(--stroke);
+  background: rgba(255,255,255,0.70);
+  border-radius: 12px;
+  padding: 8px 10px;
+  cursor: pointer;
+  box-shadow: var(--shadow-soft);
+  font-weight: 800;
+  font-size: 12px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+.page-btn:hover{
+  background: rgba(255,255,255,0.92);
+  border-color: var(--stroke-strong);
+}
+.page-btn-active{
+  background: rgba(255,255,255,0.95);
+  border-color: rgba(59,130,246,0.28);
+}
+.page-label{ line-height: 1; }
+
+.page-dot{
+  width: 7px;
+  height: 7px;
+  border-radius: 999px;
+  background: rgba(59,130,246,0.85);
+  box-shadow: 0 0 0 2px rgba(59,130,246,0.14);
+}
+
+.page-ellipsis{
+  color: var(--muted);
+  font-weight: 900;
+  padding: 0 2px;
+  user-select: none;
+}
+
+.page-jump{
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  border: 1px solid var(--stroke);
+  background: rgba(255,255,255,0.65);
+  border-radius: 14px;
+  box-shadow: var(--shadow-soft);
+}
+
+/* Toolbar in plan header */
 .plan-toolbar{
   display: flex;
   flex-direction: column;
@@ -481,17 +550,12 @@ body{
   flex-wrap: wrap;
 }
 
+/* ✅ tailles stables */
 .settings-row{
   display: grid;
-   grid-template-columns: minmax(220px, 1fr) 190px 110px; /* nom / couleur / bouton */
+  grid-template-columns: minmax(220px, 1fr) 190px 110px;
   gap: 10px;
   align-items: center;
-}
-
-/* évite les inputs trop grands */
-.service-row .select{
-  width: 100%;
-  min-width: 0;
 }
 
 .settings-divider{
@@ -513,9 +577,14 @@ body{
 
 .service-row{
   display: grid;
-  grid-template-columns: 18px minmax(220px, 1fr) 190px 110px; /* swatch / nom / couleur / bouton */
+  grid-template-columns: 18px minmax(220px, 1fr) 190px 110px;
   gap: 10px;
   align-items: center;
+}
+
+.service-row .select{
+  width: 100%;
+  min-width: 0;
 }
 
 .swatch{
@@ -586,4 +655,6 @@ body{
   .plan-viewport{ height: auto; min-height: 520px; }
   .plan-header-right{ align-items: flex-start; }
   .plan-toolbar, .plan-toolbar-row{ align-items: flex-start; justify-content: flex-start; }
+  .plan-pagesbar{ justify-content: flex-start; }
+  .page-strip{ justify-content: flex-start; }
 }
