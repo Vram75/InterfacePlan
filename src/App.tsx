@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import "./App.css";
 
 import { PdfCanvas } from "./components/PdfCanvas";
@@ -19,6 +19,9 @@ const GRID_SIZE_KEY = "iface.gridSizePx";
 
 const SERVICE_COLORS_KEY = "iface.serviceColors.v1";
 
+// ✅ Pro: filter toggle persistence (optional)
+const PAGES_ONLY_WITH_POLYS_KEY = "iface.pages.onlyWithPolys";
+
 type PageView = "dashboard" | "plans" | "settings";
 type ServiceEntry = ServiceColor & { uid: string };
 
@@ -37,33 +40,35 @@ function safeParse<T>(s: string | null): T | null {
   }
 }
 
-function readSnapFromStorage(): boolean {
+function readBool(key: string, fallback: boolean) {
   try {
-    const v = localStorage.getItem(SNAP_STORAGE_KEY);
-    if (v == null) return true;
+    const v = localStorage.getItem(key);
+    if (v == null) return fallback;
     const s = String(v).trim().toLowerCase();
+    if (s === "1" || s === "true" || s === "on" || s === "yes") return true;
     if (s === "0" || s === "false" || s === "off" || s === "no") return false;
-    return true;
+    return fallback;
   } catch {
-    return true;
+    return fallback;
   }
+}
+
+function writeBool(key: string, v: boolean) {
+  try {
+    localStorage.setItem(key, v ? "1" : "0");
+  } catch {}
+}
+
+function readSnapFromStorage(): boolean {
+  return readBool(SNAP_STORAGE_KEY, true);
 }
 
 function readGridEnabled(): boolean {
-  try {
-    const v = localStorage.getItem(GRID_ENABLED_KEY);
-    if (v == null) return false;
-    const s = String(v).trim().toLowerCase();
-    return !(s === "0" || s === "false" || s === "off" || s === "no");
-  } catch {
-    return false;
-  }
+  return readBool(GRID_ENABLED_KEY, false);
 }
 
 function writeGridEnabled(v: boolean) {
-  try {
-    localStorage.setItem(GRID_ENABLED_KEY, v ? "1" : "0");
-  } catch {}
+  writeBool(GRID_ENABLED_KEY, v);
 }
 
 function readGridSizePx(): number {
@@ -165,7 +170,6 @@ function writeServiceColorsRaw(v: ServiceColor[]) {
 function extractPolygonForPage(room: any, pageIndex: number): Point[] | undefined {
   if (!room) return undefined;
 
-  // Multi
   const polys = room.polygons;
   if (Array.isArray(polys)) {
     for (const entry of polys) {
@@ -179,7 +183,6 @@ function extractPolygonForPage(room: any, pageIndex: number): Point[] | undefine
     }
   }
 
-  // Legacy
   const page = typeof room.page === "number" && Number.isFinite(room.page) ? room.page : 0;
   if (page === pageIndex) {
     const poly = room.polygon;
@@ -214,6 +217,50 @@ function roomPagesWithPolygons(room: any): number[] {
 }
 // --------------------
 
+// --------------------
+// Pro sidebar filter parser
+// --------------------
+function parsePageFilter(input: string, pageCount: number): number[] | null {
+  const q = input.trim();
+  if (!q) return null;
+
+  const max = Math.max(1, pageCount);
+  const toIndex = (n1based: number) => Math.max(0, Math.min(max - 1, n1based - 1));
+
+  if (q.includes(",")) {
+    const nums = q
+      .split(",")
+      .map((x) => x.trim())
+      .filter(Boolean)
+      .map((x) => Number(x))
+      .filter((n) => Number.isFinite(n) && n >= 1 && n <= max);
+    const set = new Set(nums.map((n) => toIndex(n)));
+    return Array.from(set).sort((a, b) => a - b);
+  }
+
+  const rangeMatch = q.match(/^(\d+)\s*-\s*(\d+)$/);
+  if (rangeMatch) {
+    const a = Number(rangeMatch[1]);
+    const b = Number(rangeMatch[2]);
+    if (Number.isFinite(a) && Number.isFinite(b)) {
+      const start = Math.max(1, Math.min(a, b));
+      const end = Math.min(max, Math.max(a, b));
+      const out: number[] = [];
+      for (let n = start; n <= end; n++) out.push(toIndex(n));
+      return out;
+    }
+  }
+
+  if (/^\d+$/.test(q)) {
+    const n = Number(q);
+    if (Number.isFinite(n) && n >= 1 && n <= max) return [toIndex(n)];
+    return [];
+  }
+
+  return null;
+}
+// --------------------
+
 export default function App() {
   const [pageView, setPageView] = useState<PageView>("dashboard");
 
@@ -227,9 +274,18 @@ export default function App() {
   const [scale, setScale] = useState(1.2);
   const [size, setSize] = useState({ w: 800, h: 600 });
 
-  // ✅ Multi-pages (PDF)
+  // Multi-pages (PDF)
   const [currentPage, setCurrentPage] = useState(0); // 0-based
   const [pageCount, setPageCount] = useState(1);
+
+  // ✅ Pro: sidebar page filter
+  const [pageFilter, setPageFilter] = useState("");
+
+  // ✅ Pro: toggle only pages with polygons
+  const [onlyWithPolys, setOnlyWithPolys] = useState<boolean>(() => readBool(PAGES_ONLY_WITH_POLYS_KEY, false));
+  useEffect(() => {
+    writeBool(PAGES_ONLY_WITH_POLYS_KEY, onlyWithPolys);
+  }, [onlyWithPolys]);
 
   const [snapUi, setSnapUi] = useState<boolean>(() => readSnapFromStorage());
   const [gridEnabled, setGridEnabled] = useState<boolean>(() => readGridEnabled());
@@ -237,7 +293,7 @@ export default function App() {
 
   const [overlayRequest, setOverlayRequest] = useState<OverlayRequest>({ kind: "none" });
 
-  // ✅ services with stable uid
+  // services with stable uid
   const [services, setServices] = useState<ServiceEntry[]>(() => {
     const raw = readServiceColorsRaw();
     return raw.map((s) => ({ ...s, uid: makeUid() }));
@@ -258,7 +314,6 @@ export default function App() {
       setRooms(r);
       if (r.length && !selectedRoomId) setSelectedRoomId(r[0].id);
 
-      // Seed services from rooms (non-destructive)
       const used = new Set(r.map((x) => (x.service ?? "").trim()).filter((s) => s.length > 0));
       if (used.size) {
         setServices((prev) => {
@@ -292,7 +347,7 @@ export default function App() {
     setCurrentPage((p) => Math.max(0, Math.min(p, Math.max(1, pageCount) - 1)));
   }, [pageCount]);
 
-  // ✅ Sidebar-only page selection (with blue dot + badge)
+  // Sidebar-only page selection indicators (dot + badge)
   const pagesPolyStats = useMemo(() => {
     const map = new Map<number, number>(); // page -> count of polygons on that page
     for (const r of rooms as any[]) {
@@ -303,6 +358,32 @@ export default function App() {
   }, [rooms]);
 
   const pagesWithPolygons = useMemo(() => new Set<number>(pagesPolyStats.keys()), [pagesPolyStats]);
+
+  // ✅ Pro: visible pages according to filter + toggle "only with polys"
+  const visiblePages = useMemo(() => {
+    const total = Math.max(1, pageCount);
+    const parsed = parsePageFilter(pageFilter, total);
+
+    let base: number[];
+    if (parsed) base = parsed;
+    else {
+      const q = pageFilter.trim();
+      if (!q) base = Array.from({ length: total }, (_, p) => p);
+      else {
+        const out: number[] = [];
+        for (let p = 0; p < total; p++) {
+          const s = String(p + 1);
+          if (s.includes(q)) out.push(p);
+        }
+        base = out;
+      }
+    }
+
+    if (!onlyWithPolys) return base;
+
+    // filter by pages having polygons
+    return base.filter((p) => pagesWithPolygons.has(p));
+  }, [pageCount, pageFilter, onlyWithPolys, pagesWithPolygons]);
 
   function goToPageIndex(nextIndex: number) {
     const total = Math.max(1, pageCount);
@@ -323,7 +404,19 @@ export default function App() {
     goToPageIndex(currentPage + 1);
   }
 
-  // ✅ Keyboard: PageUp/PageDown/Home/End for PDF pages (only in Plans)
+  // ✅ If toggle hides the current page, jump to first visible (when possible)
+  useEffect(() => {
+    if (pageView !== "plans") return;
+    if (!onlyWithPolys) return;
+    if (pagesWithPolygons.has(currentPage)) return;
+
+    // if current page has no poly, try first visible page with polys
+    const next = visiblePages[0];
+    if (typeof next === "number") goToPageIndex(next);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [onlyWithPolys, pageView, pagesWithPolygons, currentPage]);
+
+  // Keyboard: PageUp/PageDown/Home/End for PDF pages (only in Plans)
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
       if (pageView !== "plans") return;
@@ -349,13 +442,22 @@ export default function App() {
         goToPageIndex(Math.max(1, pageCount) - 1);
         return;
       }
+
+      // Focus filter with Ctrl/Cmd+F inside Plans
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "f") {
+        e.preventDefault();
+        const el = document.getElementById("sidebar-page-filter") as HTMLInputElement | null;
+        el?.focus();
+        el?.select?.();
+        return;
+      }
     };
 
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [pageView, currentPage, pageCount]);
 
-  // ✅ Commit polygon with optimistic lock (page-aware)
+  // Commit polygon with optimistic lock (page-aware)
   async function commitPolygon(roomId: string, page: number, poly: Point[]) {
     setRooms((prev) =>
       prev.map((r: any) => {
@@ -395,7 +497,7 @@ export default function App() {
     setRooms((prev) => prev.map((r) => (r.id === saved.id ? saved : r)));
   }
 
-  // ---- Services UI actions (NO resort while typing) ----
+  // ---- Services actions ----
   function addService() {
     const name = normalizeServiceName(newServiceName);
     if (!name) return;
@@ -603,7 +705,7 @@ export default function App() {
             Paramètres
           </button>
 
-          {/* ✅ UNIQUE SÉLECTION DES PAGES = SIDEBAR */}
+          {/* ✅ UNIQUE sélection pages = sidebar + filtre pro + toggle */}
           {pageView === "plans" && (
             <>
               <div className="nav-divider" />
@@ -611,29 +713,63 @@ export default function App() {
                 Pages
               </div>
 
+              <div className="sidebar-pages-tools">
+                <input
+                  id="sidebar-page-filter"
+                  className="sidebar-page-filter"
+                  placeholder="Filtrer : 12 | 1-8 | 1,3,10 | ou “2”…"
+                  value={pageFilter}
+                  onChange={(e) => setPageFilter(e.target.value)}
+                  spellCheck={false}
+                />
+                {!!pageFilter.trim() && (
+                  <button className="sidebar-clear" type="button" onClick={() => setPageFilter("")} title="Effacer">
+                    ✕
+                  </button>
+                )}
+              </div>
+
+              <label className="mini-switch" title="N’afficher que les pages qui ont des polygones">
+                <input
+                  type="checkbox"
+                  checked={onlyWithPolys}
+                  onChange={(e) => setOnlyWithPolys(e.target.checked)}
+                />
+                <span className="mini-switch-track" />
+                <span className="mini-switch-text">Avec polygones uniquement</span>
+              </label>
+
               <div className="sidebar-pages">
-                {Array.from({ length: Math.max(1, pageCount) }, (_, p) => {
-                  const active = p === currentPage;
-                  const hasPoly = pagesWithPolygons.has(p);
-                  const polyCount = pagesPolyStats.get(p) ?? 0;
+                {visiblePages.length === 0 ? (
+                  <div className="sidebar-empty">Aucune page</div>
+                ) : (
+                  visiblePages.map((p) => {
+                    const active = p === currentPage;
+                    const hasPoly = pagesWithPolygons.has(p);
+                    const polyCount = pagesPolyStats.get(p) ?? 0;
 
-                  return (
-                    <button
-                      key={`side-p-${p}`}
-                      type="button"
-                      className={`sidebar-page-item ${active ? "sidebar-page-item-active" : ""}`}
-                      onClick={() => goToPageIndex(p)}
-                      title={hasPoly ? `Page ${p + 1} (${polyCount} polygone(s))` : `Page ${p + 1}`}
-                    >
-                      <span className="sidebar-page-left">
-                        <span className="sidebar-page-num">{p + 1}</span>
-                        {hasPoly && <span className="sidebar-page-dot" aria-hidden="true" />}
-                      </span>
+                    return (
+                      <button
+                        key={`side-p-${p}`}
+                        type="button"
+                        className={`sidebar-page-item ${active ? "sidebar-page-item-active" : ""}`}
+                        onClick={() => goToPageIndex(p)}
+                        title={hasPoly ? `Page ${p + 1} (${polyCount} polygone(s))` : `Page ${p + 1}`}
+                      >
+                        <span className="sidebar-page-left">
+                          <span className="sidebar-page-num">{p + 1}</span>
+                          {hasPoly && <span className="sidebar-page-dot" aria-hidden="true" />}
+                        </span>
 
-                      {hasPoly && <span className="sidebar-page-badge">{polyCount}</span>}
-                    </button>
-                  );
-                })}
+                        {hasPoly && <span className="sidebar-page-badge">{polyCount}</span>}
+                      </button>
+                    );
+                  })
+                )}
+              </div>
+
+              <div className="sidebar-pages-hint">
+                Astuce : <b>Ctrl/⌘ + F</b> pour focus le filtre
               </div>
             </>
           )}
