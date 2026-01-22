@@ -1,200 +1,131 @@
-import React, { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import * as pdfjsLib from "pdfjs-dist";
-import type { PDFDocumentProxy, PDFPageProxy, RenderTask } from "pdfjs-dist";
-import pdfWorkerUrl from "pdfjs-dist/build/pdf.worker.min.mjs?url";
 
-pdfjsLib.GlobalWorkerOptions.workerSrc = pdfWorkerUrl;
+// ✅ Vite: worker as URL string
+import workerSrc from "pdfjs-dist/build/pdf.worker.min.mjs?url";
 
-export function PdfCanvas(props: {
+pdfjsLib.GlobalWorkerOptions.workerSrc = workerSrc;
+
+type Props = {
   pdfUrl: string;
+  page: number; // 1-based
   scale: number;
-  page?: number; // défaut 1
   onPageCount?: (n: number) => void;
   onSize?: (w: number, h: number) => void;
-}) {
-  const pageNumber = props.page ?? 1;
+};
 
+export function PdfCanvas({ pdfUrl, page, scale, onPageCount, onSize }: Props) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
-  const docRef = useRef<PDFDocumentProxy | null>(null);
-  const pageRef = useRef<PDFPageProxy | null>(null);
-  const renderTaskRef = useRef<RenderTask | null>(null);
-  const renderSeqRef = useRef(0);
+  const renderTaskRef = useRef<pdfjsLib.PDFRenderTask | null>(null);
 
-  const [error, setError] = useState<string | null>(null);
-  const [docTick, setDocTick] = useState(0);
-
-  // Load document
+  // ✅ keep latest callbacks without triggering effects
+  const onPageCountRef = useRef<Props["onPageCount"]>(onPageCount);
+  const onSizeRef = useRef<Props["onSize"]>(onSize);
   useEffect(() => {
-    let disposed = false;
+    onPageCountRef.current = onPageCount;
+    onSizeRef.current = onSize;
+  }, [onPageCount, onSize]);
 
-    async function load() {
-      setError(null);
+  // ✅ avoid spamming onSize
+  const lastSizeRef = useRef<{ w: number; h: number }>({ w: 0, h: 0 });
 
+  const [pdf, setPdf] = useState<pdfjsLib.PDFDocumentProxy | null>(null);
+  const [numPages, setNumPages] = useState(1);
+
+  // Load PDF once per url
+  useEffect(() => {
+    let cancelled = false;
+
+    (async () => {
       try {
-        renderTaskRef.current?.cancel();
-      } catch {}
-      renderTaskRef.current = null;
+        renderTaskRef.current?.cancel?.();
+        renderTaskRef.current = null;
 
-      try {
-        pageRef.current?.cleanup();
-      } catch {}
-      pageRef.current = null;
-
-      const oldDoc = docRef.current;
-      docRef.current = null;
-      if (oldDoc) {
-        try {
-          await oldDoc.destroy();
-        } catch {}
-      }
-
-      try {
-        const loadingTask = pdfjsLib.getDocument({ url: props.pdfUrl });
+        const loadingTask = pdfjsLib.getDocument({ url: pdfUrl });
         const doc = await loadingTask.promise;
 
-        if (disposed) {
+        if (cancelled) {
           try {
             await doc.destroy();
           } catch {}
           return;
         }
 
-        docRef.current = doc;
-        props.onPageCount?.(doc.numPages || 1);
-        setDocTick((x) => x + 1);
-      } catch (e: any) {
-        if (!disposed) setError(e?.message ? String(e.message) : "Erreur chargement PDF");
+        setPdf(doc);
+        setNumPages(doc.numPages);
+        onPageCountRef.current?.(doc.numPages);
+      } catch (e) {
+        console.error("PdfCanvas: failed to load pdf", e);
+        setPdf(null);
+        setNumPages(1);
+        onPageCountRef.current?.(1);
       }
-    }
-
-    load();
+    })();
 
     return () => {
-      disposed = true;
-
-      try {
-        renderTaskRef.current?.cancel();
-      } catch {}
-      renderTaskRef.current = null;
-
-      try {
-        pageRef.current?.cleanup();
-      } catch {}
-      pageRef.current = null;
-
-      const d = docRef.current;
-      docRef.current = null;
-      if (d) {
-        try {
-          d.destroy();
-        } catch {}
-      }
+      cancelled = true;
     };
-  }, [props.pdfUrl]);
+  }, [pdfUrl]);
 
-  // Render page
+  const safePage = useMemo(() => {
+    const p = Math.floor(page || 1);
+    return Math.max(1, Math.min(p, Math.max(1, numPages)));
+  }, [page, numPages]);
+
+  // Render current page
   useEffect(() => {
-    let disposed = false;
+    if (!pdf) return;
+    const canvas = canvasRef.current;
+    if (!canvas) return;
 
-    async function render() {
-      setError(null);
+    let cancelled = false;
 
-      const doc = docRef.current;
-      const canvas = canvasRef.current;
-      if (!doc || !canvas) return;
-
+    (async () => {
       try {
-        renderTaskRef.current?.cancel();
-      } catch {}
-      renderTaskRef.current = null;
+        // Cancel previous render if any
+        renderTaskRef.current?.cancel?.();
+        renderTaskRef.current = null;
 
-      const seq = ++renderSeqRef.current;
+        const pdfPage = await pdf.getPage(safePage);
+        const viewport = pdfPage.getViewport({ scale: scale || 1 });
 
-      try {
-        const page = await doc.getPage(pageNumber);
-        if (disposed || seq !== renderSeqRef.current) {
-          try {
-            page.cleanup();
-          } catch {}
-          return;
+        const w = Math.max(1, Math.floor(viewport.width));
+        const h = Math.max(1, Math.floor(viewport.height));
+
+        // ✅ only update canvas & onSize if dimensions changed
+        if (canvas.width !== w) canvas.width = w;
+        if (canvas.height !== h) canvas.height = h;
+
+        const last = lastSizeRef.current;
+        if (last.w !== w || last.h !== h) {
+          lastSizeRef.current = { w, h };
+          onSizeRef.current?.(w, h);
         }
 
-        pageRef.current = page;
-
-        const viewport = page.getViewport({ scale: props.scale });
-        const ctx = canvas.getContext("2d", { alpha: false });
+        const ctx = canvas.getContext("2d");
         if (!ctx) return;
 
-        const vw = Math.max(1, Math.ceil(viewport.width));
-        const vh = Math.max(1, Math.ceil(viewport.height));
-        const dpr = Math.max(1, window.devicePixelRatio || 1);
+        ctx.setTransform(1, 0, 0, 1, 0, 0);
+        ctx.clearRect(0, 0, w, h);
 
-        canvas.width = Math.round(vw * dpr);
-        canvas.height = Math.round(vh * dpr);
-        canvas.style.width = `${vw}px`;
-        canvas.style.height = `${vh}px`;
-        canvas.style.display = "block";
-
-        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-        ctx.imageSmoothingEnabled = true;
-
-        const emitSize = () => {
-          const r = canvas.getBoundingClientRect();
-          props.onSize?.(Math.round(r.width), Math.round(r.height));
-        };
-
-        requestAnimationFrame(emitSize);
-
-        const task = page.render({ canvasContext: ctx, viewport });
+        const task = pdfPage.render({ canvasContext: ctx, viewport });
         renderTaskRef.current = task;
 
         await task.promise;
 
-        if (disposed || seq !== renderSeqRef.current) return;
-
-        requestAnimationFrame(emitSize);
+        if (cancelled) return;
       } catch (e: any) {
-        const name = String(e?.name ?? "");
-        const msg = String(e?.message ?? e ?? "");
-        const isCancelled =
-          name === "RenderingCancelledException" || msg.toLowerCase().includes("rendering cancelled");
-        if (isCancelled) return;
-        if (!disposed) setError(msg);
+        if (e?.name === "RenderingCancelledException") return;
+        console.error("PdfCanvas: render error", e);
       }
-    }
-
-    render();
+    })();
 
     return () => {
-      disposed = true;
-      try {
-        renderTaskRef.current?.cancel();
-      } catch {}
+      cancelled = true;
+      renderTaskRef.current?.cancel?.();
       renderTaskRef.current = null;
     };
-  }, [props.scale, pageNumber, props.pdfUrl, docTick]);
+  }, [pdf, safePage, scale]);
 
-  return (
-    <div style={{ position: "relative" }}>
-      <canvas ref={canvasRef} />
-      {error && (
-        <div
-          style={{
-            position: "absolute",
-            inset: 0,
-            background: "rgba(255,255,255,0.92)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            padding: 12,
-            fontFamily: "monospace",
-            fontSize: 12,
-            whiteSpace: "pre-wrap",
-          }}
-        >
-          {error}
-        </div>
-      )}
-    </div>
-  );
+  return <canvas ref={canvasRef} />;
 }
