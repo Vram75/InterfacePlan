@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, type MouseEvent } from "react";
+import { useEffect, useMemo, useState } from "react";
 import "./App.css";
 
 import { PdfCanvas } from "./components/PdfCanvas";
@@ -20,15 +20,6 @@ const GRID_SIZE_KEY = "iface.gridSizePx";
 const SERVICE_COLORS_KEY = "iface.serviceColors.v1";
 
 type PageView = "dashboard" | "plans" | "settings";
-type PanelId = "plan" | "rooms" | "details";
-
-type PanelState = {
-  x: number;
-  y: number;
-  width: number;
-  height: number;
-  collapsed: boolean;
-};
 
 function safeParse<T>(s: string | null): T | null {
   if (!s) return null;
@@ -100,19 +91,6 @@ function isValidSize(n: unknown): n is number {
   return typeof n === "number" && Number.isFinite(n) && n > 0;
 }
 
-/** 1 pièce = 1 polygone par page */
-function roomHasPolygonOnPage(room: any, pageIndex: number): boolean {
-  if (!room) return false;
-  const page = typeof room.page === "number" && Number.isFinite(room.page) ? room.page : 0;
-  if (page !== pageIndex) return false;
-
-  const p = room.polygon;
-  if (!p) return false;
-  if (Array.isArray(p)) return p.length >= 3;
-  if (Array.isArray(p?.polygon)) return p.polygon.length >= 3;
-  return false;
-}
-
 // --------------------
 // Services (HEX only + picker)
 // --------------------
@@ -174,11 +152,51 @@ function writeServiceColors(v: ServiceColor[]) {
 }
 // --------------------
 
+// --------------------
+// Polygons detection (robust formats) + lock after commit
+// --------------------
+function extractPolygonForPage(room: any, pageIndex: number): Point[] | undefined {
+  if (!room) return undefined;
+
+  // Potential newer format: room.polygons = [{ page, polygon }, ...]
+  const polys = room.polygons;
+  if (Array.isArray(polys)) {
+    for (const entry of polys) {
+      if (!entry) continue;
+      const p =
+        typeof entry.page === "number"
+          ? entry.page
+          : typeof entry.pageIndex === "number"
+            ? entry.pageIndex
+            : undefined;
+
+      if (p !== pageIndex) continue;
+
+      const pts = entry.polygon ?? entry.points ?? entry;
+      if (Array.isArray(pts)) return pts as Point[];
+      if (pts && Array.isArray(pts.polygon)) return pts.polygon as Point[];
+    }
+  }
+
+  // Legacy: room.page + room.polygon
+  const page = typeof room.page === "number" && Number.isFinite(room.page) ? room.page : 0;
+  if (page === pageIndex) {
+    const poly = room.polygon;
+    if (Array.isArray(poly)) return poly as Point[];
+    if (poly && Array.isArray(poly.polygon)) return poly.polygon as Point[];
+  }
+
+  return undefined;
+}
+
+function roomHasPolygonOnPage(room: any, pageIndex: number): boolean {
+  const poly = extractPolygonForPage(room, pageIndex);
+  return !!poly && poly.length >= 3;
+}
+// --------------------
+
 export default function App() {
   const [pageView, setPageView] = useState<PageView>("dashboard");
-  const workspaceRef = useRef<HTMLDivElement | null>(null);
-  const dragState = useRef<{ id: PanelId; offsetX: number; offsetY: number } | null>(null);
-  const resizeState = useRef<{ id: PanelId; startX: number; startY: number; startWidth: number; startHeight: number } | null>(null);
 
   const [rooms, setRooms] = useState<Room[]>([]);
   const [selectedRoomId, setSelectedRoomId] = useState<string | null>(null);
@@ -190,6 +208,7 @@ export default function App() {
   const [scale, setScale] = useState(1.2);
   const [size, setSize] = useState({ w: 800, h: 600 });
 
+  // Multi-pages
   const [currentPage, setCurrentPage] = useState(0);
   const [pageCount, setPageCount] = useState(1);
 
@@ -199,7 +218,7 @@ export default function App() {
 
   const [overlayRequest, setOverlayRequest] = useState<OverlayRequest>({ kind: "none" });
 
-  // ✅ services palette (never undefined)
+  // Services palette (never undefined)
   const [services, setServices] = useState<ServiceColor[]>(() => readServiceColors());
   useEffect(() => writeServiceColors(services), [services]);
 
@@ -208,27 +227,7 @@ export default function App() {
   const [newServiceColor, setNewServiceColor] = useState<string>("#aab4c2");
   const [newServiceColorTouched, setNewServiceColorTouched] = useState(false);
 
-  const [panelState, setPanelState] = useState<Record<PanelId, PanelState>>(() => {
-    const viewportWidth = typeof window === "undefined" ? 1200 : window.innerWidth;
-    const viewportHeight = typeof window === "undefined" ? 900 : window.innerHeight;
-    return {
-      plan: {
-        x: 32,
-        y: 24,
-        width: Math.min(1100, Math.round(viewportWidth * 0.7)),
-        height: Math.min(780, Math.round(viewportHeight * 0.78)),
-        collapsed: false,
-      },
-      rooms: { x: 860, y: 24, width: 360, height: 420, collapsed: false },
-      details: { x: 860, y: 380, width: 360, height: 420, collapsed: false },
-    };
-  });
-  const [panelZ, setPanelZ] = useState<Record<PanelId, number>>({
-    plan: 1,
-    rooms: 2,
-    details: 3,
-  });
-
+  // Initial load
   useEffect(() => {
     api.getRooms().then((r) => {
       setRooms(r);
@@ -238,7 +237,12 @@ export default function App() {
       const used = new Set(r.map((x) => (x.service ?? "").trim()).filter((s) => s.length > 0));
       if (used.size) {
         setServices((prev) => {
-          const map = new Map(prev.map((p) => [serviceKey(p.service), { service: normalizeServiceName(p.service), color: sanitizeServiceColor(p.service, p.color) }]));
+          const map = new Map(
+            prev.map((p) => [
+              serviceKey(p.service),
+              { service: normalizeServiceName(p.service), color: sanitizeServiceColor(p.service, p.color) },
+            ])
+          );
           let changed = false;
           for (const s of used) {
             const name = normalizeServiceName(s);
@@ -262,9 +266,40 @@ export default function App() {
     setCurrentPage((p) => Math.max(0, Math.min(p, Math.max(1, pageCount) - 1)));
   }, [pageCount]);
 
+  // ✅ Commit polygon with optimistic lock so it can't be recreated after tab change
   async function commitPolygon(roomId: string, page: number, poly: Point[]) {
-    const saved = await api.updatePolygon(roomId, { page, polygon: poly });
-    setRooms((prev) => prev.map((r) => (r.id === saved.id ? saved : r)));
+    // Optimistic update: lock immediately
+    setRooms((prev) =>
+      prev.map((r: any) => {
+        if (r.id !== roomId) return r;
+
+        const next: any = { ...r, page, polygon: poly };
+
+        if (Array.isArray(r.polygons)) {
+          const others = r.polygons.filter((x: any) => {
+            const p = typeof x?.page === "number" ? x.page : typeof x?.pageIndex === "number" ? x.pageIndex : undefined;
+            return p !== page;
+          });
+          next.polygons = [...others, { page, polygon: poly }];
+        }
+
+        return next;
+      })
+    );
+
+    // Exit draw mode to avoid double creation UI
+    setDrawingRoomId(null);
+    setDrawSessionId((x) => x + 1);
+
+    try {
+      const saved = await api.updatePolygon(roomId, { page, polygon: poly }); // ⚠️ page obligatoire
+      setRooms((prev) => prev.map((r) => (r.id === saved.id ? saved : r)));
+    } catch (e) {
+      // Refresh from server on error
+      const refreshed = await api.getRooms();
+      setRooms(refreshed);
+      throw e;
+    }
   }
 
   async function handleSaveRoom(room: Room) {
@@ -336,7 +371,9 @@ export default function App() {
     if (!used.size) return;
 
     setServices((prev) => {
-      const map = new Map(prev.map((p) => [serviceKey(p.service), { service: normalizeServiceName(p.service), color: sanitizeServiceColor(p.service, p.color) }]));
+      const map = new Map(
+        prev.map((p) => [serviceKey(p.service), { service: normalizeServiceName(p.service), color: sanitizeServiceColor(p.service, p.color) }])
+      );
       let changed = false;
       for (const s of used) {
         const name = normalizeServiceName(s);
@@ -408,109 +445,12 @@ export default function App() {
     return () => window.removeEventListener("keydown", onKeyDown);
   }, []);
 
-  useEffect(() => {
-    const onMove = (e: MouseEvent) => {
-      if (resizeState.current && workspaceRef.current) {
-        const { id, startX, startY, startWidth, startHeight } = resizeState.current;
-        const bounds = workspaceRef.current.getBoundingClientRect();
-        const minSizes: Record<PanelId, { width: number; height: number }> = {
-          plan: { width: 520, height: 360 },
-          rooms: { width: 280, height: 220 },
-          details: { width: 280, height: 220 },
-        };
-        const deltaX = e.clientX - startX;
-        const deltaY = e.clientY - startY;
-        setPanelState((prev) => {
-          const panel = prev[id];
-          const min = minSizes[id];
-          const maxWidth = Math.max(min.width, Math.floor(bounds.width - panel.x - 24));
-          const maxHeight = Math.max(min.height, Math.floor(bounds.height - panel.y - 24));
-          const nextWidth = Math.min(maxWidth, Math.max(min.width, Math.round(startWidth + deltaX)));
-          const nextHeight = Math.min(maxHeight, Math.max(min.height, Math.round(startHeight + deltaY)));
-          return {
-            ...prev,
-            [id]: { ...panel, width: nextWidth, height: nextHeight },
-          };
-        });
-        return;
-      }
-      if (!dragState.current || !workspaceRef.current) return;
-      const { id, offsetX, offsetY } = dragState.current;
-      const bounds = workspaceRef.current.getBoundingClientRect();
-      const padding = 12;
-      const collapsedHeight = 64;
-      setPanelState((prev) => {
-        const panel = prev[id];
-        const panelHeight = panel.collapsed ? collapsedHeight : panel.height;
-        const maxX = Math.max(padding, Math.floor(bounds.width - panel.width - padding));
-        const maxY = Math.max(padding, Math.floor(bounds.height - panelHeight - padding));
-        const nextX = Math.min(maxX, Math.max(padding, e.clientX - bounds.left - offsetX));
-        const nextY = Math.min(maxY, Math.max(padding, e.clientY - offsetY - bounds.top));
-        return {
-          ...prev,
-          [id]: { ...panel, x: nextX, y: nextY },
-        };
-      });
-    };
-
-    const onUp = () => {
-      dragState.current = null;
-      resizeState.current = null;
-    };
-
-    window.addEventListener("mousemove", onMove);
-    window.addEventListener("mouseup", onUp);
-    return () => {
-      window.removeEventListener("mousemove", onMove);
-      window.removeEventListener("mouseup", onUp);
-    };
-  }, []);
-
   const canDeletePolygon = adminMode && !!selectedRoomId && roomHasPolygonOnPage(selectedRoom as any, currentPage);
   const overlayReady = isValidSize(size.w) && isValidSize(size.h);
 
-  function handlePanelMouseDown(id: PanelId, event: MouseEvent<HTMLDivElement>) {
-    if (!workspaceRef.current) return;
-    const panel = event.currentTarget.closest(".panel") as HTMLElement | null;
-    if (!panel) return;
-    const panelRect = panel.getBoundingClientRect();
-    dragState.current = {
-      id,
-      offsetX: event.clientX - panelRect.left,
-      offsetY: event.clientY - panelRect.top,
-    };
-    event.preventDefault();
-    setPanelZ((prev) => {
-      const max = Math.max(...Object.values(prev));
-      return { ...prev, [id]: max + 1 };
-    });
-  }
-
-  function handlePanelResizeMouseDown(id: PanelId, event: MouseEvent<HTMLButtonElement>) {
-    event.stopPropagation();
-    event.preventDefault();
-    resizeState.current = {
-      id,
-      startX: event.clientX,
-      startY: event.clientY,
-      startWidth: panelState[id].width,
-      startHeight: panelState[id].height,
-    };
-    setPanelZ((prev) => {
-      const max = Math.max(...Object.values(prev));
-      return { ...prev, [id]: max + 1 };
-    });
-  }
-
-  function togglePanel(id: PanelId) {
-    setPanelState((prev) => ({
-      ...prev,
-      [id]: { ...prev[id], collapsed: !prev[id].collapsed },
-    }));
-  }
-
   return (
     <div className="dash-root">
+      {/* TOPBAR */}
       <header className="dash-topbar">
         <div className="brand">
           <div className="brand-badge" aria-hidden="true">
@@ -520,18 +460,6 @@ export default function App() {
             <div className="brand-title">Interface</div>
             <div className="brand-subtitle">Plan d’étage • édition</div>
           </div>
-        </div>
-
-        <div className="dash-tabs" role="tablist" aria-label="Navigation principale">
-          <button className={`tab ${pageView === "dashboard" ? "tab-active" : ""}`} onClick={() => setPageView("dashboard")} role="tab" type="button">
-            Tableau de bord
-          </button>
-          <button className={`tab ${pageView === "plans" ? "tab-active" : ""}`} onClick={() => setPageView("plans")} role="tab" type="button">
-            Plans
-          </button>
-          <button className={`tab ${pageView === "settings" ? "tab-active" : ""}`} onClick={() => setPageView("settings")} role="tab" type="button">
-            Paramètres
-          </button>
         </div>
 
         <div className="topbar-actions">
@@ -546,13 +474,54 @@ export default function App() {
         </div>
       </header>
 
+      {/* BODY */}
       <div className="dash-body">
+        {/* SIDEBAR */}
+        <aside className="dash-sidebar">
+          <div className="nav-title">Navigation</div>
+
+          <button className={`nav-item ${pageView === "dashboard" ? "nav-item-active" : ""}`} onClick={() => setPageView("dashboard")} type="button">
+            <span className="nav-icon" aria-hidden="true">
+              ⌂
+            </span>
+            Tableau de bord
+          </button>
+
+          <button className={`nav-item ${pageView === "plans" ? "nav-item-active" : ""}`} onClick={() => setPageView("plans")} type="button">
+            <span className="nav-icon" aria-hidden="true">
+              ▦
+            </span>
+            Plans
+          </button>
+
+          <button className={`nav-item ${pageView === "settings" ? "nav-item-active" : ""}`} onClick={() => setPageView("settings")} type="button">
+            <span className="nav-icon" aria-hidden="true">
+              ⛭
+            </span>
+            Paramètres
+          </button>
+
+          <div className="spacer" />
+
+          <div className="help-card">
+            <div className="help-title">Raccourcis</div>
+            <div className="help-text">
+              <b>S</b> Snap • <b>+</b>/<b>-</b> Zoom • <b>Shift</b> orthogonal
+              <br />
+              <b>Alt+clic</b> insérer • <b>Delete</b> supprimer sommet
+              <br />
+              <b>Ctrl/⌘</b> drag = déplacer polygone
+            </div>
+          </div>
+        </aside>
+
+        {/* MAIN */}
         {pageView === "dashboard" && (
           <main className="dash-main">
             <div className="card">
               <div className="card-header">
                 <div>
-                  <div className="card-title">Dashboard</div>
+                  <div className="card-title">Tableau de bord</div>
                   <div className="card-subtitle">Accueil</div>
                 </div>
               </div>
@@ -565,7 +534,7 @@ export default function App() {
           </main>
         )}
 
-        {/* ✅ Paramètres > Services restauré */}
+        {/* SETTINGS */}
         {pageView === "settings" && (
           <main className="dash-main">
             <div className="card">
@@ -664,302 +633,219 @@ export default function App() {
           </main>
         )}
 
+        {/* PLANS */}
         {pageView === "plans" && (
           <main className="dash-main">
-            <div className="plans-workspace" ref={workspaceRef}>
-              <section
-                className="panel panel-plan"
-                style={{
-                  transform: `translate3d(${panelState.plan.x}px, ${panelState.plan.y}px, 0)`,
-                  zIndex: panelZ.plan,
-                  width: panelState.plan.width,
-                  height: panelState.plan.collapsed ? undefined : panelState.plan.height,
-                }}
-                data-collapsed={panelState.plan.collapsed}
-              >
-                <div className="panel-header" onMouseDown={(e) => handlePanelMouseDown("plan", e)}>
-                  <div>
-                    <div className="card-title">Plan</div>
-                    <div className="card-subtitle">PDF + overlay</div>
-                  </div>
-
-                  <div className="panel-actions">
-                    <div className="card-meta">
-                      <button
-                        className="btn btn-icon"
-                        title="Page précédente"
-                        type="button"
-                        onClick={() => {
-                          setCurrentPage((p) => Math.max(0, p - 1));
-                          setDrawingRoomId(null);
-                          setOverlayRequest({ kind: "none" });
-                          setDrawSessionId((x) => x + 1);
-                        }}
-                        disabled={currentPage <= 0}
-                      >
-                        ◀
-                      </button>
-
-                      <span className="meta-chip">
-                        Page {Math.min(pageCount, currentPage + 1)} / {pageCount}
-                      </span>
-
-                      <button
-                        className="btn btn-icon"
-                        title="Page suivante"
-                        type="button"
-                        onClick={() => {
-                          setCurrentPage((p) => Math.min(pageCount - 1, p + 1));
-                          setDrawingRoomId(null);
-                          setOverlayRequest({ kind: "none" });
-                          setDrawSessionId((x) => x + 1);
-                        }}
-                        disabled={currentPage >= pageCount - 1}
-                      >
-                        ▶
-                      </button>
-
-                      <span className="meta-chip">Zoom x{scale.toFixed(2)}</span>
-                      <span className="meta-chip">Sélection: {selectedRoom?.numero ?? "—"}</span>
-                    </div>
-
-                    <button
-                      className="panel-toggle"
-                      type="button"
-                      onClick={(event) => {
-                        event.stopPropagation();
-                        togglePanel("plan");
-                      }}
-                      aria-expanded={!panelState.plan.collapsed}
-                    >
-                      {panelState.plan.collapsed ? "Déplier" : "Replier"}
-                    </button>
-                  </div>
+            <div className="card plan-card">
+              <div className="card-header">
+                <div>
+                  <div className="card-title">Plan</div>
+                  <div className="card-subtitle">PDF + overlay</div>
                 </div>
 
-                {!panelState.plan.collapsed && (
-                  <div className="panel-body">
-                    <div className="plan-toolbar">
+                {/* Barre du haut du panneau Plan */}
+                <div className="plan-header-right">
+                  <div className="card-meta">
+                    <button
+                      className="btn btn-icon"
+                      title="Page précédente"
+                      type="button"
+                      onClick={() => {
+                        setCurrentPage((p) => Math.max(0, p - 1));
+                        setDrawingRoomId(null);
+                        setOverlayRequest({ kind: "none" });
+                        setDrawSessionId((x) => x + 1);
+                      }}
+                      disabled={currentPage <= 0}
+                    >
+                      ◀
+                    </button>
+
+                    <span className="meta-chip">
+                      Page {Math.min(pageCount, currentPage + 1)} / {pageCount}
+                    </span>
+
+                    <button
+                      className="btn btn-icon"
+                      title="Page suivante"
+                      type="button"
+                      onClick={() => {
+                        setCurrentPage((p) => Math.min(pageCount - 1, p + 1));
+                        setDrawingRoomId(null);
+                        setOverlayRequest({ kind: "none" });
+                        setDrawSessionId((x) => x + 1);
+                      }}
+                      disabled={currentPage >= pageCount - 1}
+                    >
+                      ▶
+                    </button>
+
+                    <span className="meta-chip">Zoom x{scale.toFixed(2)}</span>
+                    <span className="meta-chip">Sélection: {selectedRoom?.numero ?? "—"}</span>
+                  </div>
+
+                  <div className="plan-toolbar">
+                    <div className="plan-toolbar-row">
+                      <label className="switch" title="Activer/désactiver l’édition">
+                        <input
+                          type="checkbox"
+                          checked={adminMode}
+                          onChange={(e) => {
+                            setAdminMode(e.target.checked);
+                            setDrawingRoomId(null);
+                            setDrawSessionId((x) => x + 1);
+                          }}
+                        />
+                        <span className="switch-track" />
+                        <span className="switch-label">Admin</span>
+                      </label>
+
+                      <button className="btn" type="button" onClick={toggleSnapFromButton} title="Snap (S)">
+                        Snap: {snapUi ? "ON" : "OFF"} (S)
+                      </button>
+
+                      <button className="btn" type="button" onClick={toggleGridFromButton} title="Afficher/masquer la grille">
+                        Grille: {gridEnabled ? "ON" : "OFF"}
+                      </button>
+
+                      <div className="plan-field-inline" title="Taille de grille (px)">
+                        <span className="plan-field-label">Grille</span>
+                        <input
+                          className="select plan-number"
+                          type="number"
+                          min={4}
+                          max={200}
+                          step={1}
+                          value={gridSizePx}
+                          onChange={(e) => {
+                            const n = Math.min(200, Math.max(4, Math.round(Number(e.target.value) || 0)));
+                            setGridSizePx(n);
+                            writeGridSizePx(n);
+                          }}
+                        />
+                      </div>
+
+                      <button
+                        className="btn"
+                        type="button"
+                        disabled={!canDeletePolygon}
+                        onClick={() => {
+                          if (!selectedRoomId) return;
+                          setOverlayRequest({ kind: "deletePolygon", roomId: selectedRoomId });
+                        }}
+                        title={!canDeletePolygon ? "Aucun polygone sur cette page pour la pièce sélectionnée" : "Supprimer le polygone (page courante)"}
+                      >
+                        Supprimer polygone
+                      </button>
+
+                      <button className="btn btn-icon" type="button" onClick={() => setScale((s) => clampScale(s - 0.1))} title="Zoom - (-)">
+                        −
+                      </button>
+                      <button className="btn btn-icon" type="button" onClick={() => setScale((s) => clampScale(s + 0.1))} title="Zoom + (+)">
+                        +
+                      </button>
+                    </div>
+
+                    {adminMode && (
                       <div className="plan-toolbar-row">
-                        <label className="switch" title="Activer/désactiver l’édition">
-                          <input
-                            type="checkbox"
-                            checked={adminMode}
+                        <div className="plan-field-inline" style={{ minWidth: 320 }}>
+                          <span className="plan-field-label">Dessiner</span>
+                          <select
+                            className="select"
+                            value={drawingRoomId ?? ""}
                             onChange={(e) => {
-                              setAdminMode(e.target.checked);
-                              setDrawingRoomId(null);
+                              setDrawingRoomId(e.target.value || null);
                               setDrawSessionId((x) => x + 1);
                             }}
-                          />
-                          <span className="switch-track" />
-                          <span className="switch-label">Admin</span>
-                        </label>
-
-                        <button className="btn" type="button" onClick={toggleSnapFromButton} title="Snap (S)">
-                          Snap: {snapUi ? "ON" : "OFF"} (S)
-                        </button>
-
-                        <button className="btn" type="button" onClick={toggleGridFromButton} title="Afficher/masquer la grille">
-                          Grille: {gridEnabled ? "ON" : "OFF"}
-                        </button>
-
-                        <div className="plan-field-inline" title="Taille de grille (px)">
-                          <span className="plan-field-label">Grille</span>
-                          <input
-                            className="select plan-number"
-                            type="number"
-                            min={4}
-                            max={200}
-                            step={1}
-                            value={gridSizePx}
-                            onChange={(e) => {
-                              const n = Math.min(200, Math.max(4, Math.round(Number(e.target.value) || 0)));
-                              setGridSizePx(n);
-                              writeGridSizePx(n);
-                            }}
-                          />
+                          >
+                            <option value="">— Dessiner un polygone pour… —</option>
+                            {rooms.map((r: any) => {
+                              const already = roomHasPolygonOnPage(r, currentPage);
+                              return (
+                                <option key={r.id} value={r.id} disabled={already}>
+                                  {r.numero} {already ? " — déjà défini (page)" : ""}
+                                </option>
+                              );
+                            })}
+                          </select>
                         </div>
-
-                        <button
-                          className="btn"
-                          type="button"
-                          disabled={!canDeletePolygon}
-                          onClick={() => {
-                            if (!selectedRoomId) return;
-                            setOverlayRequest({ kind: "deletePolygon", roomId: selectedRoomId });
-                          }}
-                        >
-                          Supprimer polygone
-                        </button>
-
-                        <button className="btn btn-icon" type="button" onClick={() => setScale((s) => clampScale(s - 0.1))} title="Zoom - (-)">
-                          −
-                        </button>
-                        <button className="btn btn-icon" type="button" onClick={() => setScale((s) => clampScale(s + 0.1))} title="Zoom + (+)">
-                          +
-                        </button>
                       </div>
+                    )}
+                  </div>
+                </div>
+              </div>
 
-                      {adminMode && (
-                        <div className="plan-toolbar-row">
-                          <div className="plan-field-inline" style={{ minWidth: 320 }}>
-                            <span className="plan-field-label">Dessiner</span>
-                            <select
-                              className="select"
-                              value={drawingRoomId ?? ""}
-                              onChange={(e) => {
-                                setDrawingRoomId(e.target.value || null);
-                                setDrawSessionId((x) => x + 1);
-                              }}
-                            >
-                              <option value="">— Dessiner un polygone pour… —</option>
-                              {rooms.map((r) => {
-                                const already = roomHasPolygonOnPage(r as any, currentPage);
-                                return (
-                                  <option key={r.id} value={r.id} disabled={already}>
-                                    {r.numero} {already ? " — déjà défini (page)" : ""}
-                                  </option>
-                                );
-                              })}
-                            </select>
-                          </div>
-                        </div>
+              <div className="card-content plan-content">
+                <div className="plan-viewport">
+                  <div className="plan-stage">
+                    <div className="plan-layer">
+                      <PdfCanvas
+                        pdfUrl="/Pour CHATGPT.pdf"
+                        scale={scale}
+                        page={currentPage + 1}
+                        onPageCount={setPageCount}
+                        onSize={(w, h) => {
+                          if (!isValidSize(w) || !isValidSize(h)) return;
+                          setSize({ w, h });
+                        }}
+                      />
+
+                      {overlayReady && (
+                        <SvgOverlay
+                          width={size.w}
+                          height={size.h}
+                          page={currentPage}
+                          rooms={rooms}
+                          services={services}
+                          selectedRoomId={selectedRoomId}
+                          onSelectRoom={setSelectedRoomId}
+                          adminMode={adminMode}
+                          drawingRoomId={drawingRoomId}
+                          drawSessionId={drawSessionId}
+                          onPolygonCommit={(roomId, poly) => commitPolygon(roomId, currentPage, poly)}
+                          request={overlayRequest}
+                          onRequestHandled={() => setOverlayRequest({ kind: "none" })}
+                          gridEnabled={gridEnabled}
+                          gridSizePx={gridSizePx}
+                        />
                       )}
                     </div>
-
-                    <div className="plan-content">
-                      <div className="plan-viewport">
-                        <div className="plan-stage">
-                          <div className="plan-layer">
-                            <PdfCanvas
-                              pdfUrl="/Pour CHATGPT.pdf"
-                              scale={scale}
-                              page={currentPage + 1}
-                              onPageCount={setPageCount}
-                              onSize={(w, h) => {
-                                if (!isValidSize(w) || !isValidSize(h)) return;
-                                setSize({ w, h });
-                              }}
-                            />
-
-                            {overlayReady && (
-                              <SvgOverlay
-                                width={size.w}
-                                height={size.h}
-                                page={currentPage}
-                                rooms={rooms}
-                                services={services}
-                                selectedRoomId={selectedRoomId}
-                                onSelectRoom={setSelectedRoomId}
-                                adminMode={adminMode}
-                                drawingRoomId={drawingRoomId}
-                                drawSessionId={drawSessionId}
-                                onPolygonCommit={(roomId, poly) => commitPolygon(roomId, currentPage, poly)}
-                                request={overlayRequest}
-                                onRequestHandled={() => setOverlayRequest({ kind: "none" })}
-                                gridEnabled={gridEnabled}
-                                gridSizePx={gridSizePx}
-                              />
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                    </div>
                   </div>
-                )}
-                <button
-                  className="panel-resizer"
-                  type="button"
-                  aria-label="Redimensionner le panneau plan"
-                  onMouseDown={(e) => handlePanelResizeMouseDown("plan", e)}
-                />
-              </section>
+                </div>
+              </div>
+            </div>
+          </main>
+        )}
 
-              <section
-                className="panel panel-side"
-                style={{
-                  transform: `translate3d(${panelState.rooms.x}px, ${panelState.rooms.y}px, 0)`,
-                  zIndex: panelZ.rooms,
-                  width: panelState.rooms.width,
-                  height: panelState.rooms.collapsed ? undefined : panelState.rooms.height,
-                }}
-                data-collapsed={panelState.rooms.collapsed}
-              >
-                <div className="panel-header" onMouseDown={(e) => handlePanelMouseDown("rooms", e)}>
+        {/* RIGHT */}
+        {pageView === "plans" && (
+          <aside className="dash-right">
+            <div className="right-sticky">
+              <div className="card">
+                <div className="card-header">
                   <div>
                     <div className="card-title">Pièces</div>
                     <div className="card-subtitle">Liste & sélection</div>
                   </div>
-                  <div className="panel-actions">
-                    <button
-                      className="panel-toggle"
-                      type="button"
-                      onClick={(event) => {
-                        event.stopPropagation();
-                        togglePanel("rooms");
-                      }}
-                      aria-expanded={!panelState.rooms.collapsed}
-                    >
-                      {panelState.rooms.collapsed ? "Déplier" : "Replier"}
-                    </button>
-                  </div>
                 </div>
-                {!panelState.rooms.collapsed && (
-                  <div className="panel-body panel-scroll">
-                    <RoomListPanel rooms={rooms} selectedRoomId={selectedRoomId} onSelectRoom={setSelectedRoomId} />
-                  </div>
-                )}
-                <button
-                  className="panel-resizer"
-                  type="button"
-                  aria-label="Redimensionner le panneau pièces"
-                  onMouseDown={(e) => handlePanelResizeMouseDown("rooms", e)}
-                />
-              </section>
+                <div className="card-content card-scroll">
+                  <RoomListPanel rooms={rooms} selectedRoomId={selectedRoomId} onSelectRoom={setSelectedRoomId} />
+                </div>
+              </div>
 
-              <section
-                className="panel panel-side"
-                style={{
-                  transform: `translate3d(${panelState.details.x}px, ${panelState.details.y}px, 0)`,
-                  zIndex: panelZ.details,
-                  width: panelState.details.width,
-                  height: panelState.details.collapsed ? undefined : panelState.details.height,
-                }}
-                data-collapsed={panelState.details.collapsed}
-              >
-                <div className="panel-header" onMouseDown={(e) => handlePanelMouseDown("details", e)}>
+              <div className="card">
+                <div className="card-header">
                   <div>
                     <div className="card-title">Détails</div>
                     <div className="card-subtitle">Infos & photo</div>
                   </div>
-                  <div className="panel-actions">
-                    <button
-                      className="panel-toggle"
-                      type="button"
-                      onClick={(event) => {
-                        event.stopPropagation();
-                        togglePanel("details");
-                      }}
-                      aria-expanded={!panelState.details.collapsed}
-                    >
-                      {panelState.details.collapsed ? "Déplier" : "Replier"}
-                    </button>
-                  </div>
                 </div>
-                {!panelState.details.collapsed && (
-                  <div className="panel-body panel-scroll">
-                    <RoomDetailsPanel room={selectedRoom} services={services} onSave={handleSaveRoom} onUploadPhoto={handleUploadPhoto} />
-                  </div>
-                )}
-                <button
-                  className="panel-resizer"
-                  type="button"
-                  aria-label="Redimensionner le panneau détails"
-                  onMouseDown={(e) => handlePanelResizeMouseDown("details", e)}
-                />
-              </section>
+                <div className="card-content card-scroll">
+                  <RoomDetailsPanel room={selectedRoom} services={services} onSave={handleSaveRoom} onUploadPhoto={handleUploadPhoto} />
+                </div>
+              </div>
             </div>
-          </main>
+          </aside>
         )}
       </div>
     </div>
