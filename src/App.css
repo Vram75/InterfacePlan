@@ -192,7 +192,96 @@ body{
   margin: 12px 0 6px;
 }
 
-/* ✅ Sidebar pages (unique selector) */
+/* ✅ Sidebar pages tools */
+.sidebar-pages-tools{
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 10px 0;
+}
+
+.sidebar-page-filter{
+  width: 100%;
+  border: 1px solid rgba(20, 32, 50, 0.10);
+  background: rgba(255,255,255,0.75);
+  border-radius: 14px;
+  padding: 10px 36px 10px 12px;
+  outline: none;
+  box-shadow: var(--shadow-soft);
+  font-size: 12px;
+}
+.sidebar-page-filter:focus{
+  border-color: rgba(59,130,246,0.35);
+}
+
+.sidebar-clear{
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  border: 1px solid rgba(20, 32, 50, 0.10);
+  background: rgba(255,255,255,0.85);
+  width: 26px;
+  height: 26px;
+  border-radius: 10px;
+  cursor: pointer;
+  box-shadow: var(--shadow-soft);
+  font-weight: 900;
+  color: rgba(17,24,39,0.65);
+}
+.sidebar-clear:hover{
+  background: rgba(255,255,255,0.95);
+}
+
+/* ✅ NEW: mini switch (sidebar) */
+.mini-switch{
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  border-radius: 14px;
+  border: 1px solid rgba(20, 32, 50, 0.08);
+  background: rgba(255,255,255,0.45);
+  margin-bottom: 10px;
+  user-select: none;
+}
+.mini-switch input{ display: none; }
+.mini-switch-track{
+  width: 40px;
+  height: 22px;
+  border-radius: 999px;
+  border: 1px solid rgba(20, 32, 50, 0.12);
+  background: rgba(255,255,255,0.75);
+  position: relative;
+  box-shadow: var(--shadow-soft);
+  flex: 0 0 auto;
+}
+.mini-switch-track::after{
+  content: "";
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 18px;
+  height: 18px;
+  border-radius: 999px;
+  background: rgba(17,24,39,0.85);
+  transition: transform 160ms ease;
+}
+.mini-switch input:checked + .mini-switch-track{
+  background: linear-gradient(135deg, rgba(59,130,246,0.35), rgba(14,165,233,0.25));
+  border-color: rgba(59,130,246,0.26);
+}
+.mini-switch input:checked + .mini-switch-track::after{
+  transform: translateX(18px);
+  background: rgba(17,24,39,0.92);
+}
+.mini-switch-text{
+  font-size: 12px;
+  font-weight: 800;
+  color: rgba(17,24,39,0.75);
+}
+
 .sidebar-pages{
   display: flex;
   flex-direction: column;
@@ -203,6 +292,18 @@ body{
   background: rgba(255,255,255,0.45);
   max-height: 280px;
   overflow: auto;
+}
+
+.sidebar-empty{
+  padding: 12px;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.sidebar-pages-hint{
+  margin-top: 8px;
+  font-size: 11px;
+  color: rgba(107,114,128,0.9);
 }
 
 .sidebar-page-item{
