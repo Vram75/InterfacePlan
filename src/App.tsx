@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import "./App.css";
 
 import { PdfCanvas } from "./components/PdfCanvas";
@@ -165,6 +165,7 @@ function writeServiceColorsRaw(v: ServiceColor[]) {
 function extractPolygonForPage(room: any, pageIndex: number): Point[] | undefined {
   if (!room) return undefined;
 
+  // Multi
   const polys = room.polygons;
   if (Array.isArray(polys)) {
     for (const entry of polys) {
@@ -178,6 +179,7 @@ function extractPolygonForPage(room: any, pageIndex: number): Point[] | undefine
     }
   }
 
+  // Legacy
   const page = typeof room.page === "number" && Number.isFinite(room.page) ? room.page : 0;
   if (page === pageIndex) {
     const poly = room.polygon;
@@ -191,6 +193,53 @@ function extractPolygonForPage(room: any, pageIndex: number): Point[] | undefine
 function roomHasPolygonOnPage(room: any, pageIndex: number): boolean {
   const poly = extractPolygonForPage(room, pageIndex);
   return !!poly && poly.length >= 3;
+}
+
+function roomPagesWithPolygons(room: any): number[] {
+  const pages = new Set<number>();
+
+  if (Array.isArray(room?.polygons)) {
+    for (const entry of room.polygons) {
+      const p = typeof entry?.page === "number" ? entry.page : typeof entry?.pageIndex === "number" ? entry.pageIndex : undefined;
+      const pts = entry?.polygon;
+      if (typeof p === "number" && Array.isArray(pts) && pts.length >= 3) pages.add(p);
+    }
+  }
+
+  const legacyPage = typeof room?.page === "number" && Number.isFinite(room.page) ? room.page : 0;
+  const legacyPoly = room?.polygon;
+  if (Array.isArray(legacyPoly) && legacyPoly.length >= 3) pages.add(legacyPage);
+
+  return Array.from(pages.values()).sort((a, b) => a - b);
+}
+// --------------------
+
+// --------------------
+// Pagination UI (smart strip)
+// --------------------
+function buildSmartPageStrip(current: number, total: number): (number | "…")[] {
+  if (total <= 0) return [];
+  if (total <= 9) return Array.from({ length: total }, (_, i) => i);
+
+  const set = new Set<number>();
+  set.add(0);
+  set.add(total - 1);
+
+  for (let d = -2; d <= 2; d++) {
+    const p = current + d;
+    if (p >= 0 && p < total) set.add(p);
+  }
+
+  const arr = Array.from(set.values()).sort((a, b) => a - b);
+  const out: (number | "…")[] = [];
+  for (let i = 0; i < arr.length; i++) {
+    out.push(arr[i]);
+    if (i < arr.length - 1) {
+      const gap = arr[i + 1] - arr[i];
+      if (gap > 1) out.push("…");
+    }
+  }
+  return out;
 }
 // --------------------
 
@@ -210,6 +259,10 @@ export default function App() {
   // ✅ Multi-pages (PDF)
   const [currentPage, setCurrentPage] = useState(0); // 0-based
   const [pageCount, setPageCount] = useState(1);
+
+  // Jump input (1-based UI)
+  const [pageInput, setPageInput] = useState("1");
+  const pageInputRef = useRef<HTMLInputElement | null>(null);
 
   const [snapUi, setSnapUi] = useState<boolean>(() => readSnapFromStorage());
   const [gridEnabled, setGridEnabled] = useState<boolean>(() => readGridEnabled());
@@ -272,7 +325,42 @@ export default function App() {
     setCurrentPage((p) => Math.max(0, Math.min(p, Math.max(1, pageCount) - 1)));
   }, [pageCount]);
 
-  // ✅ Keyboard: PageUp / PageDown for PDF pages (only in Plans)
+  // Sync input with current page
+  useEffect(() => {
+    setPageInput(String(Math.min(pageCount, currentPage + 1)));
+  }, [currentPage, pageCount]);
+
+  const pagesWithPolygons = useMemo(() => {
+    const set = new Set<number>();
+    for (const r of rooms as any[]) {
+      const pages = roomPagesWithPolygons(r);
+      for (const p of pages) set.add(p);
+    }
+    return set;
+  }, [rooms]);
+
+  const smartStrip = useMemo(() => buildSmartPageStrip(currentPage, Math.max(1, pageCount)), [currentPage, pageCount]);
+
+  function goToPageIndex(nextIndex: number) {
+    const total = Math.max(1, pageCount);
+    const clamped = Math.max(0, Math.min(total - 1, nextIndex));
+
+    setCurrentPage(clamped);
+
+    // Important UX: stop drawing when page changes
+    setDrawingRoomId(null);
+    setOverlayRequest({ kind: "none" });
+    setDrawSessionId((x) => x + 1);
+  }
+
+  function goPrevPage() {
+    goToPageIndex(currentPage - 1);
+  }
+  function goNextPage() {
+    goToPageIndex(currentPage + 1);
+  }
+
+  // ✅ Keyboard: PageUp/PageDown/Home/End for PDF pages (only in Plans)
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
       if (pageView !== "plans") return;
@@ -280,35 +368,46 @@ export default function App() {
 
       if (e.key === "PageUp") {
         e.preventDefault();
-        setCurrentPage((p) => Math.max(0, p - 1));
-        setDrawingRoomId(null);
-        setOverlayRequest({ kind: "none" });
-        setDrawSessionId((x) => x + 1);
+        goPrevPage();
+        return;
       }
-
       if (e.key === "PageDown") {
         e.preventDefault();
-        setCurrentPage((p) => Math.min(Math.max(1, pageCount) - 1, p + 1));
-        setDrawingRoomId(null);
-        setOverlayRequest({ kind: "none" });
-        setDrawSessionId((x) => x + 1);
+        goNextPage();
+        return;
+      }
+      if (e.key === "Home") {
+        e.preventDefault();
+        goToPageIndex(0);
+        return;
+      }
+      if (e.key === "End") {
+        e.preventDefault();
+        goToPageIndex(Math.max(1, pageCount) - 1);
+        return;
+      }
+
+      // Quick focus jump input: "g"
+      if (e.key.toLowerCase() === "g") {
+        e.preventDefault();
+        pageInputRef.current?.focus();
+        pageInputRef.current?.select?.();
+        return;
       }
     };
 
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [pageView, pageCount]);
+  }, [pageView, currentPage, pageCount]);
 
   // ✅ Commit polygon with optimistic lock (page-aware)
   async function commitPolygon(roomId: string, page: number, poly: Point[]) {
-    // Optimistic: lock immediately on that page
     setRooms((prev) =>
       prev.map((r: any) => {
         if (r.id !== roomId) return r;
 
         const next: any = { ...r, page, polygon: poly };
 
-        // Maintain multi-polygons format if present
         if (Array.isArray(r.polygons)) {
           const others = r.polygons.filter((x: any) => (typeof x?.page === "number" ? x.page : undefined) !== page);
           next.polygons = [...others, { page, polygon: poly }];
@@ -560,7 +659,7 @@ export default function App() {
               <br />
               <b>Ctrl/⌘</b> drag = déplacer polygone
               <br />
-              <b>PageUp/PageDown</b> pages PDF
+              <b>PageUp/PageDown</b> pages • <b>Home/End</b> début/fin • <b>G</b> aller à…
             </div>
           </div>
         </aside>
@@ -654,12 +753,7 @@ export default function App() {
                       <div className="service-row" key={s.uid}>
                         <div className="swatch" style={{ background: sanitizeServiceColor(s.service, s.color) }} />
 
-                        <input
-                          className="select"
-                          value={s.service}
-                          onChange={(e) => updateService(s.uid, { service: e.target.value })}
-                          onBlur={() => normalizeAndSortServices()}
-                        />
+                        <input className="select" value={s.service} onChange={(e) => updateService(s.uid, { service: e.target.value })} onBlur={() => normalizeAndSortServices()} />
 
                         <div className="color-cell">
                           <input
@@ -702,18 +796,7 @@ export default function App() {
                 {/* Barre du haut du panneau Plan */}
                 <div className="plan-header-right">
                   <div className="card-meta">
-                    <button
-                      className="btn btn-icon"
-                      title="Page précédente (PageUp)"
-                      type="button"
-                      onClick={() => {
-                        setCurrentPage((p) => Math.max(0, p - 1));
-                        setDrawingRoomId(null);
-                        setOverlayRequest({ kind: "none" });
-                        setDrawSessionId((x) => x + 1);
-                      }}
-                      disabled={currentPage <= 0}
-                    >
+                    <button className="btn btn-icon" title="Page précédente (PageUp)" type="button" onClick={goPrevPage} disabled={currentPage <= 0}>
                       ◀
                     </button>
 
@@ -725,19 +808,85 @@ export default function App() {
                       className="btn btn-icon"
                       title="Page suivante (PageDown)"
                       type="button"
-                      onClick={() => {
-                        setCurrentPage((p) => Math.min(pageCount - 1, p + 1));
-                        setDrawingRoomId(null);
-                        setOverlayRequest({ kind: "none" });
-                        setDrawSessionId((x) => x + 1);
-                      }}
-                      disabled={currentPage >= pageCount - 1}
+                      onClick={goNextPage}
+                      disabled={currentPage >= Math.max(1, pageCount) - 1}
                     >
                       ▶
                     </button>
 
                     <span className="meta-chip">Zoom x{scale.toFixed(2)}</span>
                     <span className="meta-chip">Sélection: {selectedRoom?.numero ?? "—"}</span>
+                  </div>
+
+                  {/* ✅ Pages advanced controls */}
+                  <div className="plan-pagesbar">
+                    <div className="page-strip" aria-label="Pages">
+                      {smartStrip.map((item, idx) => {
+                        if (item === "…") {
+                          return (
+                            <span key={`dots-${idx}`} className="page-ellipsis" aria-hidden="true">
+                              …
+                            </span>
+                          );
+                        }
+                        const p = item as number;
+                        const active = p === currentPage;
+                        const hasPoly = pagesWithPolygons.has(p);
+
+                        return (
+                          <button
+                            key={`p-${p}`}
+                            type="button"
+                            className={`page-btn ${active ? "page-btn-active" : ""}`}
+                            onClick={() => goToPageIndex(p)}
+                            title={hasPoly ? `Page ${p + 1} (polygones)` : `Page ${p + 1}`}
+                          >
+                            <span className="page-label">{p + 1}</span>
+                            {hasPoly && <span className="page-dot" aria-hidden="true" />}
+                          </button>
+                        );
+                      })}
+                    </div>
+
+                    <div className="page-jump" title="Aller à la page (G)">
+                      <span className="plan-field-label">Aller à</span>
+                      <input
+                        ref={pageInputRef}
+                        className="select plan-number"
+                        inputMode="numeric"
+                        value={pageInput}
+                        onChange={(e) => setPageInput(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") {
+                            const n = Math.floor(Number(pageInput));
+                            if (!Number.isFinite(n)) return;
+                            goToPageIndex(n - 1);
+                            (e.target as HTMLInputElement).blur();
+                          }
+                        }}
+                        onBlur={() => {
+                          const n = Math.floor(Number(pageInput));
+                          if (!Number.isFinite(n)) {
+                            setPageInput(String(currentPage + 1));
+                            return;
+                          }
+                          const clamped = Math.max(1, Math.min(Math.max(1, pageCount), n));
+                          setPageInput(String(clamped));
+                        }}
+                      />
+
+                      <button
+                        className="btn btn-mini"
+                        type="button"
+                        onClick={() => {
+                          const n = Math.floor(Number(pageInput));
+                          if (!Number.isFinite(n)) return;
+                          goToPageIndex(n - 1);
+                        }}
+                      >
+                        OK
+                      </button>
+                    </div>
                   </div>
 
                   <div className="plan-toolbar">
@@ -838,7 +987,7 @@ export default function App() {
                       <PdfCanvas
                         pdfUrl="/Pour CHATGPT.pdf"
                         scale={scale}
-                        page={currentPage + 1}          // 1-based for pdf.js
+                        page={currentPage + 1}
                         onPageCount={setPageCount}
                         onSize={(w, h) => {
                           if (!isValidSize(w) || !isValidSize(h)) return;
@@ -850,7 +999,7 @@ export default function App() {
                         <SvgOverlay
                           width={size.w}
                           height={size.h}
-                          page={currentPage}            // 0-based for our overlay / backend
+                          page={currentPage}
                           rooms={rooms}
                           services={services.map(({ uid: _uid, ...rest }) => rest)}
                           selectedRoomId={selectedRoomId}
