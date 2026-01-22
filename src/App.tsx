@@ -20,13 +20,9 @@ const GRID_SIZE_KEY = "iface.gridSizePx";
 const SERVICE_COLORS_KEY = "iface.serviceColors.v1";
 
 type PageView = "dashboard" | "plans" | "settings";
-
 type ServiceEntry = ServiceColor & { uid: string };
 
 function makeUid(): string {
-  // stable key for React lists
-  // crypto.randomUUID() is supported in modern browsers; fallback if needed
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const c: any = (globalThis as any).crypto;
   if (c?.randomUUID) return c.randomUUID();
   return `svc_${Math.random().toString(16).slice(2)}_${Date.now().toString(16)}`;
@@ -142,10 +138,8 @@ function sanitizeServiceColor(service: string, color: string | undefined | null)
   return defaultColorForService(service);
 }
 function sortServicesStable(list: ServiceEntry[]) {
-  // sort by service name but keep uid with it
   return [...list].sort((a, b) => a.service.localeCompare(b.service, "fr"));
 }
-
 function readServiceColorsRaw(): ServiceColor[] {
   const parsed = safeParse<ServiceColor[]>(localStorage.getItem(SERVICE_COLORS_KEY));
   if (!parsed || !Array.isArray(parsed)) return [];
@@ -158,7 +152,6 @@ function readServiceColorsRaw(): ServiceColor[] {
   }
   return Array.from(map.values()).sort((a, b) => a.service.localeCompare(b.service, "fr"));
 }
-
 function writeServiceColorsRaw(v: ServiceColor[]) {
   try {
     localStorage.setItem(SERVICE_COLORS_KEY, JSON.stringify(v));
@@ -176,13 +169,7 @@ function extractPolygonForPage(room: any, pageIndex: number): Point[] | undefine
   if (Array.isArray(polys)) {
     for (const entry of polys) {
       if (!entry) continue;
-      const p =
-        typeof entry.page === "number"
-          ? entry.page
-          : typeof entry.pageIndex === "number"
-            ? entry.pageIndex
-            : undefined;
-
+      const p = typeof entry.page === "number" ? entry.page : typeof entry.pageIndex === "number" ? entry.pageIndex : undefined;
       if (p !== pageIndex) continue;
 
       const pts = entry.polygon ?? entry.points ?? entry;
@@ -220,7 +207,8 @@ export default function App() {
   const [scale, setScale] = useState(1.2);
   const [size, setSize] = useState({ w: 800, h: 600 });
 
-  const [currentPage, setCurrentPage] = useState(0);
+  // ✅ Multi-pages (PDF)
+  const [currentPage, setCurrentPage] = useState(0); // 0-based
   const [pageCount, setPageCount] = useState(1);
 
   const [snapUi, setSnapUi] = useState<boolean>(() => readSnapFromStorage());
@@ -235,7 +223,6 @@ export default function App() {
     return raw.map((s) => ({ ...s, uid: makeUid() }));
   });
 
-  // persist (strip uid)
   useEffect(() => {
     writeServiceColorsRaw(services.map(({ uid: _uid, ...rest }) => rest));
   }, [services]);
@@ -261,7 +248,6 @@ export default function App() {
             if (!name) continue;
             map.set(serviceKey(name), { ...s, service: name, color: sanitizeServiceColor(name, s.color) });
           }
-
           let changed = false;
           for (const u of used) {
             const name = normalizeServiceName(u);
@@ -271,7 +257,6 @@ export default function App() {
               changed = true;
             }
           }
-
           const next = sortServicesStable(Array.from(map.values()));
           return changed ? next : prev;
         });
@@ -282,22 +267,50 @@ export default function App() {
 
   const selectedRoom = useMemo(() => rooms.find((r) => r.id === selectedRoomId) ?? null, [rooms, selectedRoomId]);
 
+  // Clamp current page when pageCount changes
   useEffect(() => {
     setCurrentPage((p) => Math.max(0, Math.min(p, Math.max(1, pageCount) - 1)));
   }, [pageCount]);
 
-  // ✅ Commit polygon with optimistic lock
+  // ✅ Keyboard: PageUp / PageDown for PDF pages (only in Plans)
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (pageView !== "plans") return;
+      if (isTypingTarget(e.target)) return;
+
+      if (e.key === "PageUp") {
+        e.preventDefault();
+        setCurrentPage((p) => Math.max(0, p - 1));
+        setDrawingRoomId(null);
+        setOverlayRequest({ kind: "none" });
+        setDrawSessionId((x) => x + 1);
+      }
+
+      if (e.key === "PageDown") {
+        e.preventDefault();
+        setCurrentPage((p) => Math.min(Math.max(1, pageCount) - 1, p + 1));
+        setDrawingRoomId(null);
+        setOverlayRequest({ kind: "none" });
+        setDrawSessionId((x) => x + 1);
+      }
+    };
+
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [pageView, pageCount]);
+
+  // ✅ Commit polygon with optimistic lock (page-aware)
   async function commitPolygon(roomId: string, page: number, poly: Point[]) {
+    // Optimistic: lock immediately on that page
     setRooms((prev) =>
       prev.map((r: any) => {
         if (r.id !== roomId) return r;
+
         const next: any = { ...r, page, polygon: poly };
 
+        // Maintain multi-polygons format if present
         if (Array.isArray(r.polygons)) {
-          const others = r.polygons.filter((x: any) => {
-            const p = typeof x?.page === "number" ? x.page : typeof x?.pageIndex === "number" ? x.pageIndex : undefined;
-            return p !== page;
-          });
+          const others = r.polygons.filter((x: any) => (typeof x?.page === "number" ? x.page : undefined) !== page);
           next.polygons = [...others, { page, polygon: poly }];
         }
 
@@ -309,7 +322,7 @@ export default function App() {
     setDrawSessionId((x) => x + 1);
 
     try {
-      const saved = await api.updatePolygon(roomId, { page, polygon: poly });
+      const saved = await api.updatePolygon(roomId, { page, polygon: poly }); // ⚠️ page obligatoire
       setRooms((prev) => prev.map((r) => (r.id === saved.id ? saved : r)));
     } catch (e) {
       const refreshed = await api.getRooms();
@@ -344,12 +357,9 @@ export default function App() {
         map.set(serviceKey(n), { ...s, service: n, color: sanitizeServiceColor(n, s.color) });
       }
       const existing = map.get(key);
-      if (existing) {
-        // update existing but keep uid
-        map.set(key, { ...existing, service: name, color: sanitizeServiceColor(name, color) });
-      } else {
-        map.set(key, { uid: makeUid(), service: name, color: sanitizeServiceColor(name, color) });
-      }
+      if (existing) map.set(key, { ...existing, service: name, color: sanitizeServiceColor(name, color) });
+      else map.set(key, { uid: makeUid(), service: name, color: sanitizeServiceColor(name, color) });
+
       return sortServicesStable(Array.from(map.values()));
     });
 
@@ -362,7 +372,6 @@ export default function App() {
     setServices((prev) => {
       const idx = prev.findIndex((s) => s.uid === uid);
       if (idx < 0) return prev;
-
       const next = prev.slice();
       const cur = next[idx];
 
@@ -372,7 +381,6 @@ export default function App() {
         color: patch.color != null ? patch.color : cur.color,
       };
 
-      // sanitize but DO NOT sort here (keep focus stable)
       updated.service = patch.service != null ? patch.service : cur.service;
       updated.color = sanitizeServiceColor(updated.service || cur.service, updated.color);
 
@@ -382,7 +390,6 @@ export default function App() {
   }
 
   function normalizeAndSortServices() {
-    // call on blur or actions: normalize names, dedupe, sort
     setServices((prev) => {
       const map = new Map<string, ServiceEntry>();
       for (const s of prev) {
@@ -390,12 +397,8 @@ export default function App() {
         if (!name) continue;
         const key = serviceKey(name);
         const existing = map.get(key);
-        if (!existing) {
-          map.set(key, { ...s, service: name, color: sanitizeServiceColor(name, s.color) });
-        } else {
-          // keep first uid, prefer existing, but ensure color sane
-          map.set(key, { ...existing, service: name, color: sanitizeServiceColor(name, existing.color) });
-        }
+        if (!existing) map.set(key, { ...s, service: name, color: sanitizeServiceColor(name, s.color) });
+        else map.set(key, { ...existing, service: name, color: sanitizeServiceColor(name, existing.color) });
       }
       return sortServicesStable(Array.from(map.values()));
     });
@@ -495,6 +498,7 @@ export default function App() {
 
   return (
     <div className="dash-root">
+      {/* TOPBAR */}
       <header className="dash-topbar">
         <div className="brand">
           <div className="brand-badge" aria-hidden="true">
@@ -518,7 +522,9 @@ export default function App() {
         </div>
       </header>
 
+      {/* BODY */}
       <div className="dash-body">
+        {/* SIDEBAR */}
         <aside className="dash-sidebar">
           <div className="nav-title">Navigation</div>
 
@@ -553,10 +559,13 @@ export default function App() {
               <b>Alt+clic</b> insérer • <b>Delete</b> supprimer sommet
               <br />
               <b>Ctrl/⌘</b> drag = déplacer polygone
+              <br />
+              <b>PageUp/PageDown</b> pages PDF
             </div>
           </div>
         </aside>
 
+        {/* MAIN */}
         {pageView === "dashboard" && (
           <main className="dash-main">
             <div className="card">
@@ -575,6 +584,7 @@ export default function App() {
           </main>
         )}
 
+        {/* SETTINGS */}
         {pageView === "settings" && (
           <main className="dash-main">
             <div className="card">
@@ -606,9 +616,6 @@ export default function App() {
                         const v = e.target.value;
                         setNewServiceName(v);
                         if (!newServiceColorTouched) setNewServiceColor(defaultColorForService(v || "Service"));
-                      }}
-                      onBlur={() => {
-                        setNewServiceName((s) => s);
                       }}
                     />
 
@@ -682,20 +689,22 @@ export default function App() {
           </main>
         )}
 
+        {/* PLANS */}
         {pageView === "plans" && (
           <main className="dash-main">
             <div className="card plan-card">
               <div className="card-header">
                 <div>
                   <div className="card-title">Plan</div>
-                  <div className="card-subtitle">PDF + overlay</div>
+                  <div className="card-subtitle">PDF multi-pages + overlay</div>
                 </div>
 
+                {/* Barre du haut du panneau Plan */}
                 <div className="plan-header-right">
                   <div className="card-meta">
                     <button
                       className="btn btn-icon"
-                      title="Page précédente"
+                      title="Page précédente (PageUp)"
                       type="button"
                       onClick={() => {
                         setCurrentPage((p) => Math.max(0, p - 1));
@@ -714,7 +723,7 @@ export default function App() {
 
                     <button
                       className="btn btn-icon"
-                      title="Page suivante"
+                      title="Page suivante (PageDown)"
                       type="button"
                       onClick={() => {
                         setCurrentPage((p) => Math.min(pageCount - 1, p + 1));
@@ -829,7 +838,7 @@ export default function App() {
                       <PdfCanvas
                         pdfUrl="/Pour CHATGPT.pdf"
                         scale={scale}
-                        page={currentPage + 1}
+                        page={currentPage + 1}          // 1-based for pdf.js
                         onPageCount={setPageCount}
                         onSize={(w, h) => {
                           if (!isValidSize(w) || !isValidSize(h)) return;
@@ -841,7 +850,7 @@ export default function App() {
                         <SvgOverlay
                           width={size.w}
                           height={size.h}
-                          page={currentPage}
+                          page={currentPage}            // 0-based for our overlay / backend
                           rooms={rooms}
                           services={services.map(({ uid: _uid, ...rest }) => rest)}
                           selectedRoomId={selectedRoomId}
@@ -864,6 +873,7 @@ export default function App() {
           </main>
         )}
 
+        {/* RIGHT */}
         {pageView === "plans" && (
           <aside className="dash-right">
             <div className="right-sticky">
