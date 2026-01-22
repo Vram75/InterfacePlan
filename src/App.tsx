@@ -21,6 +21,17 @@ const SERVICE_COLORS_KEY = "iface.serviceColors.v1";
 
 type PageView = "dashboard" | "plans" | "settings";
 
+type ServiceEntry = ServiceColor & { uid: string };
+
+function makeUid(): string {
+  // stable key for React lists
+  // crypto.randomUUID() is supported in modern browsers; fallback if needed
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const c: any = (globalThis as any).crypto;
+  if (c?.randomUUID) return c.randomUUID();
+  return `svc_${Math.random().toString(16).slice(2)}_${Date.now().toString(16)}`;
+}
+
 function safeParse<T>(s: string | null): T | null {
   if (!s) return null;
   try {
@@ -130,10 +141,12 @@ function sanitizeServiceColor(service: string, color: string | undefined | null)
   if (isHexColor(c)) return c;
   return defaultColorForService(service);
 }
-function sortServices(list: ServiceColor[]) {
+function sortServicesStable(list: ServiceEntry[]) {
+  // sort by service name but keep uid with it
   return [...list].sort((a, b) => a.service.localeCompare(b.service, "fr"));
 }
-function readServiceColors(): ServiceColor[] {
+
+function readServiceColorsRaw(): ServiceColor[] {
   const parsed = safeParse<ServiceColor[]>(localStorage.getItem(SERVICE_COLORS_KEY));
   if (!parsed || !Array.isArray(parsed)) return [];
   const map = new Map<string, ServiceColor>();
@@ -143,9 +156,10 @@ function readServiceColors(): ServiceColor[] {
     if (!name) continue;
     map.set(serviceKey(name), { service: name, color: sanitizeServiceColor(name, (x as any).color) });
   }
-  return sortServices(Array.from(map.values()));
+  return Array.from(map.values()).sort((a, b) => a.service.localeCompare(b.service, "fr"));
 }
-function writeServiceColors(v: ServiceColor[]) {
+
+function writeServiceColorsRaw(v: ServiceColor[]) {
   try {
     localStorage.setItem(SERVICE_COLORS_KEY, JSON.stringify(v));
   } catch {}
@@ -158,7 +172,6 @@ function writeServiceColors(v: ServiceColor[]) {
 function extractPolygonForPage(room: any, pageIndex: number): Point[] | undefined {
   if (!room) return undefined;
 
-  // Potential newer format: room.polygons = [{ page, polygon }, ...]
   const polys = room.polygons;
   if (Array.isArray(polys)) {
     for (const entry of polys) {
@@ -178,7 +191,6 @@ function extractPolygonForPage(room: any, pageIndex: number): Point[] | undefine
     }
   }
 
-  // Legacy: room.page + room.polygon
   const page = typeof room.page === "number" && Number.isFinite(room.page) ? room.page : 0;
   if (page === pageIndex) {
     const poly = room.polygon;
@@ -208,7 +220,6 @@ export default function App() {
   const [scale, setScale] = useState(1.2);
   const [size, setSize] = useState({ w: 800, h: 600 });
 
-  // Multi-pages
   const [currentPage, setCurrentPage] = useState(0);
   const [pageCount, setPageCount] = useState(1);
 
@@ -218,9 +229,16 @@ export default function App() {
 
   const [overlayRequest, setOverlayRequest] = useState<OverlayRequest>({ kind: "none" });
 
-  // Services palette (never undefined)
-  const [services, setServices] = useState<ServiceColor[]>(() => readServiceColors());
-  useEffect(() => writeServiceColors(services), [services]);
+  // ✅ services with stable uid
+  const [services, setServices] = useState<ServiceEntry[]>(() => {
+    const raw = readServiceColorsRaw();
+    return raw.map((s) => ({ ...s, uid: makeUid() }));
+  });
+
+  // persist (strip uid)
+  useEffect(() => {
+    writeServiceColorsRaw(services.map(({ uid: _uid, ...rest }) => rest));
+  }, [services]);
 
   // Settings inputs
   const [newServiceName, setNewServiceName] = useState("");
@@ -237,22 +255,24 @@ export default function App() {
       const used = new Set(r.map((x) => (x.service ?? "").trim()).filter((s) => s.length > 0));
       if (used.size) {
         setServices((prev) => {
-          const map = new Map(
-            prev.map((p) => [
-              serviceKey(p.service),
-              { service: normalizeServiceName(p.service), color: sanitizeServiceColor(p.service, p.color) },
-            ])
-          );
+          const map = new Map<string, ServiceEntry>();
+          for (const s of prev) {
+            const name = normalizeServiceName(s.service);
+            if (!name) continue;
+            map.set(serviceKey(name), { ...s, service: name, color: sanitizeServiceColor(name, s.color) });
+          }
+
           let changed = false;
-          for (const s of used) {
-            const name = normalizeServiceName(s);
+          for (const u of used) {
+            const name = normalizeServiceName(u);
             const key = serviceKey(name);
             if (!map.has(key)) {
-              map.set(key, { service: name, color: defaultColorForService(name) });
+              map.set(key, { uid: makeUid(), service: name, color: defaultColorForService(name) });
               changed = true;
             }
           }
-          const next = sortServices(Array.from(map.values()));
+
+          const next = sortServicesStable(Array.from(map.values()));
           return changed ? next : prev;
         });
       }
@@ -266,13 +286,11 @@ export default function App() {
     setCurrentPage((p) => Math.max(0, Math.min(p, Math.max(1, pageCount) - 1)));
   }, [pageCount]);
 
-  // ✅ Commit polygon with optimistic lock so it can't be recreated after tab change
+  // ✅ Commit polygon with optimistic lock
   async function commitPolygon(roomId: string, page: number, poly: Point[]) {
-    // Optimistic update: lock immediately
     setRooms((prev) =>
       prev.map((r: any) => {
         if (r.id !== roomId) return r;
-
         const next: any = { ...r, page, polygon: poly };
 
         if (Array.isArray(r.polygons)) {
@@ -287,15 +305,13 @@ export default function App() {
       })
     );
 
-    // Exit draw mode to avoid double creation UI
     setDrawingRoomId(null);
     setDrawSessionId((x) => x + 1);
 
     try {
-      const saved = await api.updatePolygon(roomId, { page, polygon: poly }); // ⚠️ page obligatoire
+      const saved = await api.updatePolygon(roomId, { page, polygon: poly });
       setRooms((prev) => prev.map((r) => (r.id === saved.id ? saved : r)));
     } catch (e) {
-      // Refresh from server on error
       const refreshed = await api.getRooms();
       setRooms(refreshed);
       throw e;
@@ -312,7 +328,7 @@ export default function App() {
     setRooms((prev) => prev.map((r) => (r.id === saved.id ? saved : r)));
   }
 
-  // ---- Services UI actions
+  // ---- Services UI actions (NO resort while typing) ----
   function addService() {
     const name = normalizeServiceName(newServiceName);
     if (!name) return;
@@ -321,14 +337,20 @@ export default function App() {
     const key = serviceKey(name);
 
     setServices((prev) => {
-      const map = new Map<string, ServiceColor>();
+      const map = new Map<string, ServiceEntry>();
       for (const s of prev) {
         const n = normalizeServiceName(s.service);
         if (!n) continue;
-        map.set(serviceKey(n), { service: n, color: sanitizeServiceColor(n, s.color) });
+        map.set(serviceKey(n), { ...s, service: n, color: sanitizeServiceColor(n, s.color) });
       }
-      map.set(key, { service: name, color });
-      return sortServices(Array.from(map.values()));
+      const existing = map.get(key);
+      if (existing) {
+        // update existing but keep uid
+        map.set(key, { ...existing, service: name, color: sanitizeServiceColor(name, color) });
+      } else {
+        map.set(key, { uid: makeUid(), service: name, color: sanitizeServiceColor(name, color) });
+      }
+      return sortServicesStable(Array.from(map.values()));
     });
 
     setNewServiceName("");
@@ -336,34 +358,51 @@ export default function App() {
     setNewServiceColorTouched(false);
   }
 
-  function updateService(index: number, patch: Partial<ServiceColor>) {
+  function updateService(uid: string, patch: Partial<ServiceColor>) {
     setServices((prev) => {
-      const next = prev.slice();
-      const cur = next[index];
-      if (!cur) return prev;
+      const idx = prev.findIndex((s) => s.uid === uid);
+      if (idx < 0) return prev;
 
-      const updated: ServiceColor = {
+      const next = prev.slice();
+      const cur = next[idx];
+
+      const updated: ServiceEntry = {
+        ...cur,
         service: patch.service != null ? patch.service : cur.service,
         color: patch.color != null ? patch.color : cur.color,
       };
 
-      updated.service = normalizeServiceName(updated.service);
+      // sanitize but DO NOT sort here (keep focus stable)
+      updated.service = patch.service != null ? patch.service : cur.service;
       updated.color = sanitizeServiceColor(updated.service || cur.service, updated.color);
 
-      next[index] = updated;
-
-      const map = new Map<string, ServiceColor>();
-      for (const s of next) {
-        const name = normalizeServiceName(s.service);
-        if (!name) continue;
-        map.set(serviceKey(name), { service: name, color: sanitizeServiceColor(name, s.color) });
-      }
-      return sortServices(Array.from(map.values()));
+      next[idx] = updated;
+      return next;
     });
   }
 
-  function removeService(index: number) {
-    setServices((prev) => prev.filter((_, i) => i !== index));
+  function normalizeAndSortServices() {
+    // call on blur or actions: normalize names, dedupe, sort
+    setServices((prev) => {
+      const map = new Map<string, ServiceEntry>();
+      for (const s of prev) {
+        const name = normalizeServiceName(s.service);
+        if (!name) continue;
+        const key = serviceKey(name);
+        const existing = map.get(key);
+        if (!existing) {
+          map.set(key, { ...s, service: name, color: sanitizeServiceColor(name, s.color) });
+        } else {
+          // keep first uid, prefer existing, but ensure color sane
+          map.set(key, { ...existing, service: name, color: sanitizeServiceColor(name, existing.color) });
+        }
+      }
+      return sortServicesStable(Array.from(map.values()));
+    });
+  }
+
+  function removeService(uid: string) {
+    setServices((prev) => prev.filter((s) => s.uid !== uid));
   }
 
   function seedServicesFromRooms() {
@@ -371,19 +410,25 @@ export default function App() {
     if (!used.size) return;
 
     setServices((prev) => {
-      const map = new Map(
-        prev.map((p) => [serviceKey(p.service), { service: normalizeServiceName(p.service), color: sanitizeServiceColor(p.service, p.color) }])
-      );
+      const map = new Map<string, ServiceEntry>();
+      for (const s of prev) {
+        const name = normalizeServiceName(s.service);
+        if (!name) continue;
+        map.set(serviceKey(name), { ...s, service: name, color: sanitizeServiceColor(name, s.color) });
+      }
+
       let changed = false;
-      for (const s of used) {
-        const name = normalizeServiceName(s);
-        const k = serviceKey(name);
-        if (!map.has(k)) {
-          map.set(k, { service: name, color: defaultColorForService(name) });
+      for (const u of used) {
+        const name = normalizeServiceName(u);
+        const key = serviceKey(name);
+        if (!map.has(key)) {
+          map.set(key, { uid: makeUid(), service: name, color: defaultColorForService(name) });
           changed = true;
         }
       }
-      return changed ? sortServices(Array.from(map.values())) : prev;
+
+      const next = sortServicesStable(Array.from(map.values()));
+      return changed ? next : prev;
     });
   }
 
@@ -450,7 +495,6 @@ export default function App() {
 
   return (
     <div className="dash-root">
-      {/* TOPBAR */}
       <header className="dash-topbar">
         <div className="brand">
           <div className="brand-badge" aria-hidden="true">
@@ -474,9 +518,7 @@ export default function App() {
         </div>
       </header>
 
-      {/* BODY */}
       <div className="dash-body">
-        {/* SIDEBAR */}
         <aside className="dash-sidebar">
           <div className="nav-title">Navigation</div>
 
@@ -515,7 +557,6 @@ export default function App() {
           </div>
         </aside>
 
-        {/* MAIN */}
         {pageView === "dashboard" && (
           <main className="dash-main">
             <div className="card">
@@ -534,7 +575,6 @@ export default function App() {
           </main>
         )}
 
-        {/* SETTINGS */}
         {pageView === "settings" && (
           <main className="dash-main">
             <div className="card">
@@ -566,6 +606,9 @@ export default function App() {
                         const v = e.target.value;
                         setNewServiceName(v);
                         if (!newServiceColorTouched) setNewServiceColor(defaultColorForService(v || "Service"));
+                      }}
+                      onBlur={() => {
+                        setNewServiceName((s) => s);
                       }}
                     />
 
@@ -600,24 +643,30 @@ export default function App() {
                   <div className="hint">Aucun service défini.</div>
                 ) : (
                   <div className="service-list">
-                    {services.map((s, idx) => (
-                      <div className="service-row" key={`${serviceKey(s.service)}-${idx}`}>
+                    {services.map((s) => (
+                      <div className="service-row" key={s.uid}>
                         <div className="swatch" style={{ background: sanitizeServiceColor(s.service, s.color) }} />
 
-                        <input className="select" value={s.service} onChange={(e) => updateService(idx, { service: e.target.value })} />
+                        <input
+                          className="select"
+                          value={s.service}
+                          onChange={(e) => updateService(s.uid, { service: e.target.value })}
+                          onBlur={() => normalizeAndSortServices()}
+                        />
 
                         <div className="color-cell">
                           <input
                             className="color-input"
                             type="color"
                             value={sanitizeServiceColor(s.service, s.color)}
-                            onChange={(e) => updateService(idx, { color: e.target.value })}
+                            onChange={(e) => updateService(s.uid, { color: e.target.value })}
                             aria-label={`Couleur ${s.service}`}
+                            title="Choisir une couleur"
                           />
                           <span className="color-hex">{sanitizeServiceColor(s.service, s.color).toUpperCase()}</span>
                         </div>
 
-                        <button className="btn btn-mini" type="button" onClick={() => removeService(idx)}>
+                        <button className="btn btn-mini" type="button" onClick={() => removeService(s.uid)}>
                           Suppr.
                         </button>
                       </div>
@@ -633,7 +682,6 @@ export default function App() {
           </main>
         )}
 
-        {/* PLANS */}
         {pageView === "plans" && (
           <main className="dash-main">
             <div className="card plan-card">
@@ -643,7 +691,6 @@ export default function App() {
                   <div className="card-subtitle">PDF + overlay</div>
                 </div>
 
-                {/* Barre du haut du panneau Plan */}
                 <div className="plan-header-right">
                   <div className="card-meta">
                     <button
@@ -796,7 +843,7 @@ export default function App() {
                           height={size.h}
                           page={currentPage}
                           rooms={rooms}
-                          services={services}
+                          services={services.map(({ uid: _uid, ...rest }) => rest)}
                           selectedRoomId={selectedRoomId}
                           onSelectRoom={setSelectedRoomId}
                           adminMode={adminMode}
@@ -817,7 +864,6 @@ export default function App() {
           </main>
         )}
 
-        {/* RIGHT */}
         {pageView === "plans" && (
           <aside className="dash-right">
             <div className="right-sticky">
@@ -841,7 +887,12 @@ export default function App() {
                   </div>
                 </div>
                 <div className="card-content card-scroll">
-                  <RoomDetailsPanel room={selectedRoom} services={services} onSave={handleSaveRoom} onUploadPhoto={handleUploadPhoto} />
+                  <RoomDetailsPanel
+                    room={selectedRoom}
+                    services={services.map(({ uid: _uid, ...rest }) => rest)}
+                    onSave={handleSaveRoom}
+                    onUploadPhoto={handleUploadPhoto}
+                  />
                 </div>
               </div>
             </div>
