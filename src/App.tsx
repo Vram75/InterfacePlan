@@ -912,75 +912,81 @@ export default function App() {
                       ▶
                     </button>
 
-                    <span className="meta-chip">Zoom x{scale.toFixed(2)}</span>
                     <span className="meta-chip">Sélection: {selectedRoom?.numero ?? "—"}</span>
                   </div>
 
                   <div className="plan-toolbar">
                     <div className="plan-toolbar-row">
-                      <label className="switch" title="Activer/désactiver l’édition">
-                        <input
-                          type="checkbox"
-                          checked={adminMode}
-                          onChange={(e) => {
-                            setAdminMode(e.target.checked);
-                            setDrawingRoomId(null);
-                            setDrawSessionId((x) => x + 1);
-                          }}
-                        />
-                        <span className="switch-track" />
-                        <span className="switch-label">Admin</span>
-                      </label>
+                      <div className="plan-toolbar-group">
+                        <label className="switch switch-compact" title="Activer/désactiver l’édition">
+                          <input
+                            type="checkbox"
+                            checked={adminMode}
+                            onChange={(e) => {
+                              setAdminMode(e.target.checked);
+                              setDrawingRoomId(null);
+                              setDrawSessionId((x) => x + 1);
+                            }}
+                          />
+                          <span className="switch-track" />
+                          <span className="switch-label">Admin</span>
+                        </label>
 
-                      <button className="btn" type="button" onClick={toggleSnapFromButton} title="Snap (S)">
-                        Snap: {snapUi ? "ON" : "OFF"} (S)
-                      </button>
+                        <button className="btn btn-mini" type="button" onClick={toggleSnapFromButton} title="Snap (S)">
+                          Snap {snapUi ? "ON" : "OFF"}
+                        </button>
 
-                      <button className="btn" type="button" onClick={toggleGridFromButton} title="Afficher/masquer la grille">
-                        Grille: {gridEnabled ? "ON" : "OFF"}
-                      </button>
+                        <button className="btn btn-mini" type="button" onClick={toggleGridFromButton} title="Afficher/masquer la grille">
+                          Grille {gridEnabled ? "ON" : "OFF"}
+                        </button>
 
-                      <div className="plan-field-inline" title="Taille de grille (px)">
-                        <span className="plan-field-label">Grille</span>
-                        <input
-                          className="select plan-number"
-                          type="number"
-                          min={4}
-                          max={200}
-                          step={1}
-                          value={gridSizePx}
-                          onChange={(e) => {
-                            const n = Math.min(200, Math.max(4, Math.round(Number(e.target.value) || 0)));
-                            setGridSizePx(n);
-                            writeGridSizePx(n);
-                          }}
-                        />
+                        <div className="plan-field-inline plan-field-compact" title="Taille de grille (px)">
+                          <span className="plan-field-label">Px</span>
+                          <input
+                            className="select plan-number plan-number-compact"
+                            type="number"
+                            min={4}
+                            max={200}
+                            step={1}
+                            value={gridSizePx}
+                            onChange={(e) => {
+                              const n = Math.min(200, Math.max(4, Math.round(Number(e.target.value) || 0)));
+                              setGridSizePx(n);
+                              writeGridSizePx(n);
+                            }}
+                          />
+                        </div>
                       </div>
 
-                      <button
-                        className="btn"
-                        type="button"
-                        disabled={!canDeletePolygon}
-                        onClick={() => {
-                          if (!selectedRoomId) return;
-                          setOverlayRequest({ kind: "deletePolygon", roomId: selectedRoomId });
-                        }}
-                        title={!canDeletePolygon ? "Aucun polygone sur cette page pour la pièce sélectionnée" : "Supprimer le polygone (page courante)"}
-                      >
-                        Supprimer polygone
-                      </button>
+                      <div className="plan-toolbar-group">
+                        <button
+                          className="btn btn-mini"
+                          type="button"
+                          disabled={!canDeletePolygon}
+                          onClick={() => {
+                            if (!selectedRoomId) return;
+                            setOverlayRequest({ kind: "deletePolygon", roomId: selectedRoomId });
+                          }}
+                          title={!canDeletePolygon ? "Aucun polygone sur cette page pour la pièce sélectionnée" : "Supprimer le polygone (page courante)"}
+                        >
+                          Suppr. polygone
+                        </button>
 
-                      <button className="btn btn-icon" type="button" onClick={() => setScale((s) => clampScale(s - 0.1))} title="Zoom - (-)">
-                        −
-                      </button>
-                      <button className="btn btn-icon" type="button" onClick={() => setScale((s) => clampScale(s + 0.1))} title="Zoom + (+)">
-                        +
-                      </button>
+                        <div className="plan-zoom-group">
+                          <button className="btn btn-icon btn-mini" type="button" onClick={() => setScale((s) => clampScale(s - 0.1))} title="Zoom - (-)">
+                            −
+                          </button>
+                          <span className="meta-chip">Zoom x{scale.toFixed(2)}</span>
+                          <button className="btn btn-icon btn-mini" type="button" onClick={() => setScale((s) => clampScale(s + 0.1))} title="Zoom + (+)">
+                            +
+                          </button>
+                        </div>
+                      </div>
                     </div>
 
                     {adminMode && (
                       <div className="plan-toolbar-row">
-                        <div className="plan-field-inline" style={{ minWidth: 320 }}>
+                        <div className="plan-field-inline plan-field-compact" style={{ minWidth: 240 }}>
                           <span className="plan-field-label">Dessiner</span>
                           <select
                             className="select"

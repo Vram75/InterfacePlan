@@ -491,17 +491,30 @@ body{
   display: flex;
   flex-direction: column;
   align-items: flex-end;
-  gap: 10px;
+  gap: 8px;
   width: 100%;
 }
 
 .plan-toolbar-row{
   display: flex;
-  gap: 8px;
+  gap: 10px;
   align-items: center;
-  justify-content: flex-end;
+  justify-content: space-between;
   flex-wrap: wrap;
   width: 100%;
+}
+
+.plan-toolbar-group{
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+
+.plan-zoom-group{
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
 }
 
 .plan-field-inline{
@@ -513,6 +526,11 @@ body{
   background: rgba(255,255,255,0.65);
   border-radius: 14px;
   box-shadow: var(--shadow-soft);
+}
+.plan-field-compact{
+  padding: 6px 8px;
+  border-radius: 12px;
+  gap: 6px;
 }
 
 .plan-field-label{
@@ -527,6 +545,11 @@ body{
   width: 96px;
   padding: 8px 10px;
   border-radius: 12px;
+}
+.plan-number-compact{
+  width: 70px;
+  padding: 6px 8px;
+  border-radius: 10px;
 }
 
 .btn{
@@ -560,6 +583,11 @@ body{
   display: grid;
   place-items: center;
   font-size: 20px;
+}
+.btn-icon.btn-mini{
+  width: 32px;
+  height: 32px;
+  font-size: 16px;
 }
 
 .label{
@@ -630,6 +658,22 @@ body{
   font-weight: 800;
   letter-spacing: 0.02em;
   text-transform: uppercase;
+}
+.switch-compact{
+  gap: 8px;
+}
+.switch-compact .switch-track{
+  width: 36px;
+  height: 20px;
+}
+.switch-compact .switch-track::after{
+  width: 14px;
+  height: 14px;
+  top: 2px;
+  left: 2px;
+}
+.switch-compact input:checked + .switch-track::after{
+  transform: translateX(16px);
 }
 
 /* Settings */
