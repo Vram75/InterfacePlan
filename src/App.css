@@ -22,8 +22,6 @@ html, body, #root {
   --shadow-soft: 0 12px 28px rgba(36, 42, 60, 0.12);
 
   --radius: 22px;
-  --topbar-h: 0px;
-
   --gap: 16px;
   --sidebar-w: 240px;
   --right-w: 420px;
@@ -35,6 +33,7 @@ body{
   margin: 0;
   font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji","Segoe UI Emoji";
   color: var(--text);
+
   background: radial-gradient(1200px 800px at 5% -20%, rgba(241,245,249,0.95), transparent 55%),
               radial-gradient(900px 700px at 90% -15%, rgba(226,232,240,0.85), transparent 50%),
               linear-gradient(180deg, #eef1f4 0%, #e1e5ec 55%, #d6dbe4 100%);
