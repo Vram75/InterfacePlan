@@ -22,8 +22,6 @@ html, body, #root {
   --shadow-soft: 0 12px 28px rgba(36, 42, 60, 0.12);
 
   --radius: 22px;
-  --topbar-h: 64px;
-
   --gap: 16px;
   --sidebar-w: 240px;
   --right-w: 420px;
@@ -44,7 +42,7 @@ body{
 .dash-root{
   height: 100vh;
   display: grid;
-  grid-template-rows: var(--topbar-h) 1fr;
+  grid-template-rows: 1fr;
 }
 
 .dash-topbar{
@@ -122,7 +120,7 @@ body{
 }
 
 .dash-body{
-  height: calc(100vh - var(--topbar-h));
+  height: 100vh;
   display: grid;
   grid-template-columns: var(--sidebar-w) minmax(0, 1fr) var(--right-w);
   gap: var(--gap);
@@ -410,6 +408,14 @@ body{
 
 .card-title{ font-weight: 900; letter-spacing: -0.02em; }
 .card-subtitle{ font-size: 12px; color: var(--muted); margin-top: 2px; }
+.card-subtitle-row{
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 2px;
+}
+.card-subtitle-row .card-subtitle{ margin-top: 0; }
 
 .card-content{ padding: 14px 16px; }
 
