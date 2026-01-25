@@ -655,30 +655,6 @@ export default function App() {
 
   return (
     <div className="dash-root">
-      {/* TOPBAR */}
-      <header className="dash-topbar">
-        <div className="brand">
-          <div className="brand-badge" aria-hidden="true">
-            ▦
-          </div>
-          <div className="brand-text">
-            <div className="brand-title">Interface</div>
-            <div className="brand-subtitle">Plan d’étage • édition</div>
-          </div>
-        </div>
-
-        <div className="topbar-actions">
-          <div className="search">
-            <span className="search-icon" aria-hidden="true">
-              ⌕
-            </span>
-            <input className="search-input" placeholder="Rechercher…" />
-          </div>
-
-          <div className="pill">{rooms.length} pièce(s)</div>
-        </div>
-      </header>
-
       {/* BODY */}
       <div className="dash-body">
         {/* SIDEBAR */}
@@ -1081,7 +1057,10 @@ export default function App() {
                 <div className="card-header">
                   <div>
                     <div className="card-title">Pièces</div>
-                    <div className="card-subtitle">Liste & sélection</div>
+                    <div className="card-subtitle-row">
+                      <span className="card-subtitle">Liste & sélection</span>
+                      <span className="meta-chip">{rooms.length} pièce(s)</span>
+                    </div>
                   </div>
                 </div>
                 <div className="card-content card-scroll">
