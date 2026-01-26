@@ -1061,7 +1061,7 @@ export default function App() {
         {pageView === "plans" && (
           <aside className="dash-right">
             <div className="right-sticky">
-              <div className="card">
+              <div className="card plan-card">
                 <div className="card-header">
                   <div>
                     <div className="card-title">Pièces</div>
@@ -1076,7 +1076,7 @@ export default function App() {
                 </div>
               </div>
 
-              <div className="card">
+              <div className="card plan-card">
                 <div className="card-header">
                   <div>
                     <div className="card-title">Détails</div>

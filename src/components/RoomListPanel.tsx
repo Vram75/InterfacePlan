@@ -45,22 +45,20 @@ export function RoomListPanel(props: {
   }, [props.rooms]);
 
   return (
-    <div style={{ padding: 12, borderBottom: "1px solid #eee" }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 12 }}>
-        <div style={{ fontWeight: 800 }}>Pièces</div>
-        <div style={{ fontSize: 12, opacity: 0.7 }}>
-          {missingCount} sans polygone
-        </div>
+    <div className="room-panel">
+      <div className="room-panel-header">
+        <div className="room-panel-title">Pièces</div>
+        <div className="room-panel-meta">{missingCount} sans polygone</div>
       </div>
 
       <input
+        className="room-panel-search"
         value={q}
         onChange={(e) => setQ(e.target.value)}
         placeholder="Rechercher (numéro, service, désignation...)"
-        style={{ width: "100%", marginTop: 8, padding: 8 }}
       />
 
-      <div style={{ marginTop: 10, maxHeight: 300, overflow: "auto", border: "1px solid #eee" }}>
+      <div className="room-panel-list">
         {filtered.map((r) => {
           const selected = r.id === props.selectedRoomId;
           const hasPoly = !!r.polygon && (r.polygon as any[]).length >= 3;
@@ -69,33 +67,22 @@ export function RoomListPanel(props: {
             <div
               key={r.id}
               onClick={() => props.onSelectRoom(r.id)}
-              style={{
-                padding: "8px 10px",
-                cursor: "pointer",
-                borderBottom: "1px solid #f2f2f2",
-                background: selected ? "#f6f6f6" : "transparent",
-                display: "grid",
-                gridTemplateColumns: "1fr auto",
-                gap: 8,
-                alignItems: "center",
-              }}
+              className={`room-panel-item ${selected ? "room-panel-item--active" : ""}`}
             >
-              <div style={{ minWidth: 0 }}>
-                <div style={{ display: "flex", gap: 8, alignItems: "baseline" }}>
-                  <span style={{ fontWeight: 700 }}>{r.numero}</span>
+              <div className="room-panel-item-main">
+                <div className="room-panel-item-title">
+                  <span className="room-panel-item-number">{r.numero}</span>
                   {!hasPoly && (
-                    <span style={{ fontSize: 12, opacity: 0.75 }}>
-                      (sans polygone)
-                    </span>
+                    <span className="room-panel-muted">(sans polygone)</span>
                   )}
                 </div>
 
-                <div style={{ fontSize: 12, opacity: 0.8, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                <div className="room-panel-muted room-panel-item-desc">
                   {r.service ? r.service : "—"} · {r.designation ? r.designation : "—"}
                 </div>
               </div>
 
-              <div style={{ fontSize: 12, opacity: 0.7 }}>
+              <div className="room-panel-muted room-panel-item-area">
                 {r.surface != null ? `${r.surface} m²` : ""}
               </div>
             </div>
@@ -103,7 +90,7 @@ export function RoomListPanel(props: {
         })}
 
         {filtered.length === 0 && (
-          <div style={{ padding: 10, opacity: 0.7 }}>Aucun résultat.</div>
+          <div className="room-panel-empty room-panel-muted">Aucun résultat.</div>
         )}
       </div>
     </div>

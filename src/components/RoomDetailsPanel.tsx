@@ -374,9 +374,9 @@ export function RoomDetailsPanel(props: {
 
   if (!props.room || !draft) {
     return (
-      <div>
-        <div style={{ fontWeight: 900, marginBottom: 6 }}>Détails</div>
-        <div style={{ opacity: 0.7 }}>Sélectionne une pièce.</div>
+      <div className="details-panel">
+        <div className="details-panel-title">Détails</div>
+        <div className="details-panel-muted">Sélectionne une pièce.</div>
       </div>
     );
   }
@@ -401,9 +401,9 @@ export function RoomDetailsPanel(props: {
   const serviceColor = match?.color ?? null;
 
   return (
-    <div style={{ display: "grid", gap: 12 }}>
-      <div style={{ display: "flex", justifyContent: "space-between", gap: 12, alignItems: "center" }}>
-        <div style={{ fontWeight: 900, fontSize: 16 }}>{draft.numero}</div>
+    <div className="details-panel">
+      <div className="details-panel-header">
+        <div className="details-panel-number">{draft.numero}</div>
 
         <button className="btn" onClick={save} disabled={saving}>
           {saving ? "Sauvegarde..." : "Enregistrer"}
@@ -423,30 +423,21 @@ export function RoomDetailsPanel(props: {
         </div>
       )}
 
-      <div style={{ display: "grid", gap: 10 }}>
-        <div style={{ fontWeight: 800, opacity: 0.85 }}>Photo</div>
+      <div className="details-panel-section">
+        <div className="details-panel-section-title">Photo</div>
 
-        <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
+        <div className="details-panel-row">
           <div
-            style={{
-              width: 96,
-              height: 96,
-              borderRadius: 14,
-              border: "1px solid rgba(0,0,0,0.12)",
-              overflow: "hidden",
-              background: "rgba(0,0,0,0.04)",
-              display: "grid",
-              placeItems: "center",
-            }}
+            className="details-panel-photo"
           >
             {imgSrc ? (
               <img src={imgSrc} alt="" style={{ width: "100%", height: "100%", objectFit: "contain" }} />
             ) : (
-              <span style={{ opacity: 0.6, fontSize: 12 }}>Pas de photo</span>
+              <span className="details-panel-muted">Pas de photo</span>
             )}
           </div>
 
-          <div style={{ display: "grid", gap: 8 }}>
+          <div className="details-panel-upload">
             <input
               type="file"
               accept="image/*"
@@ -458,15 +449,15 @@ export function RoomDetailsPanel(props: {
                 e.currentTarget.value = "";
               }}
             />
-            <div style={{ opacity: 0.65, fontSize: 12 }}>Recadrage avant upload (modale)</div>
+            <div className="details-panel-muted">Recadrage avant upload (modale)</div>
           </div>
         </div>
       </div>
 
-      <hr style={{ border: "none", borderTop: "1px solid rgba(0,0,0,0.08)" }} />
+      <hr className="details-panel-divider" />
 
-      <div style={{ display: "grid", gap: 10 }}>
-        <div style={{ fontWeight: 800, opacity: 0.85 }}>Localisation</div>
+      <div className="details-panel-section">
+        <div className="details-panel-section-title">Localisation</div>
 
         <div className="field">
           <label className="label">Niveau</label>
