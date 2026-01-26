@@ -1037,6 +1037,13 @@ body{
   letter-spacing: 0.02em;
 }
 
+/* Global font: match navigation "Paramètres" and remove bold */
+.dash-root,
+.dash-root *{
+  font-family: var(--nav-font);
+  font-weight: 400;
+}
+
 /* Responsive */
 @media (max-width: 1500px){
   :root{ --right-w: 380px; }
