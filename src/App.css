@@ -507,6 +507,19 @@ body{
   gap: 6px;
 }
 
+.plan-toolbar-group{
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+
+.plan-zoom-group{
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
 .plan-field-inline{
   display: inline-flex;
   gap: 8px;
