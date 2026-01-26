@@ -654,6 +654,9 @@ body{
 }
 
 .btn:active{ transform: translateY(1px); }
+.btn-save{
+  min-width: 148px;
+}
 
 .btn-icon{
   width: 44px;
