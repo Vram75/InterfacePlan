@@ -402,12 +402,14 @@ export function RoomDetailsPanel(props: {
 
   return (
     <div className="details-panel">
-      <div className="details-panel-header">
-        <div className="details-panel-number">{draft.numero}</div>
-
+      <div className="details-panel-titlebar">
+        <div className="details-panel-title">Détails</div>
         <button className="btn" onClick={save} disabled={saving}>
           {saving ? "Sauvegarde..." : "Enregistrer"}
         </button>
+      </div>
+      <div className="details-panel-header">
+        <div className="details-panel-number">{draft.numero}</div>
       </div>
 
       {error && (
