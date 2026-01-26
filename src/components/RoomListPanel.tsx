@@ -44,10 +44,14 @@ export function RoomListPanel(props: {
     return props.rooms.filter(r => !r.polygon || (Array.isArray(r.polygon) && r.polygon.length < 3)).length;
   }, [props.rooms]);
 
+  const totalCount = props.rooms.length;
+
   return (
     <div className="room-panel">
       <div className="room-panel-header">
-        <div className="room-panel-title">Pièces</div>
+        <div className="room-panel-title">
+          Pièces <span className="room-panel-count">{totalCount}</span>
+        </div>
         <div className="room-panel-meta">{missingCount} sans polygone</div>
       </div>
 

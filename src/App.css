@@ -705,6 +705,12 @@ body{
 .room-panel-title{
   font-weight: 800;
 }
+.room-panel-count{
+  margin-left: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  opacity: 0.7;
+}
 .room-panel-meta{
   font-size: 12px;
   opacity: 0.7;
