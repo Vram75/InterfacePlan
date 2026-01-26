@@ -890,6 +890,33 @@ export default function App() {
                 <div>
                   <div className="card-title">Plan</div>
                 </div>
+                <div className="plan-header-right">
+                  <label className="switch switch-compact" title="Afficher/masquer la grille">
+                    <input type="checkbox" checked={gridEnabled} onChange={toggleGridFromButton} />
+                    <span className="switch-track" />
+                    <span className="switch-label">Grille</span>
+                  </label>
+
+                  <label className="switch switch-compact" title="Snap (S)">
+                    <input type="checkbox" checked={snapUi} onChange={toggleSnapFromButton} />
+                    <span className="switch-track" />
+                    <span className="switch-label">Snap</span>
+                  </label>
+
+                  <label className="switch switch-compact" title="Activer/désactiver l’édition">
+                    <input
+                      type="checkbox"
+                      checked={adminMode}
+                      onChange={(e) => {
+                        setAdminMode(e.target.checked);
+                        setDrawingRoomId(null);
+                        setDrawSessionId((x) => x + 1);
+                      }}
+                    />
+                    <span className="switch-track" />
+                    <span className="switch-label">Admin</span>
+                  </label>
+                </div>
               </div>
 
               <div className="card-content plan-content">
@@ -921,28 +948,6 @@ export default function App() {
                   <div className="plan-toolbar">
                     <div className="plan-toolbar-row">
                       <div className="plan-toolbar-group">
-                        <label className="switch switch-compact" title="Activer/désactiver l’édition">
-                          <input
-                            type="checkbox"
-                            checked={adminMode}
-                            onChange={(e) => {
-                              setAdminMode(e.target.checked);
-                              setDrawingRoomId(null);
-                              setDrawSessionId((x) => x + 1);
-                            }}
-                          />
-                          <span className="switch-track" />
-                          <span className="switch-label">Admin</span>
-                        </label>
-
-                        <button className="btn btn-mini" type="button" onClick={toggleSnapFromButton} title="Snap (S)">
-                          Snap {snapUi ? "ON" : "OFF"}
-                        </button>
-
-                        <button className="btn btn-mini" type="button" onClick={toggleGridFromButton} title="Afficher/masquer la grille">
-                          Grille {gridEnabled ? "ON" : "OFF"}
-                        </button>
-
                         <div className="plan-field-inline plan-field-compact" title="Taille de grille (px)">
                           <span className="plan-field-label">Px</span>
                           <input
