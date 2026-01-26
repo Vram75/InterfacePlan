@@ -788,6 +788,12 @@ body{
   display: grid;
   gap: 12px;
 }
+.details-panel-titlebar{
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: center;
+}
 .details-panel-title{
   font-weight: 900;
 }
