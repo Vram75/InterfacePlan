@@ -891,26 +891,30 @@ export default function App() {
                   <div className="card-title">Plan</div>
                   <div className="card-subtitle">PDF multi-pages + overlay</div>
                 </div>
+              </div>
 
-                <div className="plan-header-right">
-                  <div className="card-meta">
-                    <button className="btn btn-icon" title="Page précédente (PageUp)" type="button" onClick={() => goToPageIndex(currentPage - 1)} disabled={currentPage <= 0}>
-                      ◀
-                    </button>
+              <div className="card-content plan-content">
+                <div className="plan-controls">
+                  <div className="plan-controls-row">
+                    <div className="plan-toolbar-group">
+                      <button className="btn btn-icon btn-mini" title="Page précédente (PageUp)" type="button" onClick={() => goToPageIndex(currentPage - 1)} disabled={currentPage <= 0}>
+                        ◀
+                      </button>
 
-                    <span className="meta-chip">
-                      Page {Math.min(pageCount, currentPage + 1)} / {pageCount}
-                    </span>
+                      <span className="meta-chip">
+                        Page {Math.min(pageCount, currentPage + 1)} / {pageCount}
+                      </span>
 
-                    <button
-                      className="btn btn-icon"
-                      title="Page suivante (PageDown)"
-                      type="button"
-                      onClick={() => goToPageIndex(currentPage + 1)}
-                      disabled={currentPage >= Math.max(1, pageCount) - 1}
-                    >
-                      ▶
-                    </button>
+                      <button
+                        className="btn btn-icon btn-mini"
+                        title="Page suivante (PageDown)"
+                        type="button"
+                        onClick={() => goToPageIndex(currentPage + 1)}
+                        disabled={currentPage >= Math.max(1, pageCount) - 1}
+                      >
+                        ▶
+                      </button>
+                    </div>
 
                     <span className="meta-chip">Sélection: {selectedRoom?.numero ?? "—"}</span>
                   </div>
@@ -957,6 +961,7 @@ export default function App() {
                           />
                         </div>
                       </div>
+                    </div>
 
                       <div className="plan-toolbar-group">
                         <button
@@ -983,6 +988,7 @@ export default function App() {
                         </div>
                       </div>
                     </div>
+                  </div>
 
                     {adminMode && (
                       <div className="plan-toolbar-row">
@@ -1008,12 +1014,10 @@ export default function App() {
                           </select>
                         </div>
                       </div>
-                    )}
-                  </div>
+                    </div>
+                  )}
                 </div>
-              </div>
 
-              <div className="card-content plan-content">
                 <div className="plan-viewport">
                   <div className="plan-stage">
                     <div className="plan-layer">
