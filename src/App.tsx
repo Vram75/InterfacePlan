@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import "./App.css";
 
 import { PdfCanvas } from "./components/PdfCanvas";
@@ -6,7 +6,7 @@ import { SvgOverlay } from "./components/SvgOverlay";
 import type { OverlayRequest } from "./components/SvgOverlay";
 
 import { RoomListPanel } from "./components/RoomListPanel";
-import { RoomDetailsPanel } from "./components/RoomDetailsPanel";
+import { RoomDetailsPanel, type RoomDetailsPanelHandle } from "./components/RoomDetailsPanel";
 
 import { api } from "./api";
 import type { Room, Point, ServiceColor } from "./types";
@@ -266,6 +266,8 @@ export default function App() {
 
   const [rooms, setRooms] = useState<Room[]>([]);
   const [selectedRoomId, setSelectedRoomId] = useState<string | null>(null);
+  const detailsPanelRef = useRef<RoomDetailsPanelHandle | null>(null);
+  const [detailsStatus, setDetailsStatus] = useState({ saving: false, canSave: false });
 
   const [adminMode, setAdminMode] = useState(true);
   const [drawingRoomId, setDrawingRoomId] = useState<string | null>(null);
@@ -1081,11 +1083,20 @@ export default function App() {
                   <div>
                     <div className="card-title">Détails</div>
                   </div>
+                  <button
+                    className="btn"
+                    onClick={() => detailsPanelRef.current?.save()}
+                    disabled={!detailsStatus.canSave || detailsStatus.saving}
+                  >
+                    {detailsStatus.saving ? "Sauvegarde..." : "Enregistrer"}
+                  </button>
                 </div>
                 <div className="card-content card-scroll">
                   <RoomDetailsPanel
+                    ref={detailsPanelRef}
                     room={selectedRoom}
                     services={services.map(({ uid: _uid, ...rest }) => rest)}
+                    onStatusChange={setDetailsStatus}
                     onSave={async (room) => {
                       const saved = await api.updateRoom(room);
                       setRooms((prev) => prev.map((r) => (r.id === saved.id ? saved : r)));
