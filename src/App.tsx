@@ -891,13 +891,17 @@ export default function App() {
                   <div className="card-title">Plan</div>
                 </div>
                 <div className="plan-header-right">
-                  <button className="btn btn-mini" type="button" onClick={toggleGridFromButton} title="Afficher/masquer la grille">
-                    Grille {gridEnabled ? "ON" : "OFF"}
-                  </button>
+                  <label className="switch switch-compact" title="Afficher/masquer la grille">
+                    <input type="checkbox" checked={gridEnabled} onChange={toggleGridFromButton} />
+                    <span className="switch-track" />
+                    <span className="switch-label">Grille</span>
+                  </label>
 
-                  <button className="btn btn-mini" type="button" onClick={toggleSnapFromButton} title="Snap (S)">
-                    Snap {snapUi ? "ON" : "OFF"}
-                  </button>
+                  <label className="switch switch-compact" title="Snap (S)">
+                    <input type="checkbox" checked={snapUi} onChange={toggleSnapFromButton} />
+                    <span className="switch-track" />
+                    <span className="switch-label">Snap</span>
+                  </label>
 
                   <label className="switch switch-compact" title="Activer/désactiver l’édition">
                     <input
