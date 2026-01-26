@@ -655,30 +655,6 @@ export default function App() {
 
   return (
     <div className="dash-root">
-      {/* TOPBAR */}
-      <header className="dash-topbar">
-        <div className="brand">
-          <div className="brand-badge" aria-hidden="true">
-            ▦
-          </div>
-          <div className="brand-text">
-            <div className="brand-title">Interface</div>
-            <div className="brand-subtitle">Plan d’étage • édition</div>
-          </div>
-        </div>
-
-        <div className="topbar-actions">
-          <div className="search">
-            <span className="search-icon" aria-hidden="true">
-              ⌕
-            </span>
-            <input className="search-input" placeholder="Rechercher…" />
-          </div>
-
-          <div className="pill">{rooms.length} pièce(s)</div>
-        </div>
-      </header>
-
       {/* BODY */}
       <div className="dash-body">
         {/* SIDEBAR */}
@@ -915,34 +891,39 @@ export default function App() {
                   <div className="card-title">Plan</div>
                   <div className="card-subtitle">PDF multi-pages + overlay</div>
                 </div>
+              </div>
 
-                <div className="plan-header-right">
-                  <div className="card-meta">
-                    <button className="btn btn-icon" title="Page précédente (PageUp)" type="button" onClick={() => goToPageIndex(currentPage - 1)} disabled={currentPage <= 0}>
-                      ◀
-                    </button>
+              <div className="card-content plan-content">
+                <div className="plan-controls">
+                  <div className="plan-controls-row">
+                    <div className="plan-toolbar-group">
+                      <button className="btn btn-icon btn-mini" title="Page précédente (PageUp)" type="button" onClick={() => goToPageIndex(currentPage - 1)} disabled={currentPage <= 0}>
+                        ◀
+                      </button>
 
-                    <span className="meta-chip">
-                      Page {Math.min(pageCount, currentPage + 1)} / {pageCount}
-                    </span>
+                      <span className="meta-chip">
+                        Page {Math.min(pageCount, currentPage + 1)} / {pageCount}
+                      </span>
 
-                    <button
-                      className="btn btn-icon"
-                      title="Page suivante (PageDown)"
-                      type="button"
-                      onClick={() => goToPageIndex(currentPage + 1)}
-                      disabled={currentPage >= Math.max(1, pageCount) - 1}
-                    >
-                      ▶
-                    </button>
+                      <button
+                        className="btn btn-icon btn-mini"
+                        title="Page suivante (PageDown)"
+                        type="button"
+                        onClick={() => goToPageIndex(currentPage + 1)}
+                        disabled={currentPage >= Math.max(1, pageCount) - 1}
+                      >
+                        ▶
+                      </button>
+                    </div>
 
-                    <span className="meta-chip">Zoom x{scale.toFixed(2)}</span>
-                    <span className="meta-chip">Sélection: {selectedRoom?.numero ?? "—"}</span>
+                    <div className="plan-toolbar-group">
+                      <span className="meta-chip">Sélection: {selectedRoom?.numero ?? "—"}</span>
+                    </div>
                   </div>
 
-                  <div className="plan-toolbar">
-                    <div className="plan-toolbar-row">
-                      <label className="switch" title="Activer/désactiver l’édition">
+                  <div className="plan-controls-row">
+                    <div className="plan-toolbar-group">
+                      <label className="switch switch-compact" title="Activer/désactiver l’édition">
                         <input
                           type="checkbox"
                           checked={adminMode}
@@ -956,18 +937,18 @@ export default function App() {
                         <span className="switch-label">Admin</span>
                       </label>
 
-                      <button className="btn" type="button" onClick={toggleSnapFromButton} title="Snap (S)">
-                        Snap: {snapUi ? "ON" : "OFF"} (S)
+                      <button className="btn btn-mini" type="button" onClick={toggleSnapFromButton} title="Snap (S)">
+                        Snap {snapUi ? "ON" : "OFF"}
                       </button>
 
-                      <button className="btn" type="button" onClick={toggleGridFromButton} title="Afficher/masquer la grille">
-                        Grille: {gridEnabled ? "ON" : "OFF"}
+                      <button className="btn btn-mini" type="button" onClick={toggleGridFromButton} title="Afficher/masquer la grille">
+                        Grille {gridEnabled ? "ON" : "OFF"}
                       </button>
 
-                      <div className="plan-field-inline" title="Taille de grille (px)">
-                        <span className="plan-field-label">Grille</span>
+                      <div className="plan-field-inline plan-field-compact" title="Taille de grille (px)">
+                        <span className="plan-field-label">Px</span>
                         <input
-                          className="select plan-number"
+                          className="select plan-number plan-number-compact"
                           type="number"
                           min={4}
                           max={200}
@@ -980,9 +961,11 @@ export default function App() {
                           }}
                         />
                       </div>
+                    </div>
 
+                    <div className="plan-toolbar-group">
                       <button
-                        className="btn"
+                        className="btn btn-mini"
                         type="button"
                         disabled={!canDeletePolygon}
                         onClick={() => {
@@ -991,47 +974,48 @@ export default function App() {
                         }}
                         title={!canDeletePolygon ? "Aucun polygone sur cette page pour la pièce sélectionnée" : "Supprimer le polygone (page courante)"}
                       >
-                        Supprimer polygone
+                        Suppr. polygone
                       </button>
 
-                      <button className="btn btn-icon" type="button" onClick={() => setScale((s) => clampScale(s - 0.1))} title="Zoom - (-)">
-                        −
-                      </button>
-                      <button className="btn btn-icon" type="button" onClick={() => setScale((s) => clampScale(s + 0.1))} title="Zoom + (+)">
-                        +
-                      </button>
-                    </div>
-
-                    {adminMode && (
-                      <div className="plan-toolbar-row">
-                        <div className="plan-field-inline" style={{ minWidth: 320 }}>
-                          <span className="plan-field-label">Dessiner</span>
-                          <select
-                            className="select"
-                            value={drawingRoomId ?? ""}
-                            onChange={(e) => {
-                              setDrawingRoomId(e.target.value || null);
-                              setDrawSessionId((x) => x + 1);
-                            }}
-                          >
-                            <option value="">— Dessiner un polygone pour… —</option>
-                            {rooms.map((r: any) => {
-                              const already = roomHasPolygonOnPage(r, currentPage);
-                              return (
-                                <option key={r.id} value={r.id} disabled={already}>
-                                  {r.numero} {already ? " — déjà défini (page)" : ""}
-                                </option>
-                              );
-                            })}
-                          </select>
-                        </div>
+                      <div className="plan-zoom-group">
+                        <button className="btn btn-icon btn-mini" type="button" onClick={() => setScale((s) => clampScale(s - 0.1))} title="Zoom - (-)">
+                          −
+                        </button>
+                        <span className="meta-chip">Zoom x{scale.toFixed(2)}</span>
+                        <button className="btn btn-icon btn-mini" type="button" onClick={() => setScale((s) => clampScale(s + 0.1))} title="Zoom + (+)">
+                          +
+                        </button>
                       </div>
-                    )}
+                    </div>
                   </div>
-                </div>
-              </div>
 
-              <div className="card-content plan-content">
+                  {adminMode && (
+                    <div className="plan-controls-row">
+                      <div className="plan-field-inline plan-field-compact" style={{ minWidth: 240 }}>
+                        <span className="plan-field-label">Dessiner</span>
+                        <select
+                          className="select"
+                          value={drawingRoomId ?? ""}
+                          onChange={(e) => {
+                            setDrawingRoomId(e.target.value || null);
+                            setDrawSessionId((x) => x + 1);
+                          }}
+                        >
+                          <option value="">— Dessiner un polygone pour… —</option>
+                          {rooms.map((r: any) => {
+                            const already = roomHasPolygonOnPage(r, currentPage);
+                            return (
+                              <option key={r.id} value={r.id} disabled={already}>
+                                {r.numero} {already ? " — déjà défini (page)" : ""}
+                              </option>
+                            );
+                          })}
+                        </select>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
                 <div className="plan-viewport">
                   <div className="plan-stage">
                     <div className="plan-layer">
@@ -1081,7 +1065,10 @@ export default function App() {
                 <div className="card-header">
                   <div>
                     <div className="card-title">Pièces</div>
-                    <div className="card-subtitle">Liste & sélection</div>
+                    <div className="card-subtitle-row">
+                      <span className="card-subtitle">Liste & sélection</span>
+                      <span className="meta-chip">{rooms.length} pièce(s)</span>
+                    </div>
                   </div>
                 </div>
                 <div className="card-content card-scroll">
