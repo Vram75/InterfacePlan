@@ -1030,25 +1030,26 @@ export default function App() {
                         }}
                       />
 
-                      {overlayReady && (
-                        <SvgOverlay
-                          width={size.w}
-                          height={size.h}
-                          page={currentPage}
-                          rooms={rooms}
-                          services={services.map(({ uid: _uid, ...rest }) => rest)}
-                          selectedRoomId={selectedRoomId}
-                          onSelectRoom={setSelectedRoomId}
-                          adminMode={adminMode}
-                          drawingRoomId={drawingRoomId}
-                          drawSessionId={drawSessionId}
-                          onPolygonCommit={(roomId, poly) => commitPolygon(roomId, currentPage, poly)}
-                          request={overlayRequest}
-                          onRequestHandled={() => setOverlayRequest({ kind: "none" })}
-                          gridEnabled={gridEnabled}
-                          gridSizePx={gridSizePx}
-                        />
-                      )}
+                        {overlayReady && (
+                          <SvgOverlay
+                            width={size.w}
+                            height={size.h}
+                            page={currentPage}
+                            rooms={rooms}
+                            services={services.map(({ uid: _uid, ...rest }) => rest)}
+                            selectedRoomId={selectedRoomId}
+                            onSelectRoom={setSelectedRoomId}
+                            adminMode={adminMode}
+                            drawingRoomId={drawingRoomId}
+                            drawSessionId={drawSessionId}
+                            onPolygonCommit={(roomId, poly) => commitPolygon(roomId, currentPage, poly)}
+                            request={overlayRequest}
+                            onRequestHandled={() => setOverlayRequest({ kind: "none" })}
+                            gridEnabled={gridEnabled}
+                            gridSizePx={gridSizePx}
+                          />
+                        )}
+                      </div>
                     </div>
                   </div>
                 </div>
