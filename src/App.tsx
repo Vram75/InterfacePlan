@@ -1064,9 +1064,6 @@ export default function App() {
                 <div className="card-header">
                   <div>
                     <div className="card-title">Pièces</div>
-                    <div className="card-subtitle-row">
-                      <span className="meta-chip">{rooms.length} pièce(s)</span>
-                    </div>
                   </div>
                 </div>
                 <div className="card-content card-scroll">
