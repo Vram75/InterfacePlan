@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { forwardRef, useCallback, useEffect, useImperativeHandle, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import type { Room, ServiceColor } from "../types";
 
@@ -342,12 +342,27 @@ function CropModal(props: { file: File; onCancel: () => void; onConfirm: (croppe
   return createPortal(modal, document.body);
 }
 
-export function RoomDetailsPanel(props: {
+export type RoomDetailsPanelHandle = {
+  save: () => void;
+};
+
+type RoomDetailsPanelStatus = {
+  saving: boolean;
+  canSave: boolean;
+};
+
+type RoomDetailsPanelProps = {
   room: Room | null;
   services: ServiceColor[];
   onSave: (room: Room) => Promise<void>;
   onUploadPhoto: (roomId: string, file: File) => Promise<void>;
-}) {
+  onStatusChange?: (status: RoomDetailsPanelStatus) => void;
+};
+
+export const RoomDetailsPanel = forwardRef<RoomDetailsPanelHandle, RoomDetailsPanelProps>(function RoomDetailsPanel(
+  props,
+  ref
+) {
   const [draft, setDraft] = useState<Room | null>(null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -359,7 +374,7 @@ export function RoomDetailsPanel(props: {
     setError(null);
   }, [props.room]);
 
-  async function save() {
+  const save = useCallback(async () => {
     if (!draft) return;
     setSaving(true);
     setError(null);
@@ -370,7 +385,13 @@ export function RoomDetailsPanel(props: {
     } finally {
       setSaving(false);
     }
-  }
+  }, [draft, props.onSave]);
+
+  useImperativeHandle(ref, () => ({ save }), [save]);
+
+  useEffect(() => {
+    props.onStatusChange?.({ saving, canSave: Boolean(draft) });
+  }, [draft, props.onStatusChange, saving]);
 
   if (!props.room || !draft) {
     return (
@@ -404,10 +425,6 @@ export function RoomDetailsPanel(props: {
     <div className="details-panel">
       <div className="details-panel-header">
         <div className="details-panel-number">{draft.numero}</div>
-
-        <button className="btn" onClick={save} disabled={saving}>
-          {saving ? "Sauvegarde..." : "Enregistrer"}
-        </button>
       </div>
 
       {error && (
@@ -583,4 +600,4 @@ export function RoomDetailsPanel(props: {
       )}
     </div>
   );
-}
+});
