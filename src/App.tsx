@@ -889,7 +889,6 @@ export default function App() {
               <div className="card-header">
                 <div>
                   <div className="card-title">Plan</div>
-                  <div className="card-subtitle">PDF multi-pages + overlay</div>
                 </div>
               </div>
 
@@ -1066,7 +1065,6 @@ export default function App() {
                   <div>
                     <div className="card-title">Pièces</div>
                     <div className="card-subtitle-row">
-                      <span className="card-subtitle">Liste & sélection</span>
                       <span className="meta-chip">{rooms.length} pièce(s)</span>
                     </div>
                   </div>
@@ -1080,7 +1078,6 @@ export default function App() {
                 <div className="card-header">
                   <div>
                     <div className="card-title">Détails</div>
-                    <div className="card-subtitle">Infos & photo</div>
                   </div>
                 </div>
                 <div className="card-content card-scroll">
