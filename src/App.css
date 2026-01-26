@@ -458,6 +458,12 @@ body{
   overflow: hidden;
 }
 
+.plan-stack{
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
 .plan-viewport{
   height: 100%;
   overflow: auto;

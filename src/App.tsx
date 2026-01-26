@@ -1032,25 +1032,40 @@ export default function App() {
                         }}
                       />
 
-                      {overlayReady && (
-                        <SvgOverlay
-                          width={size.w}
-                          height={size.h}
-                          page={currentPage}
-                          rooms={rooms}
-                          services={services.map(({ uid: _uid, ...rest }) => rest)}
-                          selectedRoomId={selectedRoomId}
-                          onSelectRoom={setSelectedRoomId}
-                          adminMode={adminMode}
-                          drawingRoomId={drawingRoomId}
-                          drawSessionId={drawSessionId}
-                          onPolygonCommit={(roomId, poly) => commitPolygon(roomId, currentPage, poly)}
-                          request={overlayRequest}
-                          onRequestHandled={() => setOverlayRequest({ kind: "none" })}
-                          gridEnabled={gridEnabled}
-                          gridSizePx={gridSizePx}
+                  <div className="plan-viewport">
+                    <div className="plan-stage">
+                      <div className="plan-layer">
+                        <PdfCanvas
+                          pdfUrl="/Pour CHATGPT.pdf"
+                          scale={scale}
+                          page={currentPage + 1}
+                          onPageCount={setPageCount}
+                          onSize={(w, h) => {
+                            if (!isValidSize(w) || !isValidSize(h)) return;
+                            setSize({ w, h });
+                          }}
                         />
-                      )}
+
+                        {overlayReady && (
+                          <SvgOverlay
+                            width={size.w}
+                            height={size.h}
+                            page={currentPage}
+                            rooms={rooms}
+                            services={services.map(({ uid: _uid, ...rest }) => rest)}
+                            selectedRoomId={selectedRoomId}
+                            onSelectRoom={setSelectedRoomId}
+                            adminMode={adminMode}
+                            drawingRoomId={drawingRoomId}
+                            drawSessionId={drawSessionId}
+                            onPolygonCommit={(roomId, poly) => commitPolygon(roomId, currentPage, poly)}
+                            request={overlayRequest}
+                            onRequestHandled={() => setOverlayRequest({ kind: "none" })}
+                            gridEnabled={gridEnabled}
+                            gridSizePx={gridSizePx}
+                          />
+                        )}
+                      </div>
                     </div>
                   </div>
                 </div>
