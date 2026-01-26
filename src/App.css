@@ -479,29 +479,32 @@ body{
   line-height: 0;
 }
 
-.plan-header-right{
+.plan-controls{
   display: flex;
   flex-direction: column;
-  align-items: flex-end;
-  gap: 10px;
-  min-width: 0;
-}
-
-.plan-toolbar{
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
   gap: 8px;
-  width: 100%;
+  margin-bottom: 12px;
 }
 
-.plan-toolbar-row{
+.plan-controls-row{
   display: flex;
-  gap: 10px;
   align-items: center;
   justify-content: space-between;
   flex-wrap: wrap;
-  width: 100%;
+  gap: 10px;
+}
+
+.plan-toolbar-group{
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+
+.plan-zoom-group{
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
 }
 
 .plan-toolbar-group{
