@@ -894,35 +894,33 @@ export default function App() {
               </div>
 
               <div className="card-content plan-content">
-                <div className="plan-stack">
-                  <div className="plan-controls">
-                    <div className="plan-controls-row">
-                      <div className="plan-toolbar-group">
-                        <button className="btn btn-icon btn-mini" title="Page précédente (PageUp)" type="button" onClick={() => goToPageIndex(currentPage - 1)} disabled={currentPage <= 0}>
-                          ◀
-                        </button>
+                <div className="plan-controls">
+                  <div className="plan-controls-row">
+                    <div className="plan-toolbar-group">
+                      <button className="btn btn-icon btn-mini" title="Page précédente (PageUp)" type="button" onClick={() => goToPageIndex(currentPage - 1)} disabled={currentPage <= 0}>
+                        ◀
+                      </button>
 
-                        <span className="meta-chip">
-                          Page {Math.min(pageCount, currentPage + 1)} / {pageCount}
-                        </span>
+                      <span className="meta-chip">
+                        Page {Math.min(pageCount, currentPage + 1)} / {pageCount}
+                      </span>
 
-                        <button
-                          className="btn btn-icon btn-mini"
-                          title="Page suivante (PageDown)"
-                          type="button"
-                          onClick={() => goToPageIndex(currentPage + 1)}
-                          disabled={currentPage >= Math.max(1, pageCount) - 1}
-                        >
-                          ▶
-                        </button>
-                      </div>
-
-                      <div className="plan-toolbar-group">
-                        <span className="meta-chip">Sélection: {selectedRoom?.numero ?? "—"}</span>
-                      </div>
+                      <button
+                        className="btn btn-icon btn-mini"
+                        title="Page suivante (PageDown)"
+                        type="button"
+                        onClick={() => goToPageIndex(currentPage + 1)}
+                        disabled={currentPage >= Math.max(1, pageCount) - 1}
+                      >
+                        ▶
+                      </button>
                     </div>
 
-                    <div className="plan-controls-row">
+                    <span className="meta-chip">Sélection: {selectedRoom?.numero ?? "—"}</span>
+                  </div>
+
+                  <div className="plan-toolbar">
+                    <div className="plan-toolbar-row">
                       <div className="plan-toolbar-group">
                         <label className="switch switch-compact" title="Activer/désactiver l’édition">
                           <input
@@ -963,6 +961,7 @@ export default function App() {
                           />
                         </div>
                       </div>
+                    </div>
 
                       <div className="plan-toolbar-group">
                         <button
@@ -989,9 +988,10 @@ export default function App() {
                         </div>
                       </div>
                     </div>
+                  </div>
 
                     {adminMode && (
-                      <div className="plan-controls-row">
+                      <div className="plan-toolbar-row">
                         <div className="plan-field-inline plan-field-compact" style={{ minWidth: 240 }}>
                           <span className="plan-field-label">Dessiner</span>
                           <select
@@ -1014,8 +1014,23 @@ export default function App() {
                           </select>
                         </div>
                       </div>
-                    )}
-                  </div>
+                    </div>
+                  )}
+                </div>
+
+                <div className="plan-viewport">
+                  <div className="plan-stage">
+                    <div className="plan-layer">
+                      <PdfCanvas
+                        pdfUrl="/Pour CHATGPT.pdf"
+                        scale={scale}
+                        page={currentPage + 1}
+                        onPageCount={setPageCount}
+                        onSize={(w, h) => {
+                          if (!isValidSize(w) || !isValidSize(h)) return;
+                          setSize({ w, h });
+                        }}
+                      />
 
                   <div className="plan-viewport">
                     <div className="plan-stage">
