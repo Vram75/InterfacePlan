@@ -1087,8 +1087,9 @@ export default function App() {
                     className="btn btn-save"
                     onClick={() => detailsPanelRef.current?.save()}
                     disabled={!detailsStatus.canSave || detailsStatus.saving}
+                    aria-busy={detailsStatus.saving}
                   >
-                    {detailsStatus.saving ? "Sauvegarde..." : "Enregistrer"}
+                    Enregistrer
                   </button>
                 </div>
                 <div className="card-content card-scroll">
