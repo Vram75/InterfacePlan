@@ -961,7 +961,6 @@ export default function App() {
                           />
                         </div>
                       </div>
-                    </div>
 
                       <div className="plan-toolbar-group">
                         <button
@@ -988,7 +987,6 @@ export default function App() {
                         </div>
                       </div>
                     </div>
-                  </div>
 
                     {adminMode && (
                       <div className="plan-toolbar-row">
@@ -1014,8 +1012,8 @@ export default function App() {
                           </select>
                         </div>
                       </div>
-                    </div>
-                  )}
+                    )}
+                  </div>
                 </div>
 
                 <div className="plan-viewport">
@@ -1031,20 +1029,6 @@ export default function App() {
                           setSize({ w, h });
                         }}
                       />
-
-                  <div className="plan-viewport">
-                    <div className="plan-stage">
-                      <div className="plan-layer">
-                        <PdfCanvas
-                          pdfUrl="/Pour CHATGPT.pdf"
-                          scale={scale}
-                          page={currentPage + 1}
-                          onPageCount={setPageCount}
-                          onSize={(w, h) => {
-                            if (!isValidSize(w) || !isValidSize(h)) return;
-                            setSize({ w, h });
-                          }}
-                        />
 
                         {overlayReady && (
                           <SvgOverlay
