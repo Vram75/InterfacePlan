@@ -438,6 +438,12 @@ body{
   color: rgba(226,232,240,0.7);
 }
 
+.plan-header-right{
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
 .card-meta{
   display: flex;
   gap: 8px;
