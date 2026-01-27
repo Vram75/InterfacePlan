@@ -151,7 +151,7 @@ body{
 
 .nav-title{
   font-size: 12px;
-  color: rgba(226,232,240,0.7);
+  color: #ffffff;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.08em;
@@ -168,7 +168,7 @@ body{
   gap: 10px;
   align-items: center;
   cursor: pointer;
-  color: rgba(248,250,252,0.92);
+  color: #ffffff;
 }
 .nav-item:hover{
   background: rgba(248,250,252,0.08);
@@ -430,7 +430,7 @@ body{
 
 .plan-card .card-title{
   font-size: 12px;
-  color: rgba(226,232,240,0.7);
+  color: #ffffff;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.08em;
@@ -556,7 +556,7 @@ body{
   background: rgba(15,23,42,0.35);
 }
 .plan-card .switch-label{
-  color: rgba(226,232,240,0.7);
+  color: #ffffff;
 }
 
 .plan-controls-row{
@@ -868,6 +868,12 @@ body{
 }
 .plan-card .room-panel-item{
   border-bottom-color: rgba(148,163,184,0.2);
+}
+.plan-card .room-panel-title{
+  color: #ffffff;
+}
+.plan-card .room-panel-count{
+  color: #ffffff;
 }
 .plan-card .room-panel-item--active{
   background: rgba(148,163,184,0.18);
