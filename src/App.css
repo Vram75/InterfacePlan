@@ -380,11 +380,10 @@ body{
 
 .dash-main{ overflow: hidden; }
 
-.dash-right{ overflow: auto; }
+.dash-right{ overflow: hidden; }
 .right-sticky{
-  height: auto;
-  min-height: 100%;
-  overflow: visible;
+  height: 100%;
+  overflow: auto;
   display: flex;
   flex-direction: column;
   gap: 12px;
@@ -476,20 +475,6 @@ body{
   background: linear-gradient(180deg, rgba(30,41,59,0.92), rgba(15,23,42,0.96));
   color: #f8fafc;
   box-shadow: 0 18px 40px rgba(15,23,42,0.35);
-}
-.plan-card--details{
-  position: fixed;
-  top: var(--gap);
-  right: var(--gap);
-  width: var(--right-w);
-  max-height: calc(100vh - (var(--gap) * 2));
-  overflow: hidden;
-  z-index: 30;
-  box-shadow: 0 22px 50px rgba(15,23,42,0.5);
-}
-.plan-card--details .card-content{
-  overflow: auto;
-  max-height: calc(100vh - 180px);
 }
 
 .plan-content{
@@ -1090,13 +1075,6 @@ body{
   .dash-right{ overflow: visible; }
   .right-sticky{ height: auto; overflow: visible; }
   .plan-card{ height: auto; }
-  .plan-card--details{
-    position: static;
-    max-height: none;
-  }
-  .plan-card--details .card-content{
-    max-height: none;
-  }
   .plan-viewport{ height: auto; min-height: 520px; }
   .plan-header-right{ align-items: flex-start; }
   .plan-toolbar, .plan-toolbar-row{ align-items: flex-start; justify-content: flex-start; }
