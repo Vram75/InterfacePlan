@@ -1078,7 +1078,7 @@ export default function App() {
                 </div>
               </div>
 
-              <div className="card details-floating-card">
+              <div className="card plan-card">
                 <div className="card-header">
                   <div>
                     <div className="card-title">Détails</div>
@@ -1087,7 +1087,6 @@ export default function App() {
                     className="btn btn-save"
                     onClick={() => detailsPanelRef.current?.save()}
                     disabled={!detailsStatus.canSave || detailsStatus.saving}
-                    aria-busy={detailsStatus.saving}
                   >
                     Enregistrer
                   </button>
