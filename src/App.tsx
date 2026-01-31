@@ -1078,7 +1078,7 @@ export default function App() {
                 </div>
               </div>
 
-              <div className="card plan-card">
+              <div className="card details-floating-card">
                 <div className="card-header">
                   <div>
                     <div className="card-title">Détails</div>
