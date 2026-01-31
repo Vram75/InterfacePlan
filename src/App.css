@@ -380,10 +380,10 @@ body{
 
 .dash-main{ overflow: hidden; }
 
-.dash-right{ overflow: hidden; }
+.dash-right{ overflow: visible; }
 .right-sticky{
   height: 100%;
-  overflow: auto;
+  overflow: visible;
   display: flex;
   flex-direction: column;
   gap: 12px;
