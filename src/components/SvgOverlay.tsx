@@ -28,11 +28,11 @@ const UI = {
   snapMidRadiusPx: 24,
 
   // Insertion Alt+clic
-  edgeInsertPxThreshold: 12,
-  insertEndEps: 0.08,
+  edgeInsertPxThreshold: 16, // ⬅️ plus permissif
+  insertEndEps: 0.06,
 
   // Hit-test arêtes (invisible)
-  edgeHitStrokePx: 18,
+  edgeHitStrokePx: 22, // ⬅️ plus permissif
 
   // Grid
   gridStrokeOpacity: 0.18,
@@ -158,7 +158,6 @@ function insertVertexOnNearestEdgeIfClose(
 
 type DraftSnapInfo = { kind: "none" } | { kind: "first" } | { kind: "mid"; segIdx: number };
 
-// Multi-pages extractor: room.polygons[] prioritaire, fallback legacy room.page+room.polygon
 function extractPolygonForPage(room: any, pageIndex: number): Point[] | undefined {
   if (!room) return undefined;
 
@@ -220,7 +219,6 @@ function snapPointToGrid(p: Point, gridSizePx: number, w: number, h: number): Po
   };
 }
 
-// legacy px -> normalized
 function looksLikePixels(poly: Point[]): boolean {
   return poly.some((p) => p.x > 1.001 || p.y > 1.001 || p.x < -0.001 || p.y < -0.001);
 }
@@ -276,7 +274,6 @@ export function SvgOverlay(props: {
     null
   );
 
-  // Migration: clé par room+page
   const migratedRef = useRef<Set<string>>(new Set());
 
   const latestDraftRef = useRef<Point[]>(draft);
@@ -295,7 +292,6 @@ export function SvgOverlay(props: {
     latestAdminModeRef.current = props.adminMode;
   }, [props.adminMode]);
 
-  // Sauvegarde auto si un draft existe à l’unmount
   useEffect(() => {
     return () => {
       const latestDraft = latestDraftRef.current;
@@ -322,7 +318,6 @@ export function SvgOverlay(props: {
     return m;
   }, [props.services]);
 
-  // External requests
   useEffect(() => {
     if (props.request.kind === "deletePolygon") {
       const roomId = props.request.roomId;
@@ -338,7 +333,6 @@ export function SvgOverlay(props: {
     }
   }, [props.request, props.onRequestHandled, props.onPolygonCommit]);
 
-  // Toggle snap via "S"
   useEffect(() => {
     function onKeyDown(e: KeyboardEvent) {
       if (e.key.toLowerCase() !== "s") return;
@@ -350,14 +344,12 @@ export function SvgOverlay(props: {
     return () => window.removeEventListener("keydown", onKeyDown);
   }, []);
 
-  // Toggle snap via CustomEvent
   useEffect(() => {
     const onToggle = () => setSnapEnabled((v) => !v);
     window.addEventListener(SNAP_TOGGLE_EVENT, onToggle as EventListener);
     return () => window.removeEventListener(SNAP_TOGGLE_EVENT, onToggle as EventListener);
   }, []);
 
-  // Sync rooms -> local (only current page) using extractPolygonForPage()
   useEffect(() => {
     const next: Record<string, Point[] | undefined> = {};
     const toMigrate: Array<{ roomId: string; poly: Point[] }> = [];
@@ -387,7 +379,6 @@ export function SvgOverlay(props: {
 
     setLocalPoly(next);
 
-    // push migration commits (page-aware in App via commitPolygon(roomId, currentPage, poly))
     for (const m of toMigrate) {
       try {
         props.onPolygonCommit(m.roomId, m.poly);
@@ -396,13 +387,11 @@ export function SvgOverlay(props: {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [props.rooms, props.page, w, h]);
 
-  // dirty draw
   useEffect(() => {
     props.onDrawDirtyChange?.(draft.length > 0 && mode.kind === "draw");
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [draft.length, mode.kind]);
 
-  // reset per session
   useEffect(() => {
     if (!props.adminMode) {
       setMode({ kind: "view" });
@@ -475,7 +464,6 @@ export function SvgOverlay(props: {
     return { snapped: raw, info: { kind: "none" } };
   }
 
-  // Keyboard: Escape/Enter/Delete
   useEffect(() => {
     function onKeyDown(e: KeyboardEvent) {
       if (!props.adminMode) return;
@@ -523,7 +511,6 @@ export function SvgOverlay(props: {
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [props.adminMode, mode, draft, localPoly, props.onPolygonCommit]);
 
-  // Drag vertex + Drag poly (global)
   useEffect(() => {
     function onMove(ev: MouseEvent) {
       if (!props.adminMode) return;
@@ -611,7 +598,6 @@ export function SvgOverlay(props: {
       return;
     }
 
-    // Alt+hover preview insertion (sur la room sélectionnée)
     if (!e.altKey) {
       if (edgePreview) setEdgePreview(null);
       return;
@@ -637,7 +623,44 @@ export function SvgOverlay(props: {
     setEdgePreview(null);
   }
 
+  function tryAltInsertAtEvent(e: React.MouseEvent): boolean {
+    if (!props.adminMode) return false;
+    if (!e.altKey) return false;
+    if (mode.kind === "draw") return false;
+
+    const roomId = props.selectedRoomId;
+    if (!roomId) return false;
+
+    const poly = localPoly[roomId];
+    if (!poly || poly.length < 3) return false;
+
+    const svg = svgRef.current;
+    if (!svg) return false;
+
+    let raw = pointer(svg, e.clientX, e.clientY);
+    if (props.gridEnabled) raw = snapPointToGrid(raw, props.gridSizePx, w, h);
+
+    const p = edgePreview?.roomId === roomId ? edgePreview.projected : raw;
+    const ins = insertVertexOnNearestEdgeIfClose(poly, p, UI.edgeInsertPxThreshold, w, h, UI.insertEndEps);
+    if (!ins.ok) return false;
+
+    setLocalPoly((ps) => ({ ...ps, [roomId]: ins.poly }));
+    props.onPolygonCommit(roomId, ins.poly);
+    setMode({ kind: "vertexSelected", roomId, idx: ins.insertAfterIdx + 1 });
+    return true;
+  }
+
   function onSvgClick(e: React.MouseEvent) {
+    // ✅ guard: if already handled by a child, do nothing
+    if (e.defaultPrevented) return;
+
+    // ✅ allow Alt+click insertion even if click hits "empty" area
+    if (tryAltInsertAtEvent(e)) {
+      e.preventDefault();
+      e.stopPropagation();
+      return;
+    }
+
     const svg = svgRef.current;
     if (!svg) return;
 
@@ -693,32 +716,16 @@ export function SvgOverlay(props: {
     e.preventDefault();
     e.stopPropagation();
 
-    // View mode: simple selection
     if (!props.adminMode) {
       props.onSelectRoom(roomId);
       return;
     }
 
-    // Alt+clic = insertion (hors mode draw)
+    // Alt+clic = insertion
     if (e.altKey && mode.kind !== "draw") {
       props.onSelectRoom(roomId);
-      const poly = localPoly[roomId];
-      if (!poly || poly.length < 3) return;
-
-      const svg = svgRef.current;
-      if (!svg) return;
-
-      let raw = pointer(svg, e.clientX, e.clientY);
-      if (props.gridEnabled) raw = snapPointToGrid(raw, props.gridSizePx, w, h);
-
-      const p = edgePreview?.roomId === roomId ? edgePreview.projected : raw;
-
-      const ins = insertVertexOnNearestEdgeIfClose(poly, p, UI.edgeInsertPxThreshold, w, h, UI.insertEndEps);
-      if (ins.ok) {
-        setLocalPoly((ps) => ({ ...ps, [roomId]: ins.poly }));
-        props.onPolygonCommit(roomId, ins.poly);
-        setMode({ kind: "vertexSelected", roomId, idx: ins.insertAfterIdx + 1 });
-      }
+      // do insertion based on current event position (no dependency on clicking exactly on stroke)
+      if (tryAltInsertAtEvent(e)) return;
       return;
     }
 
@@ -791,7 +798,6 @@ export function SvgOverlay(props: {
         </text>
       )}
 
-      {/* Polygones: uniquement ceux qui ont un poly POUR LA PAGE COURANTE */}
       {props.rooms.map((r: any) => {
         const poly = localPoly[r.id];
         if (!poly || poly.length < 3) return null;
@@ -805,7 +811,6 @@ export function SvgOverlay(props: {
 
         return (
           <g key={r.id}>
-            {/* Hit-test arêtes: path sur le contour (ne bloque pas le fill). */}
             <path
               d={d}
               fill="none"
@@ -817,7 +822,6 @@ export function SvgOverlay(props: {
               style={{ cursor: "pointer" }}
             />
 
-            {/* Visible polygon: capte les clics partout dans la surface. */}
             <polygon
               points={pts}
               fill={fill}
@@ -842,7 +846,6 @@ export function SvgOverlay(props: {
         );
       })}
 
-      {/* Poignées */}
       {props.adminMode && selectedRoomId && selectedPoly && selectedPoly.length >= 3 && (
         <>
           {selectedPoly.map((p, idx) => {
@@ -868,12 +871,10 @@ export function SvgOverlay(props: {
         </>
       )}
 
-      {/* Preview insertion Alt+hover */}
       {props.adminMode && edgePreview && (
         <circle cx={edgePreview.projected.x * w} cy={edgePreview.projected.y * h} r={7} fill="#ff0" stroke="#000" strokeWidth={2} />
       )}
 
-      {/* Dessin */}
       {props.adminMode && mode.kind === "draw" && draft.length > 0 && (
         <>
           <polyline points={toSvgPoints(draft, w, h)} fill="none" stroke="#000" strokeWidth={UI.previewStrokeWidth} />
