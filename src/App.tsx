@@ -198,6 +198,21 @@ function roomHasPolygonOnPage(room: any, pageIndex: number): boolean {
   return !!poly && poly.length >= 3;
 }
 
+
+function roomPolygonEntryForPage(room: any, pageIndex: number): any | undefined {
+  if (Array.isArray(room?.polygons)) {
+    return room.polygons.find((e: any) => (typeof e?.page === "number" ? e.page : e?.pageIndex) === pageIndex);
+  }
+  // legacy has no lock
+  return undefined;
+}
+
+function roomPolygonLockedOnPage(room: any, pageIndex: number): boolean {
+  const entry = roomPolygonEntryForPage(room, pageIndex);
+  return !!entry?.locked;
+}
+
+
 function roomPagesWithPolygons(room: any): number[] {
   const pages = new Set<number>();
 
@@ -265,6 +280,12 @@ export default function App() {
   const [pageView, setPageView] = useState<PageView>("dashboard");
 
   const [rooms, setRooms] = useState<Room[]>([]);
+
+  const roomsRef = useRef<Room[]>([]);
+  useEffect(() => {
+    roomsRef.current = rooms;
+  }, [rooms]);
+
   const [selectedRoomId, setSelectedRoomId] = useState<string | null>(null);
   const detailsPanelRef = useRef<RoomDetailsPanelHandle | null>(null);
   const [detailsStatus, setDetailsStatus] = useState({ saving: false, canSave: false });
@@ -360,6 +381,14 @@ export default function App() {
   }, [rooms]);
 
   const pagesWithPolygons = useMemo(() => new Set<number>(pagesPolyStats.keys()), [pagesPolyStats]);
+
+  const lockedRoomIdsOnPage = useMemo(() => {
+    const s = new Set<string>();
+    for (const r of rooms as any[]) {
+      if (roomPolygonLockedOnPage(r, currentPage)) s.add(r.id);
+    }
+    return s;
+  }, [rooms, currentPage]);
 
   // ✅ Counter: X / Y
   const pagesWithPolygonsCount = useMemo(() => pagesWithPolygons.size, [pagesWithPolygons]);
@@ -460,17 +489,32 @@ export default function App() {
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [pageView, currentPage, pageCount]);
 
-  // Commit polygon with optimistic lock (page-aware)
+    // Commit polygon with optimistic lock (page-aware)
+    // Commit polygon (page-aware)
   async function commitPolygon(roomId: string, page: number, poly: Point[]) {
+    // Optimistic local update (keep existing lock state)
     setRooms((prev) =>
       prev.map((r: any) => {
         if (r.id !== roomId) return r;
 
-        const next: any = { ...r, page, polygon: poly };
+        const next: any = { ...r };
+
+        // Maintain legacy fields for compatibility
+        next.page = page;
+        next.polygon = poly;
 
         if (Array.isArray(r.polygons)) {
+          const existing = r.polygons.find((x: any) => (typeof x?.page === "number" ? x.page : undefined) === page);
+          const locked = !!existing?.locked;
+
           const others = r.polygons.filter((x: any) => (typeof x?.page === "number" ? x.page : undefined) !== page);
-          next.polygons = [...others, { page, polygon: poly }];
+
+          if (Array.isArray(poly) && poly.length >= 3) {
+            next.polygons = [...others, { page, polygon: poly, locked }];
+          } else {
+            // deletion: remove entry for this page
+            next.polygons = others;
+          }
         }
 
         return next;
@@ -481,7 +525,7 @@ export default function App() {
     setDrawSessionId((x) => x + 1);
 
     try {
-      const saved = await api.updatePolygon(roomId, { page, polygon: poly }); // ⚠️ page obligatoire
+      const saved = await api.updatePolygon(roomId, { page, polygon: poly }); // page obligatoire
       setRooms((prev) => prev.map((r) => (r.id === saved.id ? saved : r)));
     } catch (e) {
       const refreshed = await api.getRooms();
@@ -494,6 +538,42 @@ export default function App() {
     const saved = await api.updateRoom(room);
     setRooms((prev) => prev.map((r) => (r.id === saved.id ? saved : r)));
   }
+
+  async function togglePolygonLock(roomId: string, page: number) {
+    const current = roomsRef.current.find((r: any) => r.id === roomId);
+    if (!current) return;
+
+    const hasPoly = roomHasPolygonOnPage(current as any, page);
+    if (!hasPoly) return;
+
+    const nextRoom: any = { ...current };
+
+    const polygons: any[] = Array.isArray(current.polygons) ? current.polygons.map((x: any) => ({ ...x })) : [];
+    if (polygons.length === 0) {
+      const legacyPage = typeof current.page === "number" ? current.page : 0;
+      const legacyPoly = Array.isArray(current.polygon) ? current.polygon : [];
+      if (legacyPoly.length >= 3) polygons.push({ page: legacyPage, polygon: legacyPoly, locked: false });
+    }
+
+    const idx = polygons.findIndex((x: any) => (typeof x?.page === "number" ? x.page : undefined) === page);
+    if (idx < 0) return;
+
+    const lockedNow = !!polygons[idx]?.locked;
+    polygons[idx] = { ...polygons[idx], locked: !lockedNow };
+    nextRoom.polygons = polygons;
+
+    setRooms((prev) => prev.map((r: any) => (r.id === roomId ? nextRoom : r)));
+
+    try {
+      const saved = await api.updateRoom(nextRoom);
+      setRooms((prev) => prev.map((r: any) => (r.id === saved.id ? saved : r)));
+    } catch (e) {
+      const refreshed = await api.getRooms();
+      setRooms(refreshed);
+      throw e;
+    }
+  }
+
 
   async function handleUploadPhoto(roomId: string, file: File) {
     const saved = await api.uploadPhoto(roomId, file);
@@ -652,7 +732,9 @@ export default function App() {
     return () => window.removeEventListener("keydown", onKeyDown);
   }, []);
 
-  const canDeletePolygon = adminMode && !!selectedRoomId && roomHasPolygonOnPage(selectedRoom as any, currentPage);
+  const selectedLocked = adminMode && !!selectedRoomId && roomPolygonLockedOnPage(selectedRoom as any, currentPage);
+
+  const canDeletePolygon = adminMode && !!selectedRoomId && roomHasPolygonOnPage(selectedRoom as any, currentPage) && !selectedLocked;
   const overlayReady = isValidSize(size.w) && isValidSize(size.h);
 
   return (
@@ -982,6 +1064,25 @@ export default function App() {
                           Suppr. polygone
                         </button>
 
+                        <button
+                          className="btn btn-mini"
+                          type="button"
+                          onClick={() => {
+                            if (!selectedRoomId) return;
+                            togglePolygonLock(selectedRoomId, currentPage);
+                          }}
+                          disabled={!adminMode || !selectedRoomId || !roomHasPolygonOnPage(selectedRoom as any, currentPage)}
+                          title={
+                            !adminMode || !selectedRoomId || !roomHasPolygonOnPage(selectedRoom as any, currentPage)
+                              ? "Aucun polygone sur cette page pour la pièce sélectionnée"
+                              : selectedLocked
+                                ? "Déverrouiller le polygone (page courante)"
+                                : "Verrouiller le polygone (page courante)"
+                          }
+                        >
+                          {selectedLocked ? "Déverrouiller" : "Verrouiller"}
+                        </button>
+
                         <div className="plan-zoom-group">
                           <button className="btn btn-icon btn-mini" type="button" onClick={() => setScale((s) => clampScale(s - 0.1))} title="Zoom - (-)">
                             −
@@ -1053,6 +1154,7 @@ export default function App() {
                           onRequestHandled={() => setOverlayRequest({ kind: "none" })}
                           gridEnabled={gridEnabled}
                           gridSizePx={gridSizePx}
+                          lockedRoomIdsOnPage={lockedRoomIdsOnPage}
                         />
                       )}
                     </div>
