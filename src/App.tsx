@@ -412,10 +412,11 @@ export default function App() {
   // Initial load
   useEffect(() => {
     api.getRooms().then((r) => {
-      setRooms(r);
+      const withLocks = applyLockOverridesToRooms(r);
+      setRooms(withLocks);
       if (r.length && !selectedRoomId) setSelectedRoomId(r[0].id);
 
-      const used = new Set(r.map((x) => (x.service ?? "").trim()).filter((s) => s.length > 0));
+      const used = new Set(withLocks.map((x) => (x.service ?? "").trim()).filter((s) => s.length > 0));
       if (used.size) {
         setServices((prev) => {
           const map = new Map<string, ServiceEntry>();
@@ -607,17 +608,19 @@ export default function App() {
 
     try {
       const saved = await api.updatePolygon(roomId, { page, polygon: poly }); // page obligatoire (0-based)
-      setRooms((prev) => prev.map((r) => (r.id === saved.id ? saved : r)));
+      const savedWithLock = applyLockOverridesToRooms([saved])[0];
+      setRooms((prev) => prev.map((r) => (r.id === savedWithLock.id ? savedWithLock : r)));
     } catch (e) {
       const refreshed = await api.getRooms();
-      setRooms(refreshed);
+      setRooms(applyLockOverridesToRooms(refreshed));
       throw e;
     }
   }
 
   async function handleSaveRoom(room: Room) {
     const saved = await api.updateRoom(room);
-    setRooms((prev) => prev.map((r) => (r.id === saved.id ? saved : r)));
+    const savedWithLock = applyLockOverridesToRooms([saved])[0];
+    setRooms((prev) => prev.map((r) => (r.id === savedWithLock.id ? savedWithLock : r)));
   }
 
   async function togglePolygonLock(roomId: string, page: number) {
@@ -664,7 +667,8 @@ export default function App() {
 
   async function handleUploadPhoto(roomId: string, file: File) {
     const saved = await api.uploadPhoto(roomId, file);
-    setRooms((prev) => prev.map((r) => (r.id === saved.id ? saved : r)));
+    const savedWithLock = applyLockOverridesToRooms([saved])[0];
+    setRooms((prev) => prev.map((r) => (r.id === savedWithLock.id ? savedWithLock : r)));
   }
 
   // ---- Services actions ----
