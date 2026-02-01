@@ -603,7 +603,6 @@ export default function App() {
   }
 
   async function handleSaveRoom(room: Room) {
-(room: Room) {
     const saved = await api.updateRoom(room);
     setRooms((prev) => prev.map((r) => (r.id === saved.id ? saved : r)));
   }
