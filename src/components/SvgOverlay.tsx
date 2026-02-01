@@ -324,10 +324,6 @@ export function SvgOverlay(props: {
     return props.lockedRoomIdsOnPage?.has(roomId) ?? false;
   };
 
-  const selectedRoomId = props.selectedRoomId;
-  const selectedPoly = selectedRoomId ? localPoly[selectedRoomId] : undefined;
-  const selectedLocked = isRoomLocked(selectedRoomId);
-
   useEffect(() => {
     if (props.request.kind === "deletePolygon") {
       const roomId = props.request.roomId;
