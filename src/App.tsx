@@ -207,7 +207,72 @@ function roomPolygonEntryForPage(room: any, pageIndex: number): any | undefined 
   return undefined;
 }
 
+
+const LOCK_STORAGE_KEY = "iface:polygonLocked";
+
+function lockKey(roomId: string, page: number) {
+  return `${roomId}@${page}`;
+}
+
+function readLockMap(): Record<string, boolean> {
+  try {
+    const raw = localStorage.getItem(LOCK_STORAGE_KEY);
+    if (!raw) return {};
+    const obj = JSON.parse(raw);
+    if (!obj || typeof obj !== "object") return {};
+    const out: Record<string, boolean> = {};
+    for (const [k, v] of Object.entries(obj)) out[k] = !!v;
+    return out;
+  } catch {
+    return {};
+  }
+}
+
+function writeLockMap(m: Record<string, boolean>) {
+  try {
+    localStorage.setItem(LOCK_STORAGE_KEY, JSON.stringify(m));
+  } catch {}
+}
+
+function getLockOverride(roomId: string, page: number): boolean | undefined {
+  const m = readLockMap();
+  const k = lockKey(roomId, page);
+  return Object.prototype.hasOwnProperty.call(m, k) ? m[k] : undefined;
+}
+
+function setLockOverride(roomId: string, page: number, locked: boolean) {
+  const m = readLockMap();
+  m[lockKey(roomId, page)] = locked;
+  writeLockMap(m);
+}
+
+function applyLockOverridesToRooms(rooms: any[]): any[] {
+  const m = readLockMap();
+  if (!m || Object.keys(m).length === 0) return rooms;
+
+  return rooms.map((r: any) => {
+    const rid = r?.id;
+    if (!rid) return r;
+    if (!Array.isArray(r.polygons)) return r;
+
+    const nextPolys = r.polygons.map((p: any) => {
+      const page = typeof p?.page === "number" ? p.page : typeof p?.pageIndex === "number" ? p.pageIndex : undefined;
+      if (typeof page !== "number") return p;
+      const k = lockKey(rid, page);
+      if (!Object.prototype.hasOwnProperty.call(m, k)) return p;
+      return { ...p, locked: !!m[k] };
+    });
+
+    return { ...r, polygons: nextPolys };
+  });
+}
+
 function roomPolygonLockedOnPage(room: any, pageIndex: number): boolean {
+  const rid = room?.id;
+  if (typeof rid === "string") {
+    const ov = getLockOverride(rid, pageIndex);
+    if (typeof ov === "boolean") return ov;
+  }
   const entry = roomPolygonEntryForPage(room, pageIndex);
   return !!entry?.locked;
 }
@@ -488,26 +553,28 @@ export default function App() {
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [pageView, currentPage, pageCount]);
-
-    // Commit polygon with optimistic lock (page-aware)
-    // Commit polygon (page-aware)
+  // Commit polygon (page-aware) with optimistic local update.
   async function commitPolygon(roomId: string, page: number, poly: Point[]) {
-    // Optimistic local update (keep existing lock state)
+    // Optimistic update: keep existing locked flag for this page if present.
     setRooms((prev) =>
       prev.map((r: any) => {
         if (r.id !== roomId) return r;
 
         const next: any = { ...r };
 
-        // Maintain legacy fields for compatibility
+        // Legacy fields (kept for compatibility)
         next.page = page;
         next.polygon = poly;
 
         if (Array.isArray(r.polygons)) {
-          const existing = r.polygons.find((x: any) => (typeof x?.page === "number" ? x.page : undefined) === page);
+          const existing = r.polygons.find(
+            (x: any) => (typeof x?.page === "number" ? x.page : undefined) === page
+          );
           const locked = !!existing?.locked;
 
-          const others = r.polygons.filter((x: any) => (typeof x?.page === "number" ? x.page : undefined) !== page);
+          const others = r.polygons.filter(
+            (x: any) => (typeof x?.page === "number" ? x.page : undefined) !== page
+          );
 
           if (Array.isArray(poly) && poly.length >= 3) {
             next.polygons = [...others, { page, polygon: poly, locked }];
@@ -521,11 +588,12 @@ export default function App() {
       })
     );
 
+    // Reset draw UI state after commit attempt (prevents stale draw mode)
     setDrawingRoomId(null);
     setDrawSessionId((x) => x + 1);
 
     try {
-      const saved = await api.updatePolygon(roomId, { page, polygon: poly }); // page obligatoire
+      const saved = await api.updatePolygon(roomId, { page, polygon: poly }); // page obligatoire (0-based)
       setRooms((prev) => prev.map((r) => (r.id === saved.id ? saved : r)));
     } catch (e) {
       const refreshed = await api.getRooms();
@@ -535,6 +603,7 @@ export default function App() {
   }
 
   async function handleSaveRoom(room: Room) {
+(room: Room) {
     const saved = await api.updateRoom(room);
     setRooms((prev) => prev.map((r) => (r.id === saved.id ? saved : r)));
   }
@@ -560,16 +629,19 @@ export default function App() {
 
     const lockedNow = !!polygons[idx]?.locked;
     polygons[idx] = { ...polygons[idx], locked: !lockedNow };
+    setLockOverride(roomId, page, !lockedNow);
     nextRoom.polygons = polygons;
 
     setRooms((prev) => prev.map((r: any) => (r.id === roomId ? nextRoom : r)));
 
     try {
       const saved = await api.updateRoom(nextRoom);
-      setRooms((prev) => prev.map((r: any) => (r.id === saved.id ? saved : r)));
+      // Backend may ignore "locked": re-apply local override to the saved payload.
+      const savedWithLock = applyLockOverridesToRooms([saved])[0];
+      setRooms((prev) => prev.map((r: any) => (r.id === savedWithLock.id ? savedWithLock : r)));
     } catch (e) {
       const refreshed = await api.getRooms();
-      setRooms(refreshed);
+      setRooms(applyLockOverridesToRooms(refreshed));
       throw e;
     }
   }
