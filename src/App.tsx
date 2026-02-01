@@ -636,7 +636,10 @@ export default function App() {
       if (legacyPoly.length >= 3) polygons.push({ page: legacyPage, polygon: legacyPoly, locked: false });
     }
 
-    const idx = polygons.findIndex((x: any) => entryPageIndex(x) === page);
+    const idx = polygons.findIndex((x: any) => {
+      const entryPage = typeof x?.page === "number" ? x.page : typeof x?.pageIndex === "number" ? x.pageIndex : undefined;
+      return entryPage === page;
+    });
     if (idx < 0) return;
 
     const lockedNow = !!polygons[idx]?.locked;
