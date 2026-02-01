@@ -674,6 +674,10 @@ export function SvgOverlay(props: {
       return;
     }
 
+    if (mode.kind === "vertexSelected") {
+      return;
+    }
+
     const svg = svgRef.current;
     if (!svg) return;
 
