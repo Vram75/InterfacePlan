@@ -603,8 +603,9 @@ export default function App() {
     );
 
     // Reset draw UI state after commit attempt (prevents stale draw mode)
+    const wasDrawing = drawingRoomId !== null;
     setDrawingRoomId(null);
-    setDrawSessionId((x) => x + 1);
+    if (wasDrawing) setDrawSessionId((x) => x + 1);
 
     try {
       const saved = await api.updatePolygon(roomId, { page, polygon: poly }); // page obligatoire (0-based)
