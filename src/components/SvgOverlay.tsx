@@ -258,6 +258,7 @@ export function SvgOverlay(props: {
 
   gridEnabled: boolean;
   gridSizePx: number;
+  lockedRoomIdsOnPage?: Set<string>;
 }) {
   const { width: w, height: h } = props;
 
@@ -317,6 +318,15 @@ export function SvgOverlay(props: {
     for (const s of props.services) m.set(s.service, s.color);
     return m;
   }, [props.services]);
+
+  const isRoomLocked = (roomId: string | null | undefined) => {
+    if (!roomId) return false;
+    return props.lockedRoomIdsOnPage?.has(roomId) ?? false;
+  };
+
+  const selectedRoomId = props.selectedRoomId;
+  const selectedPoly = selectedRoomId ? localPoly[selectedRoomId] : undefined;
+  const selectedLocked = isRoomLocked(selectedRoomId);
 
   useEffect(() => {
     if (props.request.kind === "deletePolygon") {
@@ -409,11 +419,15 @@ export function SvgOverlay(props: {
     setHoverSnap(null);
     setHoverSnapInfo({ kind: "none" });
 
-    if (props.drawingRoomId) setMode({ kind: "draw", roomId: props.drawingRoomId });
-    else setMode({ kind: "view" });
-  }, [props.drawSessionId, props.adminMode, props.drawingRoomId]);
+    if (props.drawingRoomId && !isRoomLocked(props.drawingRoomId)) {
+      setMode({ kind: "draw", roomId: props.drawingRoomId });
+    } else {
+      setMode({ kind: "view" });
+    }
+  }, [props.drawSessionId, props.adminMode, props.drawingRoomId, props.lockedRoomIdsOnPage]);
 
   function commitDraw(roomId: string, poly: Point[]) {
+    if (isRoomLocked(roomId)) return;
     if (poly.length < 3) return;
     setLocalPoly((p) => ({ ...p, [roomId]: poly }));
     props.onPolygonCommit(roomId, poly);
@@ -488,6 +502,7 @@ export function SvgOverlay(props: {
         if (mode.kind === "vertexSelected") {
           e.preventDefault();
           const { roomId, idx } = mode;
+          if (isRoomLocked(roomId)) return;
           const poly = localPoly[roomId];
           if (!poly) return;
 
@@ -512,12 +527,22 @@ export function SvgOverlay(props: {
   }, [props.adminMode, mode, draft, localPoly, props.onPolygonCommit]);
 
   useEffect(() => {
+    if (!props.adminMode) return;
+    if (!selectedRoomId || !selectedLocked) return;
+    setEdgePreview(null);
+    if (mode.kind === "dragPoly" || mode.kind === "dragVertex" || mode.kind === "vertexSelected") {
+      setMode({ kind: "view" });
+    }
+  }, [props.adminMode, selectedRoomId, selectedLocked, mode.kind]);
+
+  useEffect(() => {
     function onMove(ev: MouseEvent) {
       if (!props.adminMode) return;
       const svg = svgRef.current;
       if (!svg) return;
 
       if (mode.kind === "dragVertex") {
+        if (isRoomLocked(mode.roomId)) return;
         const raw = pointer(svg, ev.clientX, ev.clientY);
         const p0 = props.gridEnabled ? snapPointToGrid(raw, props.gridSizePx, w, h) : raw;
 
@@ -532,6 +557,7 @@ export function SvgOverlay(props: {
       }
 
       if (mode.kind === "dragPoly") {
+        if (isRoomLocked(mode.roomId)) return;
         const raw = pointer(svg, ev.clientX, ev.clientY);
 
         let dx = raw.x - mode.start.x;
@@ -556,6 +582,10 @@ export function SvgOverlay(props: {
       if (!props.adminMode) return;
 
       if (mode.kind === "dragVertex") {
+        if (isRoomLocked(mode.roomId)) {
+          setMode({ kind: "view" });
+          return;
+        }
         const poly = localPoly[mode.roomId];
         if (poly && poly.length >= 3) {
           props.onPolygonCommit(mode.roomId, poly);
@@ -568,6 +598,10 @@ export function SvgOverlay(props: {
       }
 
       if (mode.kind === "dragPoly") {
+        if (isRoomLocked(mode.roomId)) {
+          setMode({ kind: "view" });
+          return;
+        }
         const poly = localPoly[mode.roomId];
         if (poly && poly.length >= 3) props.onPolygonCommit(mode.roomId, poly);
         setMode({ kind: "view" });
@@ -605,6 +639,7 @@ export function SvgOverlay(props: {
 
     const roomId = props.selectedRoomId;
     if (!roomId) return;
+    if (isRoomLocked(roomId)) return;
 
     const poly = localPoly[roomId];
     if (!poly || poly.length < 3) return;
@@ -630,6 +665,7 @@ export function SvgOverlay(props: {
 
     const roomId = props.selectedRoomId;
     if (!roomId) return false;
+    if (isRoomLocked(roomId)) return false;
 
     const poly = localPoly[roomId];
     if (!poly || poly.length < 3) return false;
@@ -665,6 +701,7 @@ export function SvgOverlay(props: {
     if (!svg) return;
 
     if (props.adminMode && mode.kind === "draw") {
+      if (isRoomLocked(mode.roomId)) return;
       const raw0 = pointer(svg, e.clientX, e.clientY);
       const { snapped, info } = computeSnapDraft(raw0, e.shiftKey);
 
@@ -696,6 +733,7 @@ export function SvgOverlay(props: {
     e.stopPropagation();
 
     if (!props.adminMode) return;
+    if (isRoomLocked(roomId)) return;
 
     const isPolyMove = e.ctrlKey || e.metaKey;
     if (!isPolyMove) return;
@@ -723,6 +761,7 @@ export function SvgOverlay(props: {
 
     // Alt+clic = insertion
     if (e.altKey && mode.kind !== "draw") {
+      if (isRoomLocked(roomId)) return;
       props.onSelectRoom(roomId);
       // do insertion based on current event position (no dependency on clicking exactly on stroke)
       if (tryAltInsertAtEvent(e)) return;
@@ -734,6 +773,7 @@ export function SvgOverlay(props: {
 
   function onHandleMouseDown(e: React.MouseEvent, roomId: string, idx: number) {
     if (!props.adminMode) return;
+    if (isRoomLocked(roomId)) return;
     e.preventDefault();
     e.stopPropagation();
     props.onSelectRoom(roomId);
@@ -742,14 +782,12 @@ export function SvgOverlay(props: {
 
   function onHandleClick(e: React.MouseEvent, roomId: string, idx: number) {
     if (!props.adminMode) return;
+    if (isRoomLocked(roomId)) return;
     e.preventDefault();
     e.stopPropagation();
     props.onSelectRoom(roomId);
     setMode({ kind: "vertexSelected", roomId, idx });
   }
-
-  const selectedRoomId = props.selectedRoomId;
-  const selectedPoly = selectedRoomId ? localPoly[selectedRoomId] : undefined;
 
   const previewEnd = hoverSnap ?? hoverRaw;
   const previewLine =
@@ -846,7 +884,7 @@ export function SvgOverlay(props: {
         );
       })}
 
-      {props.adminMode && selectedRoomId && selectedPoly && selectedPoly.length >= 3 && (
+      {props.adminMode && selectedRoomId && !selectedLocked && selectedPoly && selectedPoly.length >= 3 && (
         <>
           {selectedPoly.map((p, idx) => {
             const active =
@@ -871,7 +909,7 @@ export function SvgOverlay(props: {
         </>
       )}
 
-      {props.adminMode && edgePreview && (
+      {props.adminMode && edgePreview && !isRoomLocked(edgePreview.roomId) && (
         <circle cx={edgePreview.projected.x * w} cy={edgePreview.projected.y * h} r={7} fill="#ff0" stroke="#000" strokeWidth={2} />
       )}
 

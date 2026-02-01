@@ -1,4 +1,5 @@
 import { forwardRef, useCallback, useEffect, useImperativeHandle, useMemo, useRef, useState } from "react";
+import type { ReactNode } from "react";
 import { createPortal } from "react-dom";
 import type { Room, ServiceColor } from "../types";
 
@@ -45,6 +46,26 @@ function canvasToBlob(canvas: HTMLCanvasElement, type = "image/jpeg", quality = 
   return new Promise((res, rej) => {
     canvas.toBlob((b) => (b ? res(b) : rej(new Error("toBlob() a échoué"))), type, quality);
   });
+}
+
+function VisuallyHidden({ children }: { children: ReactNode }) {
+  return (
+    <span
+      style={{
+        position: "absolute",
+        width: 1,
+        height: 1,
+        padding: 0,
+        margin: -1,
+        overflow: "hidden",
+        clip: "rect(0, 0, 0, 0)",
+        whiteSpace: "nowrap",
+        border: 0,
+      }}
+    >
+      {children}
+    </span>
+  );
 }
 
 function CropModal(props: { file: File; onCancel: () => void; onConfirm: (croppedFile: File) => void }) {
@@ -225,7 +246,13 @@ function CropModal(props: { file: File; onCancel: () => void; onConfirm: (croppe
           boxShadow: "0 24px 60px rgba(0,0,0,0.25)",
           overflow: "hidden",
         }}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="crop-dialog-title"
       >
+        <VisuallyHidden>
+          <h2 id="crop-dialog-title">Recadrer la photo</h2>
+        </VisuallyHidden>
         <div style={{ padding: 14, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
           <div style={{ fontWeight: 900 }}>Recadrer la photo</div>
 
