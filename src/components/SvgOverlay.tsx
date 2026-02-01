@@ -19,10 +19,8 @@ const UI = {
   fillOpacity: 0.55,
   strokeWidth: 1,
   strokeWidthSelected: 3,
-
   handleRadius: 6,
   handleRadiusActive: 7,
-
   previewStrokeWidth: 2,
 
   // Snap (px)
@@ -30,8 +28,11 @@ const UI = {
   snapMidRadiusPx: 24,
 
   // Insertion Alt+clic
-  edgeInsertPxThreshold: 10,
+  edgeInsertPxThreshold: 12, // ⬅️ un poil plus permissif
   insertEndEps: 0.08,
+
+  // ✅ Hit-test arêtes (invisible)
+  edgeHitStrokePx: 18, // ⬅️ énorme confort de clic sur arête
 
   // Grid
   gridStrokeOpacity: 0.18,
@@ -44,7 +45,12 @@ const SNAP_TOGGLE_EVENT = "iface:snap-toggle";
 function isTypingTarget(target: unknown): boolean {
   if (!(target instanceof HTMLElement)) return false;
   const tag = target.tagName;
-  return tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT" || target.getAttribute("contenteditable") === "true";
+  return (
+    tag === "INPUT" ||
+    tag === "TEXTAREA" ||
+    tag === "SELECT" ||
+    target.getAttribute("contenteditable") === "true"
+  );
 }
 
 function clamp01(v: number) {
@@ -66,8 +72,8 @@ function centroid(poly: Point[]) {
 function pointer(svg: SVGSVGElement, clientX: number, clientY: number): Point {
   const r = svg.getBoundingClientRect();
   return {
-    x: clamp01((clientX - r.left) / r.width),
-    y: clamp01((clientY - r.top) / r.height),
+    x: clamp01((clientX - r.left) / Math.max(1, r.width)),
+    y: clamp01((clientY - r.top) / Math.max(1, r.height)),
   };
 }
 
@@ -86,10 +92,8 @@ function projectPointToSegment(p: Point, a: Point, b: Point): { proj: Point; t: 
   const vy = b.y - a.y;
   const wx = p.x - a.x;
   const wy = p.y - a.y;
-
   const c2 = vx * vx + vy * vy;
   if (c2 <= 1e-12) return { proj: a, t: 0 };
-
   let t = (vx * wx + vy * wy) / c2;
   t = Math.max(0, Math.min(1, t));
   return { proj: { x: a.x + t * vx, y: a.y + t * vy }, t };
@@ -116,7 +120,6 @@ function insertVertexOnNearestEdgeIfClose(
   for (let i = 0; i < poly.length; i++) {
     const a = poly[i];
     const b = poly[(i + 1) % poly.length];
-
     const { proj, t } = projectPointToSegment(p, a, b);
     const d = pxDist(p, proj, w, h);
 
@@ -146,10 +149,35 @@ function insertVertexOnNearestEdgeIfClose(
 
 type DraftSnapInfo = { kind: "none" } | { kind: "first" } | { kind: "mid"; segIdx: number };
 
-function extractPoly(room: any): Point[] | undefined {
-  const p = room?.polygon;
-  if (Array.isArray(p)) return p as Point[];
-  if (p && Array.isArray(p.polygon)) return p.polygon as Point[];
+// Multi-pages extractor: room.polygons[] prioritaire, fallback legacy room.page+room.polygon
+function extractPolygonForPage(room: any, pageIndex: number): Point[] | undefined {
+  if (!room) return undefined;
+
+  const polys = room.polygons;
+  if (Array.isArray(polys)) {
+    for (const entry of polys) {
+      if (!entry) continue;
+      const p =
+        typeof entry.page === "number"
+          ? entry.page
+          : typeof entry.pageIndex === "number"
+            ? entry.pageIndex
+            : undefined;
+      if (p !== pageIndex) continue;
+
+      const pts = entry.polygon ?? entry.points ?? entry;
+      if (Array.isArray(pts)) return pts as Point[];
+      if (pts && Array.isArray(pts.polygon)) return pts.polygon as Point[];
+    }
+  }
+
+  const page = typeof room.page === "number" && Number.isFinite(room.page) ? room.page : 0;
+  if (page === pageIndex) {
+    const poly = room.polygon;
+    if (Array.isArray(poly)) return poly as Point[];
+    if (poly && Array.isArray(poly.polygon)) return poly.polygon as Point[];
+  }
+
   return undefined;
 }
 
@@ -164,6 +192,7 @@ function readSnapFromStorage(): boolean {
     return true;
   }
 }
+
 function writeSnapToStorage(v: boolean) {
   try {
     localStorage.setItem(SNAP_STORAGE_KEY, v ? "1" : "0");
@@ -176,24 +205,24 @@ function snapPointToGrid(p: Point, gridSizePx: number, w: number, h: number): Po
   const yPx = p.y * h;
   const sxPx = Math.round(xPx / gs) * gs;
   const syPx = Math.round(yPx / gs) * gs;
-  return { x: clamp01(sxPx / Math.max(1, w)), y: clamp01(syPx / Math.max(1, h)) };
+  return {
+    x: clamp01(sxPx / Math.max(1, w)),
+    y: clamp01(syPx / Math.max(1, h)),
+  };
 }
 
-// legacy px -> normalized
 function looksLikePixels(poly: Point[]): boolean {
   return poly.some((p) => p.x > 1.001 || p.y > 1.001 || p.x < -0.001 || p.y < -0.001);
 }
+
 function normalizeFromPixels(poly: Point[], w: number, h: number): Point[] {
   const W = Math.max(1, w);
   const H = Math.max(1, h);
   return poly.map((p) => ({ x: clamp01(p.x / W), y: clamp01(p.y / H) }));
 }
+
 function clampNormalized(poly: Point[]): Point[] {
   return poly.map((p) => ({ x: clamp01(p.x), y: clamp01(p.y) }));
-}
-function getRoomPageIndex(r: any): number {
-  const rp = r?.page;
-  return typeof rp === "number" && Number.isFinite(rp) ? rp : 0;
 }
 
 export function SvgOverlay(props: {
@@ -223,10 +252,10 @@ export function SvgOverlay(props: {
   gridSizePx: number;
 }) {
   const { width: w, height: h } = props;
+
   const svgRef = useRef<SVGSVGElement | null>(null);
 
   const [mode, setMode] = useState<Mode>({ kind: "view" });
-
   const [draft, setDraft] = useState<Point[]>([]);
   const [hoverRaw, setHoverRaw] = useState<Point | null>(null);
   const [hoverSnap, setHoverSnap] = useState<Point | null>(null);
@@ -238,6 +267,7 @@ export function SvgOverlay(props: {
   );
 
   const migratedRef = useRef<Set<string>>(new Set());
+
   const latestDraftRef = useRef<Point[]>(draft);
   const latestModeRef = useRef<Mode>(mode);
   const latestAdminModeRef = useRef<boolean>(props.adminMode);
@@ -245,11 +275,9 @@ export function SvgOverlay(props: {
   useEffect(() => {
     latestDraftRef.current = draft;
   }, [draft]);
-
   useEffect(() => {
     latestModeRef.current = mode;
   }, [mode]);
-
   useEffect(() => {
     latestAdminModeRef.current = props.adminMode;
   }, [props.adminMode]);
@@ -280,26 +308,21 @@ export function SvgOverlay(props: {
     return m;
   }, [props.services]);
 
-  // External requests
   useEffect(() => {
     if (props.request.kind === "deletePolygon") {
       const roomId = props.request.roomId;
-
       setMode({ kind: "view" });
       setDraft([]);
       setHoverRaw(null);
       setHoverSnap(null);
       setHoverSnapInfo({ kind: "none" });
       setEdgePreview(null);
-
       setLocalPoly((p) => ({ ...p, [roomId]: undefined }));
       props.onPolygonCommit(roomId, []);
-
       props.onRequestHandled();
     }
   }, [props.request, props.onRequestHandled, props.onPolygonCommit]);
 
-  // Toggle snap via "S"
   useEffect(() => {
     function onKeyDown(e: KeyboardEvent) {
       if (e.key.toLowerCase() !== "s") return;
@@ -311,36 +334,30 @@ export function SvgOverlay(props: {
     return () => window.removeEventListener("keydown", onKeyDown);
   }, []);
 
-  // Toggle snap via CustomEvent
   useEffect(() => {
     const onToggle = () => setSnapEnabled((v) => !v);
     window.addEventListener(SNAP_TOGGLE_EVENT, onToggle as EventListener);
     return () => window.removeEventListener(SNAP_TOGGLE_EVENT, onToggle as EventListener);
   }, []);
 
-  // Sync rooms -> local (only current page)
   useEffect(() => {
     const next: Record<string, Point[] | undefined> = {};
     const toMigrate: Array<{ roomId: string; poly: Point[] }> = [];
 
     for (const r of props.rooms as any[]) {
-      const roomPage = getRoomPageIndex(r);
-      if (roomPage !== props.page) {
-        next[r.id] = undefined;
-        continue;
-      }
+      const raw = extractPolygonForPage(r, props.page);
 
-      const raw = extractPoly(r);
       if (!raw || raw.length < 3) {
         next[r.id] = undefined;
         continue;
       }
 
       if (looksLikePixels(raw)) {
-        if (!migratedRef.current.has(r.id) && w > 2 && h > 2) {
+        const migKey = `${r.id}@${props.page}`;
+        if (!migratedRef.current.has(migKey) && w > 2 && h > 2) {
           const norm = normalizeFromPixels(raw, w, h);
           next[r.id] = norm;
-          migratedRef.current.add(r.id);
+          migratedRef.current.add(migKey);
           toMigrate.push({ roomId: r.id, poly: norm });
         } else {
           next[r.id] = raw;
@@ -360,13 +377,11 @@ export function SvgOverlay(props: {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [props.rooms, props.page, w, h]);
 
-  // dirty draw
   useEffect(() => {
     props.onDrawDirtyChange?.(draft.length > 0 && mode.kind === "draw");
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [draft.length, mode.kind]);
 
-  // reset per session
   useEffect(() => {
     if (!props.adminMode) {
       setMode({ kind: "view" });
@@ -399,7 +414,46 @@ export function SvgOverlay(props: {
     setMode({ kind: "view" });
   }
 
-  // Keyboard: Escape/Enter/Delete
+  function applyOrthogonal(raw: Point, last: Point): Point {
+    const dx = (raw.x - last.x) * w;
+    const dy = (raw.y - last.y) * h;
+    return Math.abs(dx) >= Math.abs(dy) ? { x: raw.x, y: last.y } : { x: last.x, y: raw.y };
+  }
+
+  function computeSnapDraft(raw0: Point, shiftKey: boolean): { snapped: Point; info: DraftSnapInfo } {
+    let raw = raw0;
+
+    if (shiftKey && draft.length >= 1) raw = applyOrthogonal(raw, draft[draft.length - 1]);
+    if (props.gridEnabled) raw = snapPointToGrid(raw, props.gridSizePx, w, h);
+
+    if (!snapEnabled) return { snapped: raw, info: { kind: "none" } };
+
+    if (draft.length >= 3) {
+      const first = draft[0];
+      if (pxDist(raw, first, w, h) <= UI.snapFirstRadiusPx) return { snapped: first, info: { kind: "first" } };
+    }
+
+    if (draft.length >= 2) {
+      let bestD = Infinity;
+      let bestMid: Point | null = null;
+      let bestIdx = 0;
+
+      for (let i = 0; i < draft.length - 1; i++) {
+        const m = midpoint(draft[i], draft[i + 1]);
+        const d = pxDist(raw, m, w, h);
+        if (d < bestD) {
+          bestD = d;
+          bestMid = m;
+          bestIdx = i;
+        }
+      }
+
+      if (bestMid && bestD <= UI.snapMidRadiusPx) return { snapped: bestMid, info: { kind: "mid", segIdx: bestIdx } };
+    }
+
+    return { snapped: raw, info: { kind: "none" } };
+  }
+
   useEffect(() => {
     function onKeyDown(e: KeyboardEvent) {
       if (!props.adminMode) return;
@@ -422,6 +476,7 @@ export function SvgOverlay(props: {
 
       if (e.key === "Delete" || e.key === "Backspace") {
         if (mode.kind === "vertexSelected") {
+          e.preventDefault();
           const { roomId, idx } = mode;
           const poly = localPoly[roomId];
           if (!poly) return;
@@ -444,13 +499,11 @@ export function SvgOverlay(props: {
 
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [props.adminMode, mode, draft, localPoly]);
+  }, [props.adminMode, mode, draft, localPoly, props.onPolygonCommit]);
 
-  // Drag vertex + Drag poly (global)
   useEffect(() => {
     function onMove(ev: MouseEvent) {
       if (!props.adminMode) return;
-
       const svg = svgRef.current;
       if (!svg) return;
 
@@ -519,47 +572,6 @@ export function SvgOverlay(props: {
     };
   }, [props.adminMode, mode, localPoly, props.gridEnabled, props.gridSizePx, w, h, props.onPolygonCommit]);
 
-  function applyOrthogonal(raw: Point, last: Point): Point {
-    const dx = (raw.x - last.x) * w;
-    const dy = (raw.y - last.y) * h;
-    return Math.abs(dx) >= Math.abs(dy) ? { x: raw.x, y: last.y } : { x: last.x, y: raw.y };
-  }
-
-  function computeSnapDraft(raw0: Point, shiftKey: boolean): { snapped: Point; info: DraftSnapInfo } {
-    let raw = raw0;
-
-    if (shiftKey && draft.length >= 1) raw = applyOrthogonal(raw, draft[draft.length - 1]);
-
-    if (props.gridEnabled) raw = snapPointToGrid(raw, props.gridSizePx, w, h);
-
-    if (!snapEnabled) return { snapped: raw, info: { kind: "none" } };
-
-    if (draft.length >= 3) {
-      const first = draft[0];
-      if (pxDist(raw, first, w, h) <= UI.snapFirstRadiusPx) return { snapped: first, info: { kind: "first" } };
-    }
-
-    if (draft.length >= 2) {
-      let bestD = Infinity;
-      let bestMid: Point | null = null;
-      let bestIdx = 0;
-
-      for (let i = 0; i < draft.length - 1; i++) {
-        const m = midpoint(draft[i], draft[i + 1]);
-        const d = pxDist(raw, m, w, h);
-        if (d < bestD) {
-          bestD = d;
-          bestMid = m;
-          bestIdx = i;
-        }
-      }
-
-      if (bestMid && bestD <= UI.snapMidRadiusPx) return { snapped: bestMid, info: { kind: "mid", segIdx: bestIdx } };
-    }
-
-    return { snapped: raw, info: { kind: "none" } };
-  }
-
   function onSvgMouseMove(e: React.MouseEvent) {
     if (!props.adminMode) return;
     const svg = svgRef.current;
@@ -570,13 +582,13 @@ export function SvgOverlay(props: {
     if (mode.kind === "draw") {
       setHoverRaw(raw);
       setEdgePreview(null);
-
       const { snapped, info } = computeSnapDraft(raw, e.shiftKey);
       setHoverSnap(snapped);
       setHoverSnapInfo(info);
       return;
     }
 
+    // Alt+hover preview insertion (sur la room sélectionnée)
     if (!e.altKey) {
       if (edgePreview) setEdgePreview(null);
       return;
@@ -634,7 +646,6 @@ export function SvgOverlay(props: {
 
   function onPolygonMouseDown(e: React.MouseEvent, roomId: string) {
     if (!props.adminMode) return;
-
     const isPolyMove = e.ctrlKey || e.metaKey;
     if (!isPolyMove) return;
 
@@ -648,24 +659,23 @@ export function SvgOverlay(props: {
     if (!poly || poly.length < 3) return;
 
     props.onSelectRoom(roomId);
-
     const start = pointer(svg, e.clientX, e.clientY);
     setMode({ kind: "dragPoly", roomId, start, origin: poly.slice() });
   }
 
   function onPolygonClick(e: React.MouseEvent, roomId: string) {
+    // View mode: simple selection
     if (!props.adminMode) {
       onRoomSelect(e, roomId);
       return;
     }
 
-    // Alt+clic = insertion
+    // Alt+clic = insertion (hors mode draw)
     if (e.altKey && mode.kind !== "draw") {
       e.preventDefault();
       e.stopPropagation();
 
       props.onSelectRoom(roomId);
-
       const poly = localPoly[roomId];
       if (!poly || poly.length < 3) return;
 
@@ -675,17 +685,10 @@ export function SvgOverlay(props: {
       let raw = pointer(svg, e.clientX, e.clientY);
       if (props.gridEnabled) raw = snapPointToGrid(raw, props.gridSizePx, w, h);
 
-      const projectedPreview = edgePreview?.roomId === roomId ? edgePreview.projected : null;
+      // Si preview correspond à la room, on l’utilise (sinon on calcule au clic)
+      const p = edgePreview?.roomId === roomId ? edgePreview.projected : raw;
 
-      const ins = insertVertexOnNearestEdgeIfClose(
-        poly,
-        projectedPreview ?? raw,
-        UI.edgeInsertPxThreshold,
-        w,
-        h,
-        UI.insertEndEps
-      );
-
+      const ins = insertVertexOnNearestEdgeIfClose(poly, p, UI.edgeInsertPxThreshold, w, h, UI.insertEndEps);
       if (ins.ok) {
         setLocalPoly((ps) => ({ ...ps, [roomId]: ins.poly }));
         props.onPolygonCommit(roomId, ins.poly);
@@ -727,17 +730,23 @@ export function SvgOverlay(props: {
       ref={svgRef}
       width={w}
       height={h}
-      style={{ position: "absolute", left: 0, top: 0, zIndex: 5, pointerEvents: "auto" }}
+      viewBox={`0 0 ${w} ${h}`}
+      style={{ position: "absolute", inset: 0, touchAction: "none" }}
       onClick={onSvgClick}
-      onDoubleClick={(e) => {
+      onMouseMove={onSvgMouseMove}
+      onMouseLeave={onSvgMouseLeave}
+      onContextMenu={(e) => {
         e.preventDefault();
         e.stopPropagation();
       }}
-      onMouseMove={onSvgMouseMove}
-      onMouseLeave={onSvgMouseLeave}
     >
       <defs>
-        <pattern id={gridPatternId} width={Math.max(2, props.gridSizePx)} height={Math.max(2, props.gridSizePx)} patternUnits="userSpaceOnUse">
+        <pattern
+          id={gridPatternId}
+          width={Math.max(2, props.gridSizePx)}
+          height={Math.max(2, props.gridSizePx)}
+          patternUnits="userSpaceOnUse"
+        >
           <path
             d={`M ${Math.max(2, props.gridSizePx)} 0 L 0 0 0 ${Math.max(2, props.gridSizePx)}`}
             fill="none"
@@ -754,15 +763,13 @@ export function SvgOverlay(props: {
 
       {props.adminMode && (
         <text x={12} y={24} style={{ fontSize: 12, userSelect: "none" }}>
-          Page {props.page + 1} • Snap {snapEnabled ? "ON" : "OFF"} • Grille {props.gridEnabled ? `ON (${props.gridSizePx}px)` : "OFF"}
+          Page {props.page + 1} • Snap {snapEnabled ? "ON" : "OFF"} • Grille{" "}
+          {props.gridEnabled ? `ON (${props.gridSizePx}px)` : "OFF"}
         </text>
       )}
 
-      {/* Polygones (page courante seulement via localPoly) */}
+      {/* Polygones: uniquement ceux qui ont un poly POUR LA PAGE COURANTE */}
       {props.rooms.map((r: any) => {
-        const roomPage = getRoomPageIndex(r);
-        if (roomPage !== props.page) return null;
-
         const poly = localPoly[r.id];
         if (!poly || poly.length < 3) return null;
 
@@ -770,16 +777,32 @@ export function SvgOverlay(props: {
         const selected = r.id === selectedRoomId;
         const c = centroid(poly);
 
+        const pts = toSvgPoints(poly, w, h);
+
         return (
-          <g key={r.id} onClick={(ev) => onPolygonClick(ev, r.id)} onMouseDown={(ev) => onPolygonMouseDown(ev, r.id)}>
+          <g key={r.id}>
+            {/* ✅ Hit-test arêtes : clic insertion fiable même "à côté" */}
             <polygon
-              points={toSvgPoints(poly, w, h)}
+              points={pts}
+              fill="transparent"
+              stroke="transparent"
+              strokeWidth={UI.edgeHitStrokePx}
+              pointerEvents="stroke"
+              onClick={(ev) => onPolygonClick(ev, r.id)}
+              onMouseDown={(ev) => onPolygonMouseDown(ev, r.id)}
+              style={{ cursor: "pointer" }}
+            />
+
+            {/* Visible polygon */}
+            <polygon
+              points={pts}
               fill={fill}
               fillOpacity={UI.fillOpacity}
               stroke={selected ? "#000" : "#333"}
               strokeWidth={selected ? UI.strokeWidthSelected : UI.strokeWidth}
-              style={{ cursor: "pointer" }}
+              pointerEvents="none"
             />
+
             <text
               x={c.x * w}
               y={c.y * h}
@@ -795,7 +818,7 @@ export function SvgOverlay(props: {
 
       {/* Poignées */}
       {props.adminMode && selectedRoomId && selectedPoly && selectedPoly.length >= 3 && (
-        <g>
+        <>
           {selectedPoly.map((p, idx) => {
             const active =
               (mode.kind === "dragVertex" && mode.roomId === selectedRoomId && mode.idx === idx) ||
@@ -807,13 +830,16 @@ export function SvgOverlay(props: {
                 cx={p.x * w}
                 cy={p.y * h}
                 r={active ? UI.handleRadiusActive : UI.handleRadius}
+                fill="#fff"
+                stroke="#000"
+                strokeWidth={2}
                 onMouseDown={(e) => onHandleMouseDown(e, selectedRoomId, idx)}
                 onClick={(e) => onHandleClick(e, selectedRoomId, idx)}
                 style={{ cursor: "grab" }}
               />
             );
           })}
-        </g>
+        </>
       )}
 
       {/* Preview insertion Alt+hover */}
@@ -821,18 +847,17 @@ export function SvgOverlay(props: {
         <circle
           cx={edgePreview.projected.x * w}
           cy={edgePreview.projected.y * h}
-          r={6}
-          fill="none"
+          r={7}
+          fill="#ff0"
           stroke="#000"
           strokeWidth={2}
-          style={{ pointerEvents: "none" }}
         />
       )}
 
       {/* Dessin */}
       {props.adminMode && mode.kind === "draw" && draft.length > 0 && (
         <>
-          <polyline points={toSvgPoints(draft, w, h)} fill="none" stroke="#000" strokeWidth={2} />
+          <polyline points={toSvgPoints(draft, w, h)} fill="none" stroke="#000" strokeWidth={UI.previewStrokeWidth} />
 
           {previewLine && (
             <line
@@ -842,13 +867,11 @@ export function SvgOverlay(props: {
               y2={previewLine.b.y * h}
               stroke="#000"
               strokeWidth={UI.previewStrokeWidth}
-              strokeDasharray="6 6"
-              style={{ pointerEvents: "none" }}
             />
           )}
 
           {draft.map((p, i) => (
-            <circle key={i} cx={p.x * w} cy={p.y * h} r={i === 0 ? 6 : 4} />
+            <circle key={i} cx={p.x * w} cy={p.y * h} r={4} fill="#000" />
           ))}
         </>
       )}
