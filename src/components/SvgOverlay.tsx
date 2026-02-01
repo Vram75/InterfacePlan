@@ -420,7 +420,19 @@ export function SvgOverlay(props: {
     } else {
       setMode({ kind: "view" });
     }
-  }, [props.drawSessionId, props.adminMode, props.drawingRoomId, props.lockedRoomIdsOnPage]);
+  }, [props.drawSessionId, props.adminMode, props.drawingRoomId]);
+
+  useEffect(() => {
+    if (mode.kind !== "draw") return;
+    if (!props.drawingRoomId) return;
+    if (!isRoomLocked(props.drawingRoomId)) return;
+    setMode({ kind: "view" });
+    setDraft([]);
+    setEdgePreview(null);
+    setHoverRaw(null);
+    setHoverSnap(null);
+    setHoverSnapInfo({ kind: "none" });
+  }, [mode.kind, props.drawingRoomId, props.lockedRoomIdsOnPage]);
 
   function commitDraw(roomId: string, poly: Point[]) {
     if (isRoomLocked(roomId)) return;
