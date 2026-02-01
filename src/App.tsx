@@ -645,7 +645,7 @@ export default function App() {
     });
     if (idx < 0) return;
 
-    const lockedNow = !!polygons[idx]?.locked;
+    const lockedNow = roomPolygonLockedOnPage(current as any, page);
     polygons[idx] = { ...polygons[idx], locked: !lockedNow };
     setLockOverride(roomId, page, !lockedNow);
     nextRoom.polygons = polygons;
