@@ -167,6 +167,19 @@ function writeServiceColorsRaw(v: ServiceColor[]) {
 // --------------------
 // Polygons detection (robust formats)
 // --------------------
+function parsePageIndex(value: unknown): number | undefined {
+  if (typeof value === "number" && Number.isFinite(value)) return value;
+  if (typeof value === "string" && value.trim() !== "") {
+    const parsed = Number(value);
+    if (Number.isFinite(parsed)) return parsed;
+  }
+  return undefined;
+}
+
+function entryPageIndex(entry: any): number | undefined {
+  return parsePageIndex(entry?.page ?? entry?.pageIndex);
+}
+
 function extractPolygonForPage(room: any, pageIndex: number): Point[] | undefined {
   if (!room) return undefined;
 
@@ -174,7 +187,7 @@ function extractPolygonForPage(room: any, pageIndex: number): Point[] | undefine
   if (Array.isArray(polys)) {
     for (const entry of polys) {
       if (!entry) continue;
-      const p = typeof entry.page === "number" ? entry.page : typeof entry.pageIndex === "number" ? entry.pageIndex : undefined;
+      const p = entryPageIndex(entry);
       if (p !== pageIndex) continue;
 
       const pts = entry.polygon ?? entry.points ?? entry;
@@ -183,7 +196,7 @@ function extractPolygonForPage(room: any, pageIndex: number): Point[] | undefine
     }
   }
 
-  const page = typeof room.page === "number" && Number.isFinite(room.page) ? room.page : 0;
+  const page = parsePageIndex(room.page) ?? 0;
   if (page === pageIndex) {
     const poly = room.polygon;
     if (Array.isArray(poly)) return poly as Point[];
@@ -201,7 +214,7 @@ function roomHasPolygonOnPage(room: any, pageIndex: number): boolean {
 
 function roomPolygonEntryForPage(room: any, pageIndex: number): any | undefined {
   if (Array.isArray(room?.polygons)) {
-    return room.polygons.find((e: any) => (typeof e?.page === "number" ? e.page : e?.pageIndex) === pageIndex);
+    return room.polygons.find((e: any) => entryPageIndex(e) === pageIndex);
   }
   // legacy has no lock
   return undefined;
@@ -256,7 +269,7 @@ function applyLockOverridesToRooms(rooms: any[]): any[] {
     if (!Array.isArray(r.polygons)) return r;
 
     const nextPolys = r.polygons.map((p: any) => {
-      const page = typeof p?.page === "number" ? p.page : typeof p?.pageIndex === "number" ? p.pageIndex : undefined;
+      const page = entryPageIndex(p);
       if (typeof page !== "number") return p;
       const k = lockKey(rid, page);
       if (!Object.prototype.hasOwnProperty.call(m, k)) return p;
@@ -283,13 +296,13 @@ function roomPagesWithPolygons(room: any): number[] {
 
   if (Array.isArray(room?.polygons)) {
     for (const entry of room.polygons) {
-      const p = typeof entry?.page === "number" ? entry.page : typeof entry?.pageIndex === "number" ? entry.pageIndex : undefined;
+      const p = entryPageIndex(entry);
       const pts = entry?.polygon;
       if (typeof p === "number" && Array.isArray(pts) && pts.length >= 3) pages.add(p);
     }
   }
 
-  const legacyPage = typeof room?.page === "number" && Number.isFinite(room.page) ? room.page : 0;
+  const legacyPage = parsePageIndex(room?.page) ?? 0;
   const legacyPoly = room?.polygon;
   if (Array.isArray(legacyPoly) && legacyPoly.length >= 3) pages.add(legacyPage);
 
