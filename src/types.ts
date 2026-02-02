@@ -3,6 +3,7 @@ export type Point = { x: number; y: number };
 export type RoomPolygonEntry = {
   page: number;         // 0-based
   polygon: Point[];     // normalized 0..1
+  locked?: boolean;     // optional: lock editing on this page
 };
 
 export type Room = {
