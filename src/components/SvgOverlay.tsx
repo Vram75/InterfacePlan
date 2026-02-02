@@ -156,10 +156,31 @@ function insertVertexOnNearestEdgeIfClose(
   return { ok: true, poly: out, insertAfterIdx: useIdx, projected: useProj };
 }
 
+
+function LockGlyph(props: { x: number; y: number; size?: number; opacity?: number }) {
+  const size = props.size ?? 16;
+  const opacity = props.opacity ?? 0.65;
+  const scale = size / 24;
+  const tx = props.x - size / 2;
+  const ty = props.y - size / 2;
+
+  return (
+    <g transform={`translate(${tx} ${ty}) scale(${scale})`} opacity={opacity} pointerEvents="none">
+      <path
+        d="M17 8h-1V6a4 4 0 10-8 0v2H7a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2V10a2 2 0 00-2-2zm-7 0V6a2 2 0 114 0v2h-4zm3 7.73V18a1 1 0 11-2 0v-2.27a2 2 0 112 0z"
+        fill="#111"
+      />
+    </g>
+  );
+}
+
 type DraftSnapInfo = { kind: "none" } | { kind: "first" } | { kind: "mid"; segIdx: number };
 
-function extractPolygonForPage(room: any, pageIndex: number): Point[] | undefined {
-  if (!room) return undefined;
+function extractPolygonEntryForPage(
+  room: any,
+  pageIndex: number
+): { polygon?: Point[]; locked?: boolean } {
+  if (!room) return {};
 
   const polys = room.polygons;
   if (Array.isArray(polys)) {
@@ -174,20 +195,28 @@ function extractPolygonForPage(room: any, pageIndex: number): Point[] | undefine
       if (p !== pageIndex) continue;
 
       const pts = entry.polygon ?? entry.points ?? entry;
-      if (Array.isArray(pts)) return pts as Point[];
-      if (pts && Array.isArray(pts.polygon)) return pts.polygon as Point[];
+      if (Array.isArray(pts)) return { polygon: pts as Point[], locked: !!entry.locked };
+      if (pts && Array.isArray(pts.polygon)) return { polygon: pts.polygon as Point[], locked: !!entry.locked };
+      return { locked: !!entry.locked };
     }
   }
 
+  // Legacy fallback: single polygon + page
   const page = typeof room.page === "number" && Number.isFinite(room.page) ? room.page : 0;
   if (page === pageIndex) {
     const poly = room.polygon;
-    if (Array.isArray(poly)) return poly as Point[];
-    if (poly && Array.isArray(poly.polygon)) return poly.polygon as Point[];
+    if (Array.isArray(poly)) return { polygon: poly as Point[], locked: !!room.locked };
+    if (poly && Array.isArray(poly.polygon)) return { polygon: poly.polygon as Point[], locked: !!room.locked };
+    return { locked: !!room.locked };
   }
 
-  return undefined;
+  return {};
 }
+
+function extractPolygonForPage(room: any, pageIndex: number): Point[] | undefined {
+  return extractPolygonEntryForPage(room, pageIndex).polygon;
+}
+
 
 function readSnapFromStorage(): boolean {
   try {
@@ -271,6 +300,8 @@ export function SvgOverlay(props: {
   const [hoverSnapInfo, setHoverSnapInfo] = useState<DraftSnapInfo>({ kind: "none" });
 
   const [localPoly, setLocalPoly] = useState<Record<string, Point[] | undefined>>({});
+  const [lockedByRoom, setLockedByRoom] = useState<Record<string, boolean>>({});
+
   const [edgePreview, setEdgePreview] = useState<{ roomId: string; projected: Point; insertAfterIdx: number } | null>(
     null
   );
@@ -358,10 +389,13 @@ export function SvgOverlay(props: {
 
   useEffect(() => {
     const next: Record<string, Point[] | undefined> = {};
+    const lockedNext: Record<string, boolean> = {};
     const toMigrate: Array<{ roomId: string; poly: Point[] }> = [];
 
     for (const r of props.rooms as any[]) {
-      const raw = extractPolygonForPage(r, props.page);
+      const entry = extractPolygonEntryForPage(r, props.page);
+      const raw = entry.polygon;
+      lockedNext[r.id] = !!entry.locked;
 
       if (!raw || raw.length < 3) {
         next[r.id] = undefined;
@@ -384,6 +418,8 @@ export function SvgOverlay(props: {
     }
 
     setLocalPoly(next);
+
+    setLockedByRoom(lockedNext);
 
     for (const m of toMigrate) {
       try {
@@ -511,6 +547,10 @@ export function SvgOverlay(props: {
           e.preventDefault();
           const { roomId, idx } = mode;
           if (isRoomLocked(roomId)) return;
+          if (isRoomLocked(roomId)) return false;
+
+    if (isRoomLocked(roomId)) return;
+
           const poly = localPoly[roomId];
           if (!poly) return;
 
@@ -630,6 +670,8 @@ export function SvgOverlay(props: {
     if (!roomId) return;
     if (isRoomLocked(roomId)) return;
 
+    if (isRoomLocked(roomId)) return false;
+
     const poly = localPoly[roomId];
     if (!poly || poly.length < 3) return;
 
@@ -654,6 +696,8 @@ export function SvgOverlay(props: {
 
     const roomId = props.selectedRoomId;
     if (!roomId) return false;
+    if (isRoomLocked(roomId)) return false;
+
     if (isRoomLocked(roomId)) return false;
 
     const poly = localPoly[roomId];
@@ -734,6 +778,8 @@ export function SvgOverlay(props: {
     const svg = svgRef.current;
     if (!svg) return;
 
+    if (isRoomLocked(roomId)) return false;
+
     const poly = localPoly[roomId];
     if (!poly || poly.length < 3) return;
 
@@ -770,6 +816,7 @@ export function SvgOverlay(props: {
     e.preventDefault();
     e.stopPropagation();
     props.onSelectRoom(roomId);
+    if (isRoomLocked(roomId)) return;
     setMode({ kind: "dragVertex", roomId, idx });
   }
 
@@ -838,6 +885,7 @@ export function SvgOverlay(props: {
 
         const fill = r.service ? colorByService.get(r.service) ?? "#ccc" : "#ccc";
         const selected = r.id === selectedRoomId;
+        const locked = lockedByRoom[r.id] ?? false;
         const c = centroid(poly);
 
         const pts = toSvgPoints(poly, w, h);
@@ -862,12 +910,22 @@ export function SvgOverlay(props: {
               fillOpacity={UI.fillOpacity}
               stroke={selected ? "#000" : "#333"}
               strokeWidth={selected ? UI.strokeWidthSelected : UI.strokeWidth}
+              strokeDasharray={locked ? "6 4" : undefined}
               onClick={(ev) => onPolygonClick(ev, r.id)}
               onMouseDown={(ev) => onPolygonMouseDown(ev, r.id)}
               style={{ cursor: "pointer" }}
             />
 
-            <text
+                        {locked && (
+              <LockGlyph
+                x={Math.min(w - 12, Math.max(12, c.x * w))}
+                y={Math.min(h - 12, Math.max(12, c.y * h - 18))}
+                size={16}
+                opacity={0.65}
+              />
+            )}
+
+<text
               x={c.x * w}
               y={c.y * h}
               textAnchor="middle"
