@@ -280,6 +280,53 @@ function applyLockOverridesToRooms(rooms: any[]): any[] {
   });
 }
 
+
+
+function mergeRoomPreserveLocks(prev: any, next: any): any {
+  if (!prev) return next;
+  if (!next) return next;
+
+  const prevPolys: any[] = Array.isArray(prev.polygons) ? prev.polygons : [];
+  const nextPolys: any[] = Array.isArray(next.polygons) ? next.polygons : [];
+
+  if (nextPolys.length > 0) {
+    const merged = nextPolys.map((p: any) => {
+      const page = entryPageIndex(p);
+      if (typeof page !== "number") return p;
+      const prevEntry = prevPolys.find((x: any) => entryPageIndex(x) === page);
+      if (!prevEntry) return p;
+      if (p.locked == null && prevEntry.locked != null) return { ...p, locked: !!prevEntry.locked };
+      return p;
+    });
+    return { ...next, polygons: merged };
+  }
+
+  if (prevPolys.length > 0) {
+    // Backend may omit polygons; keep previous polygon entries (including locks),
+    // but refresh polygon geometry from legacy fields if present.
+    const merged = prevPolys.map((p: any) => ({ ...p }));
+    const legacyPage = typeof next.page === "number" ? next.page : 0;
+    const legacyPoly = Array.isArray(next.polygon) ? next.polygon : [];
+    if (legacyPoly.length >= 3) {
+      const i = merged.findIndex((x: any) => entryPageIndex(x) === legacyPage);
+      if (i >= 0) merged[i] = { ...merged[i], page: legacyPage, polygon: legacyPoly };
+      else merged.push({ page: legacyPage, polygon: legacyPoly, locked: false });
+    }
+    return { ...next, polygons: merged };
+  }
+
+  return next;
+}
+
+function mergeRoomsPreserveLocks(prevRooms: any[], nextRooms: any[]): any[] {
+  const map = new Map<string, any>();
+  for (const r of prevRooms || []) if (r?.id) map.set(r.id, r);
+  return (nextRooms || []).map((r: any) => {
+    const prev = r?.id ? map.get(r.id) : undefined;
+    return prev ? mergeRoomPreserveLocks(prev, r) : r;
+  });
+}
+
 function roomPolygonLockedOnPage(room: any, pageIndex: number): boolean {
   const rid = room?.id;
   if (typeof rid === "string") {
@@ -413,7 +460,7 @@ export default function App() {
   useEffect(() => {
     api.getRooms().then((r) => {
       const withLocks = applyLockOverridesToRooms(r);
-      setRooms(withLocks);
+      setRooms((prev) => mergeRoomsPreserveLocks(prev, withLocks));
       if (r.length && !selectedRoomId) setSelectedRoomId(r[0].id);
 
       const used = new Set(withLocks.map((x) => (x.service ?? "").trim()).filter((s) => s.length > 0));
@@ -610,10 +657,10 @@ export default function App() {
     try {
       const saved = await api.updatePolygon(roomId, { page, polygon: poly }); // page obligatoire (0-based)
       const savedWithLock = applyLockOverridesToRooms([saved])[0];
-      setRooms((prev) => prev.map((r) => (r.id === savedWithLock.id ? savedWithLock : r)));
+      setRooms((prev) => prev.map((r: any) => (r.id === savedWithLock.id ? mergeRoomPreserveLocks(r, savedWithLock) : r)));
     } catch (e) {
       const refreshed = await api.getRooms();
-      setRooms(applyLockOverridesToRooms(refreshed));
+      setRooms((prev) => mergeRoomsPreserveLocks(prev, applyLockOverridesToRooms(refreshed)));
       throw e;
     }
   }
@@ -621,7 +668,7 @@ export default function App() {
   async function handleSaveRoom(room: Room) {
     const saved = await api.updateRoom(room);
     const savedWithLock = applyLockOverridesToRooms([saved])[0];
-    setRooms((prev) => prev.map((r) => (r.id === savedWithLock.id ? savedWithLock : r)));
+    setRooms((prev) => prev.map((r: any) => (r.id === savedWithLock.id ? mergeRoomPreserveLocks(r, savedWithLock) : r)));
   }
 
   async function togglePolygonLock(roomId: string, page: number) {
@@ -657,10 +704,10 @@ export default function App() {
       const saved = await api.updateRoom(nextRoom);
       // Backend may ignore "locked": re-apply local override to the saved payload.
       const savedWithLock = applyLockOverridesToRooms([saved])[0];
-      setRooms((prev) => prev.map((r: any) => (r.id === savedWithLock.id ? savedWithLock : r)));
+      setRooms((prev) => prev.map((r: any) => (r.id === savedWithLock.id ? mergeRoomPreserveLocks(r, savedWithLock) : r)));
     } catch (e) {
       const refreshed = await api.getRooms();
-      setRooms(applyLockOverridesToRooms(refreshed));
+      setRooms((prev) => mergeRoomsPreserveLocks(prev, applyLockOverridesToRooms(refreshed)));
       throw e;
     }
   }
@@ -669,7 +716,7 @@ export default function App() {
   async function handleUploadPhoto(roomId: string, file: File) {
     const saved = await api.uploadPhoto(roomId, file);
     const savedWithLock = applyLockOverridesToRooms([saved])[0];
-    setRooms((prev) => prev.map((r) => (r.id === savedWithLock.id ? savedWithLock : r)));
+    setRooms((prev) => prev.map((r: any) => (r.id === savedWithLock.id ? mergeRoomPreserveLocks(r, savedWithLock) : r)));
   }
 
   // ---- Services actions ----
