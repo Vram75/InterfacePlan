@@ -538,23 +538,6 @@ const [pageView, setPageView] = useState<PageView>("dashboard");
     }
   }
 
-        return next;
-      })
-    );
-
-    setDrawingRoomId(null);
-    setDrawSessionId((x) => x + 1);
-
-    try {
-      const saved = await api.updatePolygon(roomId, { page, polygon: poly }); // ⚠️ page obligatoire
-      setRooms((prev) => prev.map((r) => (r.id === saved.id ? saved : r)));
-    } catch (e) {
-      const refreshed = await api.getRooms();
-      setRooms(refreshed);
-      throw e;
-    }
-  }
-
   async function handleSaveRoom(room: Room) {
     const saved = await api.updateRoom(room);
     setRooms((prev) => prev.map((r) => (r.id === saved.id ? saved : r)));
