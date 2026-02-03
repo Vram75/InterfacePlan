@@ -167,6 +167,19 @@ function writeServiceColorsRaw(v: ServiceColor[]) {
 // --------------------
 // Polygons detection (robust formats)
 // --------------------
+function parsePageIndex(value: unknown): number | undefined {
+  if (typeof value === "number" && Number.isFinite(value)) return value;
+  if (typeof value === "string" && value.trim() !== "") {
+    const parsed = Number(value);
+    if (Number.isFinite(parsed)) return parsed;
+  }
+  return undefined;
+}
+
+function entryPageIndex(entry: any): number | undefined {
+  return parsePageIndex(entry?.page ?? entry?.pageIndex);
+}
+
 function extractPolygonForPage(room: any, pageIndex: number): Point[] | undefined {
   if (!room) return undefined;
 
@@ -174,7 +187,7 @@ function extractPolygonForPage(room: any, pageIndex: number): Point[] | undefine
   if (Array.isArray(polys)) {
     for (const entry of polys) {
       if (!entry) continue;
-      const p = typeof entry.page === "number" ? entry.page : typeof entry.pageIndex === "number" ? entry.pageIndex : undefined;
+      const p = entryPageIndex(entry);
       if (p !== pageIndex) continue;
 
       const pts = entry.polygon ?? entry.points ?? entry;
@@ -183,7 +196,7 @@ function extractPolygonForPage(room: any, pageIndex: number): Point[] | undefine
     }
   }
 
-  const page = typeof room.page === "number" && Number.isFinite(room.page) ? room.page : 0;
+  const page = parsePageIndex(room.page) ?? 0;
   if (page === pageIndex) {
     const poly = room.polygon;
     if (Array.isArray(poly)) return poly as Point[];
@@ -201,13 +214,125 @@ function roomHasPolygonOnPage(room: any, pageIndex: number): boolean {
 
 function roomPolygonEntryForPage(room: any, pageIndex: number): any | undefined {
   if (Array.isArray(room?.polygons)) {
-    return room.polygons.find((e: any) => (typeof e?.page === "number" ? e.page : e?.pageIndex) === pageIndex);
+    return room.polygons.find((e: any) => entryPageIndex(e) === pageIndex);
   }
   // legacy has no lock
   return undefined;
 }
 
+
+const LOCK_STORAGE_KEY = "iface:polygonLocked";
+
+function lockKey(roomId: string, page: number) {
+  return `${roomId}@${page}`;
+}
+
+function readLockMap(): Record<string, boolean> {
+  try {
+    const raw = localStorage.getItem(LOCK_STORAGE_KEY);
+    if (!raw) return {};
+    const obj = JSON.parse(raw);
+    if (!obj || typeof obj !== "object") return {};
+    const out: Record<string, boolean> = {};
+    for (const [k, v] of Object.entries(obj)) out[k] = !!v;
+    return out;
+  } catch {
+    return {};
+  }
+}
+
+function writeLockMap(m: Record<string, boolean>) {
+  try {
+    localStorage.setItem(LOCK_STORAGE_KEY, JSON.stringify(m));
+  } catch {}
+}
+
+function getLockOverride(roomId: string, page: number): boolean | undefined {
+  const m = readLockMap();
+  const k = lockKey(roomId, page);
+  return Object.prototype.hasOwnProperty.call(m, k) ? m[k] : undefined;
+}
+
+function setLockOverride(roomId: string, page: number, locked: boolean) {
+  const m = readLockMap();
+  m[lockKey(roomId, page)] = locked;
+  writeLockMap(m);
+}
+
+function applyLockOverridesToRooms(rooms: any[]): any[] {
+  const m = readLockMap();
+  if (!m || Object.keys(m).length === 0) return rooms;
+
+  return rooms.map((r: any) => {
+    const rid = r?.id;
+    if (!rid) return r;
+    if (!Array.isArray(r.polygons)) return r;
+
+    const nextPolys = r.polygons.map((p: any) => {
+      const page = entryPageIndex(p);
+      if (typeof page !== "number") return p;
+      const k = lockKey(rid, page);
+      if (!Object.prototype.hasOwnProperty.call(m, k)) return p;
+      return { ...p, locked: !!m[k] };
+    });
+
+    return { ...r, polygons: nextPolys };
+  });
+}
+
+
+
+function mergeRoomPreserveLocks(prev: any, next: any): any {
+  if (!prev) return next;
+  if (!next) return next;
+
+  const prevPolys: any[] = Array.isArray(prev.polygons) ? prev.polygons : [];
+  const nextPolys: any[] = Array.isArray(next.polygons) ? next.polygons : [];
+
+  if (nextPolys.length > 0) {
+    const merged = nextPolys.map((p: any) => {
+      const page = entryPageIndex(p);
+      if (typeof page !== "number") return p;
+      const prevEntry = prevPolys.find((x: any) => entryPageIndex(x) === page);
+      if (!prevEntry) return p;
+      if (p.locked == null && prevEntry.locked != null) return { ...p, locked: !!prevEntry.locked };
+      return p;
+    });
+    return { ...next, polygons: merged };
+  }
+
+  if (prevPolys.length > 0) {
+    // Backend may omit polygons; keep previous polygon entries (including locks),
+    // but refresh polygon geometry from legacy fields if present.
+    const merged = prevPolys.map((p: any) => ({ ...p }));
+    const legacyPage = typeof next.page === "number" ? next.page : 0;
+    const legacyPoly = Array.isArray(next.polygon) ? next.polygon : [];
+    if (legacyPoly.length >= 3) {
+      const i = merged.findIndex((x: any) => entryPageIndex(x) === legacyPage);
+      if (i >= 0) merged[i] = { ...merged[i], page: legacyPage, polygon: legacyPoly };
+      else merged.push({ page: legacyPage, polygon: legacyPoly, locked: false });
+    }
+    return { ...next, polygons: merged };
+  }
+
+  return next;
+}
+
+function mergeRoomsPreserveLocks(prevRooms: any[], nextRooms: any[]): any[] {
+  const map = new Map<string, any>();
+  for (const r of prevRooms || []) if (r?.id) map.set(r.id, r);
+  return (nextRooms || []).map((r: any) => {
+    const prev = r?.id ? map.get(r.id) : undefined;
+    return prev ? mergeRoomPreserveLocks(prev, r) : r;
+  });
+}
+
 function roomPolygonLockedOnPage(room: any, pageIndex: number): boolean {
+  const rid = room?.id;
+  if (typeof rid === "string") {
+    const ov = getLockOverride(rid, pageIndex);
+    if (typeof ov === "boolean") return ov;
+  }
   const entry = roomPolygonEntryForPage(room, pageIndex);
   return !!entry?.locked;
 }
@@ -218,13 +343,13 @@ function roomPagesWithPolygons(room: any): number[] {
 
   if (Array.isArray(room?.polygons)) {
     for (const entry of room.polygons) {
-      const p = typeof entry?.page === "number" ? entry.page : typeof entry?.pageIndex === "number" ? entry.pageIndex : undefined;
+      const p = entryPageIndex(entry);
       const pts = entry?.polygon;
       if (typeof p === "number" && Array.isArray(pts) && pts.length >= 3) pages.add(p);
     }
   }
 
-  const legacyPage = typeof room?.page === "number" && Number.isFinite(room.page) ? room.page : 0;
+  const legacyPage = parsePageIndex(room?.page) ?? 0;
   const legacyPoly = room?.polygon;
   if (Array.isArray(legacyPoly) && legacyPoly.length >= 3) pages.add(legacyPage);
 
@@ -277,21 +402,6 @@ function parsePageFilter(input: string, pageCount: number): number[] | null {
 // --------------------
 
 export default function App() {
-  const clampUiZoom = (value: number) => {
-    if (!Number.isFinite(value)) return 0.9;
-    return Math.min(1.1, Math.max(0.7, value));
-  };
-
-  const [uiZoom, setUiZoom] = useState(() => {
-    const raw = localStorage.getItem("iface.uiZoom");
-    const v = raw ? Number(raw) : NaN;
-    return clampUiZoom(v);
-  });
-
-  useEffect(() => {
-    localStorage.setItem("iface.uiZoom", String(uiZoom));
-  }, [uiZoom]);
-
   const [pageView, setPageView] = useState<PageView>("dashboard");
 
   const [rooms, setRooms] = useState<Room[]>([]);
@@ -349,10 +459,11 @@ export default function App() {
   // Initial load
   useEffect(() => {
     api.getRooms().then((r) => {
-      setRooms(r);
+      const withLocks = applyLockOverridesToRooms(r);
+      setRooms((prev) => mergeRoomsPreserveLocks(prev, withLocks));
       if (r.length && !selectedRoomId) setSelectedRoomId(r[0].id);
 
-      const used = new Set(r.map((x) => (x.service ?? "").trim()).filter((s) => s.length > 0));
+      const used = new Set(withLocks.map((x) => (x.service ?? "").trim()).filter((s) => s.length > 0));
       if (used.size) {
         setServices((prev) => {
           const map = new Map<string, ServiceEntry>();
@@ -503,25 +614,33 @@ export default function App() {
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [pageView, currentPage, pageCount]);
-
-    // Commit polygon with optimistic lock (page-aware)
+  // Commit polygon (page-aware) with optimistic local update.
   async function commitPolygon(roomId: string, page: number, poly: Point[]) {
+    // Optimistic update: keep existing locked flag for this page if present.
     setRooms((prev) =>
       prev.map((r: any) => {
         if (r.id !== roomId) return r;
 
-        const next: any = { ...r, page, polygon: poly };
+        const next: any = { ...r };
+
+        // Legacy fields (kept for compatibility)
+        next.page = page;
+        next.polygon = poly;
 
         if (Array.isArray(r.polygons)) {
-          const existing = r.polygons.find((x: any) => (typeof x?.page === "number" ? x.page : undefined) === page);
+          const existing = r.polygons.find(
+            (x: any) => (typeof x?.page === "number" ? x.page : undefined) === page
+          );
           const locked = !!existing?.locked;
 
-          const others = r.polygons.filter((x: any) => (typeof x?.page === "number" ? x.page : undefined) !== page);
+          const others = r.polygons.filter(
+            (x: any) => (typeof x?.page === "number" ? x.page : undefined) !== page
+          );
 
           if (Array.isArray(poly) && poly.length >= 3) {
             next.polygons = [...others, { page, polygon: poly, locked }];
           } else {
-            // deletion: remove the entry for this page
+            // deletion: remove entry for this page
             next.polygons = others;
           }
         }
@@ -530,22 +649,26 @@ export default function App() {
       })
     );
 
+    // Reset draw UI state after commit attempt (prevents stale draw mode)
+    const wasDrawing = drawingRoomId !== null;
     setDrawingRoomId(null);
-    setDrawSessionId((x) => x + 1);
+    if (wasDrawing) setDrawSessionId((x) => x + 1);
 
     try {
-      const saved = await api.updatePolygon(roomId, { page, polygon: poly }); // ⚠️ page obligatoire
-      setRooms((prev) => prev.map((r) => (r.id === saved.id ? saved : r)));
+      const saved = await api.updatePolygon(roomId, { page, polygon: poly }); // page obligatoire (0-based)
+      const savedWithLock = applyLockOverridesToRooms([saved])[0];
+      setRooms((prev) => prev.map((r: any) => (r.id === savedWithLock.id ? mergeRoomPreserveLocks(r, savedWithLock) : r)));
     } catch (e) {
       const refreshed = await api.getRooms();
-      setRooms(refreshed);
+      setRooms((prev) => mergeRoomsPreserveLocks(prev, applyLockOverridesToRooms(refreshed)));
       throw e;
     }
   }
 
   async function handleSaveRoom(room: Room) {
     const saved = await api.updateRoom(room);
-    setRooms((prev) => prev.map((r) => (r.id === saved.id ? saved : r)));
+    const savedWithLock = applyLockOverridesToRooms([saved])[0];
+    setRooms((prev) => prev.map((r: any) => (r.id === savedWithLock.id ? mergeRoomPreserveLocks(r, savedWithLock) : r)));
   }
 
   async function togglePolygonLock(roomId: string, page: number) {
@@ -564,21 +687,27 @@ export default function App() {
       if (legacyPoly.length >= 3) polygons.push({ page: legacyPage, polygon: legacyPoly, locked: false });
     }
 
-    const idx = polygons.findIndex((x: any) => (typeof x?.page === "number" ? x.page : undefined) === page);
+    const idx = polygons.findIndex((x: any) => {
+      const entryPage = typeof x?.page === "number" ? x.page : typeof x?.pageIndex === "number" ? x.pageIndex : undefined;
+      return entryPage === page;
+    });
     if (idx < 0) return;
 
-    const lockedNow = !!polygons[idx]?.locked;
+    const lockedNow = roomPolygonLockedOnPage(current as any, page);
     polygons[idx] = { ...polygons[idx], locked: !lockedNow };
+    setLockOverride(roomId, page, !lockedNow);
     nextRoom.polygons = polygons;
 
     setRooms((prev) => prev.map((r: any) => (r.id === roomId ? nextRoom : r)));
 
     try {
       const saved = await api.updateRoom(nextRoom);
-      setRooms((prev) => prev.map((r: any) => (r.id === saved.id ? saved : r)));
+      // Backend may ignore "locked": re-apply local override to the saved payload.
+      const savedWithLock = applyLockOverridesToRooms([saved])[0];
+      setRooms((prev) => prev.map((r: any) => (r.id === savedWithLock.id ? mergeRoomPreserveLocks(r, savedWithLock) : r)));
     } catch (e) {
       const refreshed = await api.getRooms();
-      setRooms(refreshed);
+      setRooms((prev) => mergeRoomsPreserveLocks(prev, applyLockOverridesToRooms(refreshed)));
       throw e;
     }
   }
@@ -586,7 +715,8 @@ export default function App() {
 
   async function handleUploadPhoto(roomId: string, file: File) {
     const saved = await api.uploadPhoto(roomId, file);
-    setRooms((prev) => prev.map((r) => (r.id === saved.id ? saved : r)));
+    const savedWithLock = applyLockOverridesToRooms([saved])[0];
+    setRooms((prev) => prev.map((r: any) => (r.id === savedWithLock.id ? mergeRoomPreserveLocks(r, savedWithLock) : r)));
   }
 
   // ---- Services actions ----
@@ -751,7 +881,7 @@ export default function App() {
       {/* BODY */}
       <div className="dash-body">
         {/* SIDEBAR */}
-        <aside className="dash-sidebar" style={{ zoom: uiZoom }}>
+        <aside className="dash-sidebar ui-zoom">
           <div className="nav-title">Navigation</div>
 
           <button className={`nav-item ${pageView === "dashboard" ? "nav-item-active" : ""}`} onClick={() => setPageView("dashboard")} type="button">
@@ -1011,31 +1141,6 @@ export default function App() {
                   </label>
                 </div>
               </div>
-              <div className="plan-zoom-bar">
-                <label className="plan-zoom-label" htmlFor="plan-ui-zoom">
-                  UI zoom
-                </label>
-                <input
-                  className="plan-zoom-input"
-                  id="plan-ui-zoom"
-                  type="number"
-                  step="0.05"
-                  min="0.7"
-                  max="1.1"
-                  value={uiZoom}
-                  onChange={(e) => {
-                    const v = Number(e.target.value);
-                    if (!Number.isFinite(v)) return;
-                    setUiZoom(clampUiZoom(v));
-                  }}
-                  onBlur={(e) => {
-                    const v = Number(e.target.value);
-                    setUiZoom(clampUiZoom(v));
-                  }}
-                />
-                <span className="plan-zoom-hint">0.70 - 1.10</span>
-              </div>
-
 
               <div className="card-content plan-content">
                 <div className="plan-controls">
@@ -1201,7 +1306,7 @@ export default function App() {
 
         {/* RIGHT */}
         {pageView === "plans" && (
-          <aside className="dash-right" style={{ zoom: uiZoom }}>
+          <aside className="dash-right ui-zoom">
             <div className="right-sticky">
               <div className="card plan-card">
                 <div className="card-header">
