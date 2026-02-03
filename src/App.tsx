@@ -277,17 +277,22 @@ function parsePageFilter(input: string, pageCount: number): number[] | null {
 // --------------------
 
 export default function App() {
+  const clampUiZoom = (value: number) => {
+    if (!Number.isFinite(value)) return 0.9;
+    return Math.min(1.1, Math.max(0.7, value));
+  };
+
   const [uiZoom, setUiZoom] = useState(() => {
     const raw = localStorage.getItem("iface.uiZoom");
     const v = raw ? Number(raw) : NaN;
-    return Number.isFinite(v) ? Math.min(1.1, Math.max(0.7, v)) : 0.9;
+    return clampUiZoom(v);
   });
 
   useEffect(() => {
     localStorage.setItem("iface.uiZoom", String(uiZoom));
   }, [uiZoom]);
 
-const [pageView, setPageView] = useState<PageView>("dashboard");
+  const [pageView, setPageView] = useState<PageView>("dashboard");
 
   const [rooms, setRooms] = useState<Room[]>([]);
 
@@ -1006,22 +1011,30 @@ const [pageView, setPageView] = useState<PageView>("dashboard");
                   </label>
                 </div>
               </div>
-          <div className="plan-zoom-bar">
-            <div className="plan-zoom-label">UI zoom</div>
-            <input
-              className="plan-zoom-input"
-              type="number"
-              step="0.05"
-              min="0.7"
-              max="1.1"
-              value={uiZoom}
-              onChange={(e) => {
-                const v = Number(e.target.value);
-                if (!Number.isFinite(v)) return;
-                setUiZoom(Math.min(1.1, Math.max(0.7, v)));
-              }}
-            />
-          </div>
+              <div className="plan-zoom-bar">
+                <label className="plan-zoom-label" htmlFor="plan-ui-zoom">
+                  UI zoom
+                </label>
+                <input
+                  className="plan-zoom-input"
+                  id="plan-ui-zoom"
+                  type="number"
+                  step="0.05"
+                  min="0.7"
+                  max="1.1"
+                  value={uiZoom}
+                  onChange={(e) => {
+                    const v = Number(e.target.value);
+                    if (!Number.isFinite(v)) return;
+                    setUiZoom(clampUiZoom(v));
+                  }}
+                  onBlur={(e) => {
+                    const v = Number(e.target.value);
+                    setUiZoom(clampUiZoom(v));
+                  }}
+                />
+                <span className="plan-zoom-hint">0.70 - 1.10</span>
+              </div>
 
 
               <div className="card-content plan-content">
