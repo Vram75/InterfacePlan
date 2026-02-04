@@ -147,6 +147,12 @@ body{
   overflow: auto;
   display: flex;
   flex-direction: column;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.dash-sidebar::-webkit-scrollbar{
+  width: 0;
+  height: 0;
 }
 
 .nav-title{
