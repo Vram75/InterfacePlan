@@ -1003,6 +1003,11 @@ body{
   max-width: 100%;
 }
 
+.settings-service-card{
+  width: 90%;
+  max-width: 90%;
+}
+
 .settings-row{
   display: grid;
   grid-template-columns: minmax(220px, 1fr) 190px 110px;
