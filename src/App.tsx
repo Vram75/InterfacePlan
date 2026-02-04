@@ -1101,10 +1101,18 @@ export default function App() {
                       <div className="hint">Couleurs stockées en HEX (#RRGGBB)</div>
                     </div>
 
-                    <div className="settings-divider" />
+                  </div>
+                </section>
 
-                    <div className="settings-title">Services ({services.length})</div>
+                <section className="card settings-card settings-service-list-card">
+                  <div className="card-header">
+                    <div>
+                      <div className="card-title">Services ({services.length})</div>
+                      <div className="card-subtitle"></div>
+                    </div>
+                  </div>
 
+                  <div className="card-content">
                     {services.length === 0 ? (
                       <div className="hint">Aucun service défini.</div>
                     ) : (
