@@ -1039,7 +1039,7 @@ export default function App() {
         {/* SETTINGS */}
         {pageView === "settings" && (
           <main className="dash-main">
-            <div className="card">
+            <div className="card settings-card">
               <div className="card-header">
                 <div>
                   <div className="card-title">Paramètres</div>

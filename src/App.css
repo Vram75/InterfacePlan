@@ -979,6 +979,11 @@ body{
   flex-wrap: wrap;
 }
 
+.settings-card{
+  width: 70%;
+  max-width: 100%;
+}
+
 .settings-row{
   display: grid;
   grid-template-columns: minmax(220px, 1fr) 190px 110px;
@@ -1081,6 +1086,9 @@ body{
   .dash-body{
     grid-template-columns: 1fr;
     overflow: auto;
+  }
+  .settings-card{
+    width: 100%;
   }
   .dash-right{ overflow: visible; }
   .right-sticky{ height: auto; overflow: visible; }
