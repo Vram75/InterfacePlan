@@ -19,14 +19,14 @@ html, body, #root {
   --muted: #7a8292;
   --nav-font: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji","Segoe UI Emoji";
 
-  --shadow: 0 24px 60px rgba(36, 42, 60, 0.18);
+  --shadow: 0 12px 60px rgba(36, 42, 60, 0.18);
   --shadow-soft: 0 12px 28px rgba(36, 42, 60, 0.12);
 
   --radius: 22px;
   --topbar-h: 0px;
 
   --gap: 16px;
-  --sidebar-w: 185px;
+  --sidebar-w: 190px;   /* c'est ici pour la largeur du panneau navigation */
   --right-w: 420px;
 }
 
