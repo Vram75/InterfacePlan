@@ -1039,6 +1039,12 @@ body{
   overflow-y: auto;
   padding-right: 6px;
   scrollbar-gutter: stable;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.service-list::-webkit-scrollbar{
+  display: none;
 }
 
 .service-row{
