@@ -1052,15 +1052,6 @@ export default function App() {
                       <div className="card-title">Paramètres de services</div>
                       <div className="card-subtitle"></div>
                     </div>
-
-                    <div className="settings-actions">
-                      <button className="btn btn-mini" type="button" onClick={seedServicesFromRooms} title="Ajoute les services présents dans les pièces">
-                        Seed depuis pièces
-                      </button>
-                      <button className="btn btn-mini" type="button" onClick={resetServices} title="Vide la palette">
-                        Vider
-                      </button>
-                    </div>
                   </div>
 
                   <div className="card-content">
@@ -1109,6 +1100,15 @@ export default function App() {
                     <div>
                       <div className="card-title">Services ({services.length})</div>
                       <div className="card-subtitle"></div>
+                    </div>
+
+                    <div className="settings-actions">
+                      <button className="btn btn-mini" type="button" onClick={seedServicesFromRooms} title="Ajoute les services présents dans les pièces">
+                        Seed depuis pièces
+                      </button>
+                      <button className="btn btn-mini" type="button" onClick={resetServices} title="Vide la palette">
+                        Vider
+                      </button>
                     </div>
                   </div>
 
