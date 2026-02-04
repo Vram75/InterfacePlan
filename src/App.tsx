@@ -1145,12 +1145,6 @@ export default function App() {
                   <div className="card-title">Plan</div>
                 </div>
                 <div className="plan-header-right">
-                  <label className="switch switch-compact" title="Afficher/masquer la grille">
-                    <input type="checkbox" checked={gridEnabled} onChange={toggleGridFromButton} />
-                    <span className="switch-track" />
-                    <span className="switch-label">Grille</span>
-                  </label>
-
                   <label className="switch switch-compact" title="Snap (S)">
                     <input type="checkbox" checked={snapUi} onChange={toggleSnapFromButton} />
                     <span className="switch-track" />
@@ -1216,7 +1210,11 @@ export default function App() {
 
                     <div className="plan-toolbar-group">
                       <div className="plan-field-inline plan-field-compact" title="Taille de grille (px)">
-                        <span className="plan-field-label">Px</span>
+                        <label className="switch switch-compact plan-field-label" title="Afficher/masquer la grille">
+                          <input type="checkbox" checked={gridEnabled} onChange={toggleGridFromButton} />
+                          <span className="switch-track" />
+                          <span className="switch-label">Grille</span>
+                        </label>
                         <input
                           className="select plan-number plan-number-compact"
                           type="number"
