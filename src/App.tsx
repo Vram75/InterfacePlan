@@ -1172,25 +1172,6 @@ export default function App() {
                   </label>
                 </div>
               </div>
-              <div className="plan-subbar">
-                <div className="plan-field-inline plan-field-compact plan-subbar-field">
-                  <span className="plan-field-label">Espace UI</span>
-                  <input
-                    className="select plan-number plan-number-compact"
-                    type="number"
-                    min={UI_ZOOM_MIN}
-                    max={UI_ZOOM_MAX}
-                    step={0.01}
-                    value={uiZoom}
-                    onChange={(e) => {
-                      const n = Number(e.target.value);
-                      if (!Number.isFinite(n)) return;
-                      setUiZoom(clampUiZoom(n));
-                    }}
-                  />
-                </div>
-              </div>
-
               <div className="card-content plan-content">
                 <div className="plan-controls">
                   <div className="plan-controls-row">
@@ -1215,6 +1196,23 @@ export default function App() {
                     </div>
 
                     <span className="meta-chip">Sélection: {selectedRoom?.numero ?? "—"}</span>
+
+                    <div className="plan-field-inline plan-field-compact plan-subbar-field">
+                      <span className="plan-field-label">Espace UI</span>
+                      <input
+                        className="select plan-number plan-number-compact"
+                        type="number"
+                        min={UI_ZOOM_MIN}
+                        max={UI_ZOOM_MAX}
+                        step={0.01}
+                        value={uiZoom}
+                        onChange={(e) => {
+                          const n = Number(e.target.value);
+                          if (!Number.isFinite(n)) return;
+                          setUiZoom(clampUiZoom(n));
+                        }}
+                      />
+                    </div>
                   </div>
 
                   <div className="plan-toolbar">
