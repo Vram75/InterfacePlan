@@ -22,6 +22,11 @@ const SERVICE_COLORS_KEY = "iface.serviceColors.v1";
 // ✅ Pro: filter toggle persistence
 const PAGES_ONLY_WITH_POLYS_KEY = "iface.pages.onlyWithPolys";
 
+const UI_ZOOM_KEY = "iface.uiZoom";
+const UI_ZOOM_MIN = 0.7;
+const UI_ZOOM_MAX = 1.1;
+const UI_ZOOM_DEFAULT = 0.75;
+
 type PageView = "dashboard" | "plans" | "settings";
 type ServiceEntry = ServiceColor & { uid: string };
 
@@ -86,6 +91,27 @@ function writeGridSizePx(v: number) {
   try {
     const n = Math.min(200, Math.max(4, Math.round(v)));
     localStorage.setItem(GRID_SIZE_KEY, String(n));
+  } catch {}
+}
+
+function clampUiZoom(next: number) {
+  return Math.min(UI_ZOOM_MAX, Math.max(UI_ZOOM_MIN, +next.toFixed(2)));
+}
+
+function readUiZoom(): number {
+  try {
+    const v = localStorage.getItem(UI_ZOOM_KEY);
+    const n = v == null ? UI_ZOOM_DEFAULT : Number(v);
+    if (!Number.isFinite(n)) return UI_ZOOM_DEFAULT;
+    return clampUiZoom(n);
+  } catch {
+    return UI_ZOOM_DEFAULT;
+  }
+}
+
+function writeUiZoom(v: number) {
+  try {
+    localStorage.setItem(UI_ZOOM_KEY, String(clampUiZoom(v)));
   } catch {}
 }
 
@@ -438,6 +464,11 @@ export default function App() {
   const [snapUi, setSnapUi] = useState<boolean>(() => readSnapFromStorage());
   const [gridEnabled, setGridEnabled] = useState<boolean>(() => readGridEnabled());
   const [gridSizePx, setGridSizePx] = useState<number>(() => readGridSizePx());
+  const [uiZoom, setUiZoom] = useState<number>(() => readUiZoom());
+
+  useEffect(() => {
+    writeUiZoom(uiZoom);
+  }, [uiZoom]);
 
   const [overlayRequest, setOverlayRequest] = useState<OverlayRequest>({ kind: "none" });
 
@@ -881,7 +912,7 @@ export default function App() {
       {/* BODY */}
       <div className="dash-body">
         {/* SIDEBAR */}
-        <aside className="dash-sidebar ui-zoom">
+        <aside className="dash-sidebar ui-zoom" style={{ ["--ui-zoom" as any]: uiZoom }}>
           <div className="nav-title">Navigation</div>
 
           <button className={`nav-item ${pageView === "dashboard" ? "nav-item-active" : ""}`} onClick={() => setPageView("dashboard")} type="button">
@@ -1141,6 +1172,25 @@ export default function App() {
                   </label>
                 </div>
               </div>
+              <div className="plan-subbar">
+                <div className="plan-subbar-title">Zoom UI</div>
+                <div className="plan-field-inline plan-field-compact plan-subbar-field">
+                  <span className="plan-field-label">Valeur</span>
+                  <input
+                    className="select plan-number plan-number-compact"
+                    type="number"
+                    min={UI_ZOOM_MIN}
+                    max={UI_ZOOM_MAX}
+                    step={0.01}
+                    value={uiZoom}
+                    onChange={(e) => {
+                      const n = Number(e.target.value);
+                      if (!Number.isFinite(n)) return;
+                      setUiZoom(clampUiZoom(n));
+                    }}
+                  />
+                </div>
+              </div>
 
               <div className="card-content plan-content">
                 <div className="plan-controls">
@@ -1306,7 +1356,7 @@ export default function App() {
 
         {/* RIGHT */}
         {pageView === "plans" && (
-          <aside className="dash-right ui-zoom">
+          <aside className="dash-right ui-zoom" style={{ ["--ui-zoom" as any]: uiZoom }}>
             <div className="right-sticky">
               <div className="card plan-card">
                 <div className="card-header">
