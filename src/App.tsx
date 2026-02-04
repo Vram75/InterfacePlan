@@ -1046,7 +1046,7 @@ export default function App() {
               </div>
 
               <div className="settings-panels">
-                <section className="card settings-card">
+                <section className="card settings-card settings-service-card">
                   <div className="card-header">
                     <div>
                       <div className="card-title">Services</div>
