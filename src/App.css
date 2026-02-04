@@ -295,12 +295,12 @@ body{
   display: flex;
   flex-direction: column;
   gap: 8px;
-  padding: 4px;
-  border-radius: 14px;
-  border: 1px solid rgba(148,163,184,0.25);
+  padding: 7px;
+  border-radius: 7px;
+  border: 2px solid rgba(148,163,184,0.25);
   background: rgba(15,23,42,0.3);
   min-height: 320px;
-  max-height: 360px;
+  max-height: 440px;
   overflow: auto;
 }
 
@@ -319,8 +319,8 @@ body{
 .sidebar-page-item{
   border: 1px solid transparent;
   background: rgba(248,250,252,0.08);
-  border-radius: 12px;
-  padding: 8px 10px;
+  border-radius: 7px;
+  padding: px 10px;
   cursor: pointer;
   display: flex;
   align-items: center;
