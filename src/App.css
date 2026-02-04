@@ -979,8 +979,27 @@ body{
   flex-wrap: wrap;
 }
 
+.settings-main-panel{
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  width: 100%;
+}
+
+.settings-main-header{
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.settings-panels{
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
 .settings-card{
-  width: 70%;
+  width: 100%;
   max-width: 100%;
 }
 
