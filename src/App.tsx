@@ -1173,9 +1173,8 @@ export default function App() {
                 </div>
               </div>
               <div className="plan-subbar">
-                <div className="plan-subbar-title">Zoom UI</div>
                 <div className="plan-field-inline plan-field-compact plan-subbar-field">
-                  <span className="plan-field-label">Valeur</span>
+                  <span className="plan-field-label">Espace UI</span>
                   <input
                     className="select plan-number plan-number-compact"
                     type="number"
