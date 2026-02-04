@@ -1213,29 +1213,65 @@ export default function App() {
                         }}
                       />
                     </div>
+
+                    <div className="plan-toolbar-group">
+                      <div className="plan-field-inline plan-field-compact" title="Taille de grille (px)">
+                        <span className="plan-field-label">Px</span>
+                        <input
+                          className="select plan-number plan-number-compact"
+                          type="number"
+                          min={4}
+                          max={200}
+                          step={1}
+                          value={gridSizePx}
+                          onChange={(e) => {
+                            const n = Math.min(200, Math.max(4, Math.round(Number(e.target.value) || 0)));
+                            setGridSizePx(n);
+                            writeGridSizePx(n);
+                          }}
+                        />
+                      </div>
+
+                      <div className="plan-zoom-group">
+                        <button className="btn btn-icon btn-mini" type="button" onClick={() => setScale((s) => clampScale(s - 0.1))} title="Zoom - (-)">
+                          −
+                        </button>
+                        <span className="meta-chip">Zoom x{scale.toFixed(2)}</span>
+                        <button className="btn btn-icon btn-mini" type="button" onClick={() => setScale((s) => clampScale(s + 0.1))} title="Zoom + (+)">
+                          +
+                        </button>
+                      </div>
+                    </div>
+
+                    {adminMode && (
+                      <div className="plan-toolbar-group">
+                        <div className="plan-field-inline plan-field-compact" style={{ minWidth: 240 }}>
+                          <span className="plan-field-label">Dessiner</span>
+                          <select
+                            className="select"
+                            value={drawingRoomId ?? ""}
+                            onChange={(e) => {
+                              setDrawingRoomId(e.target.value || null);
+                              setDrawSessionId((x) => x + 1);
+                            }}
+                          >
+                            <option value="">— Dessiner un polygone pour… —</option>
+                            {rooms.map((r: any) => {
+                              const already = roomHasPolygonOnPage(r, currentPage);
+                              return (
+                                <option key={r.id} value={r.id} disabled={already}>
+                                  {r.numero} {already ? " — déjà défini (page)" : ""}
+                                </option>
+                              );
+                            })}
+                          </select>
+                        </div>
+                      </div>
+                    )}
                   </div>
 
                   <div className="plan-toolbar">
                     <div className="plan-toolbar-row">
-                      <div className="plan-toolbar-group">
-                        <div className="plan-field-inline plan-field-compact" title="Taille de grille (px)">
-                          <span className="plan-field-label">Px</span>
-                          <input
-                            className="select plan-number plan-number-compact"
-                            type="number"
-                            min={4}
-                            max={200}
-                            step={1}
-                            value={gridSizePx}
-                            onChange={(e) => {
-                              const n = Math.min(200, Math.max(4, Math.round(Number(e.target.value) || 0)));
-                              setGridSizePx(n);
-                              writeGridSizePx(n);
-                            }}
-                          />
-                        </div>
-                      </div>
-
                       <div className="plan-toolbar-group">
                         <button
                           className="btn btn-mini"
@@ -1268,44 +1304,8 @@ export default function App() {
                         >
                           {selectedLocked ? "Déverrouiller" : "Verrouiller"}
                         </button>
-
-                        <div className="plan-zoom-group">
-                          <button className="btn btn-icon btn-mini" type="button" onClick={() => setScale((s) => clampScale(s - 0.1))} title="Zoom - (-)">
-                            −
-                          </button>
-                          <span className="meta-chip">Zoom x{scale.toFixed(2)}</span>
-                          <button className="btn btn-icon btn-mini" type="button" onClick={() => setScale((s) => clampScale(s + 0.1))} title="Zoom + (+)">
-                            +
-                          </button>
-                        </div>
                       </div>
                     </div>
-
-                    {adminMode && (
-                      <div className="plan-toolbar-row">
-                        <div className="plan-field-inline plan-field-compact" style={{ minWidth: 240 }}>
-                          <span className="plan-field-label">Dessiner</span>
-                          <select
-                            className="select"
-                            value={drawingRoomId ?? ""}
-                            onChange={(e) => {
-                              setDrawingRoomId(e.target.value || null);
-                              setDrawSessionId((x) => x + 1);
-                            }}
-                          >
-                            <option value="">— Dessiner un polygone pour… —</option>
-                            {rooms.map((r: any) => {
-                              const already = roomHasPolygonOnPage(r, currentPage);
-                              return (
-                                <option key={r.id} value={r.id} disabled={already}>
-                                  {r.numero} {already ? " — déjà défini (page)" : ""}
-                                </option>
-                              );
-                            })}
-                          </select>
-                        </div>
-                      </div>
-                    )}
                   </div>
                 </div>
 
