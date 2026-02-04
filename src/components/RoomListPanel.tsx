@@ -66,6 +66,11 @@ export function RoomListPanel(props: {
         {filtered.map((r) => {
           const selected = r.id === props.selectedRoomId;
           const hasPoly = !!r.polygon && (r.polygon as any[]).length >= 3;
+          const descriptionParts = [
+            r.service ? r.service : "—",
+            r.designation ? r.designation : "—",
+            r.surface != null ? `${r.surface} m²` : "",
+          ].filter(Boolean);
 
           return (
             <div
@@ -82,12 +87,8 @@ export function RoomListPanel(props: {
                 </div>
 
                 <div className="room-panel-muted room-panel-item-desc">
-                  {r.service ? r.service : "—"} · {r.designation ? r.designation : "—"}
+                  {descriptionParts.join(" · ")}
                 </div>
-              </div>
-
-              <div className="room-panel-muted room-panel-item-area">
-                {r.surface != null ? `${r.surface} m²` : ""}
               </div>
             </div>
           );
