@@ -1042,15 +1042,15 @@ export default function App() {
             <div className="settings-main-panel">
               <div className="settings-main-header">
                 <div className="card-title">Paramètres</div>
-                <div className="card-subtitle">Panneau principal</div>
+                <div className="card-subtitle"></div>
               </div>
 
               <div className="settings-panels">
                 <section className="card settings-card settings-service-card">
                   <div className="card-header">
                     <div>
-                      <div className="card-title">Services</div>
-                      <div className="card-subtitle">Paramètres de services</div>
+                      <div className="card-title">Paramètres de services</div>
+                      <div className="card-subtitle"></div>
                     </div>
 
                     <div className="settings-actions">
@@ -1098,7 +1098,7 @@ export default function App() {
                         </button>
                       </div>
 
-                      <div className="hint">Couleurs stockées en HEX (#RRGGBB). Pas de HSL.</div>
+                      <div className="hint">Couleurs stockées en HEX (#RRGGBB)</div>
                     </div>
 
                     <div className="settings-divider" />
