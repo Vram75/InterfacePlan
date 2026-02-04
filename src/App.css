@@ -299,7 +299,8 @@ body{
   border-radius: 14px;
   border: 1px solid rgba(148,163,184,0.25);
   background: rgba(15,23,42,0.3);
-  max-height: 280px;
+  min-height: 320px;
+  max-height: 360px;
   overflow: auto;
 }
 
