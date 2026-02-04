@@ -1099,8 +1099,7 @@ export default function App() {
                         </button>
                       </div>
 
-                      <div className="hint">Couleurs stockées en HEX (#RRGGBB)</div>
-                    </div>
+                      </div>
 
                   </div>
                 </section>
@@ -1114,7 +1113,7 @@ export default function App() {
 
                     <div className="settings-actions">
                       <button className="btn btn-mini" type="button" onClick={seedServicesFromRooms} title="Ajoute les services présents dans les pièces">
-                        Seed depuis pièces
+                        Remplissage depuis pièces
                       </button>
                       <button className="btn btn-mini" type="button" onClick={resetServices} title="Vide la palette">
                         Vider
@@ -1153,9 +1152,7 @@ export default function App() {
                       </div>
                     )}
 
-                    <div className="hint" style={{ marginTop: 12 }}>
-                      Dans “Détails”, si une pièce n’a pas de service ou un service non présent ici, afficher <b>non attribué</b>.
-                    </div>
+                    
                   </div>
                 </section>
               </div>
