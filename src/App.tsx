@@ -381,6 +381,10 @@ function roomPagesWithPolygons(room: any): number[] {
 
   return Array.from(pages.values()).sort((a, b) => a - b);
 }
+
+function roomHasPolygonOnOtherPage(room: any, pageIndex: number): boolean {
+  return roomPagesWithPolygons(room).some((p) => p !== pageIndex);
+}
 // --------------------
 
 // --------------------
@@ -647,6 +651,12 @@ export default function App() {
   }, [pageView, currentPage, pageCount]);
   // Commit polygon (page-aware) with optimistic local update.
   async function commitPolygon(roomId: string, page: number, poly: Point[]) {
+    const currentRoom = roomsRef.current.find((r: any) => r.id === roomId);
+    if (currentRoom && roomHasPolygonOnOtherPage(currentRoom, page)) {
+      setDrawingRoomId(null);
+      setDrawSessionId((x) => x + 1);
+      return;
+    }
     // Optimistic update: keep existing locked flag for this page if present.
     setRooms((prev) =>
       prev.map((r: any) => {
@@ -1273,9 +1283,12 @@ export default function App() {
                             <option value="">— Dessiner un polygone pour… —</option>
                             {rooms.map((r: any) => {
                               const already = roomHasPolygonOnPage(r, currentPage);
+                              const hasOtherPage = roomHasPolygonOnOtherPage(r, currentPage);
+                              const disabled = already || hasOtherPage;
                               return (
-                                <option key={r.id} value={r.id} disabled={already}>
-                                  {r.numero} {already ? " — déjà défini (page)" : ""}
+                                <option key={r.id} value={r.id} disabled={disabled}>
+                                  {r.numero}{" "}
+                                  {already ? " — déjà défini (page)" : hasOtherPage ? " — déjà défini (autre page)" : ""}
                                 </option>
                               );
                             })}
