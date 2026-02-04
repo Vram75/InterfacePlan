@@ -308,6 +308,12 @@ body{
   min-height: 320px;
   max-height: 440px;
   overflow: auto;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.sidebar-pages::-webkit-scrollbar{
+  width: 0;
+  height: 0;
 }
 
 .sidebar-empty{
