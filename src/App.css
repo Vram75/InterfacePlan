@@ -1003,9 +1003,9 @@ body{
   max-width: 100%;
 }
 
-.settings-service-card{
-  width: 90%;
-  max-width: 90%;
+.settings-service-card{     /* ici pour modifier la largeur du panneau parametre services */
+  width: 60%;
+  max-width: 60%;
 }
 
 .settings-row{
