@@ -1392,7 +1392,7 @@ export default function App() {
               </div>
             </DraggableWindow>
 
-            <DraggableWindow storageKey="iface.panel.details" defaultPosition={{ x: 470, y: 86 }} width={420}>
+            <DraggableWindow storageKey="iface.panel.details" defaultPosition={{ x: 470, y: 86 }} width={360}>
               <div className="card plan-card">
                 <div className="card-header">
                   <div>
