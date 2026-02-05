@@ -603,8 +603,10 @@ body{
 
 .plan-controls-row{
   display: flex;
-  flex-direction: column;
-  align-items: flex-end;
+  flex-direction: row;
+  align-items: flex-start;
+  justify-content: space-between;
+  flex-wrap: wrap;
   gap: 8px;
   width: 100%;
 }
