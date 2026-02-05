@@ -1397,7 +1397,6 @@ export default function App() {
               title="Pièces"
               rect={roomsPanelRect}
               onRectChange={setRoomsPanelRect}
-              onDock={() => setRoomsPanelRect(makeDefaultFloatingRect(380, 82, 380))}
               collapsed={roomsPanelCollapsed}
               onToggleCollapsed={() => setRoomsPanelCollapsed((prev) => !prev)}
             >
@@ -1408,7 +1407,6 @@ export default function App() {
               title="Détails"
               rect={detailsPanelRect}
               onRectChange={setDetailsPanelRect}
-              onDock={() => setDetailsPanelRect(makeDefaultFloatingRect(420, 482, 420))}
               collapsed={detailsPanelCollapsed}
               onToggleCollapsed={() => setDetailsPanelCollapsed((prev) => !prev)}
             >

@@ -9,8 +9,6 @@ type Props = {
   rect: FloatingRect;
   onRectChange: (next: FloatingRect) => void;
 
-  onDock: () => void;
-
   collapsed: boolean;
   onToggleCollapsed: () => void;
 
@@ -74,7 +72,6 @@ export function FloatingPanel({
   title,
   rect,
   onRectChange,
-  onDock,
   collapsed,
   onToggleCollapsed,
   children,
@@ -192,13 +189,12 @@ export function FloatingPanel({
         height: displayH,
         zIndex: z,
         borderRadius: 18,
-        border: "1px solid rgba(20, 32, 50, 0.14)",
-        background: "rgba(255,255,255,0.96)",
-        boxShadow: "0 24px 60px rgba(0,0,0,0.18)",
+        border: "1px solid var(--stroke)",
+        background: "var(--panel-grad-strong)",
+        boxShadow: "var(--shadow-panel), var(--shadow-inset)",
         overflow: "hidden",
         display: "flex",
         flexDirection: "column",
-        backdropFilter: "blur(10px)",
       }}
       onMouseDown={bringToFront}
     >
@@ -210,10 +206,10 @@ export function FloatingPanel({
           display: "flex",
           alignItems: "center",
           justifyContent: "space-between",
-          borderBottom: collapsed ? "none" : "1px solid rgba(20, 32, 50, 0.10)",
+          borderBottom: collapsed ? "none" : "1px solid rgba(255,255,255,0.08)",
           cursor: "grab",
           userSelect: "none",
-          background: "rgba(255,255,255,0.55)",
+          background: "radial-gradient(180% 140% at 30% 0%, #48576b 0%, #2b3648 55%, #1b2432 100%)",
         }}
         onMouseDown={(e) => {
           bringToFront();
@@ -225,7 +221,7 @@ export function FloatingPanel({
         }}
         title="Drag pour déplacer • Double-clic pour replier/déplier"
       >
-        <div style={{ fontWeight: 900, fontSize: 13, letterSpacing: "-0.01em" }}>
+        <div style={{ fontWeight: 900, fontSize: 13, letterSpacing: "-0.01em", color: "var(--text)" }}>
           {title} {collapsed ? "— replié" : ""}
         </div>
 
@@ -240,15 +236,6 @@ export function FloatingPanel({
             {collapsed ? "▾" : "▴"}
           </button>
 
-          <button
-            className="btn btn-mini"
-            onMouseDown={(e) => e.stopPropagation()}
-            onClick={onDock}
-            title="Raccrocher (dock)"
-            style={{ padding: "8px 10px" }}
-          >
-            ↘ Dock
-          </button>
         </div>
       </div>
 
@@ -278,27 +265,27 @@ export function FloatingPanel({
             height: 16,
             cursor: "nwse-resize",
             borderRadius: 6,
-            background: "rgba(17,24,39,0.08)",
-            border: "1px solid rgba(17,24,39,0.10)",
+            background: "rgba(255,255,255,0.08)",
+            border: "1px solid rgba(255,255,255,0.14)",
           }}
         >
           {/* little corner glyph */}
           <svg width="16" height="16" viewBox="0 0 16 16" style={{ display: "block" }}>
             <path
               d="M6 15L15 6"
-              stroke="rgba(17,24,39,0.35)"
+              stroke="rgba(226,232,240,0.45)"
               strokeWidth="1.6"
               strokeLinecap="round"
             />
             <path
               d="M9 15L15 9"
-              stroke="rgba(17,24,39,0.25)"
+              stroke="rgba(226,232,240,0.34)"
               strokeWidth="1.6"
               strokeLinecap="round"
             />
             <path
               d="M12 15L15 12"
-              stroke="rgba(17,24,39,0.18)"
+              stroke="rgba(226,232,240,0.24)"
               strokeWidth="1.6"
               strokeLinecap="round"
             />
