@@ -31,6 +31,7 @@ export function DraggableWindow(props: {
   children: React.ReactNode;
 }) {
   const [pos, setPos] = useState<Position>(() => readStoredPosition(props.storageKey, props.defaultPosition));
+  const [collapsed, setCollapsed] = useState(false);
   const [z, setZ] = useState(1000);
   const dragRef = useRef<{ sx: number; sy: number; ox: number; oy: number } | null>(null);
   const rootRef = useRef<HTMLDivElement | null>(null);
@@ -52,11 +53,19 @@ export function DraggableWindow(props: {
       dragRef.current = { sx: e.clientX, sy: e.clientY, ox: pos.x, oy: pos.y };
     };
 
+    const onDoubleClick = (e: MouseEvent) => {
+      const target = e.target as HTMLElement | null;
+      if (target?.closest("button, input, select, textarea, a, [role='button']")) return;
+      setCollapsed((prev) => !prev);
+    };
+
     handle.style.cursor = "grab";
     handle.addEventListener("mousedown", onMouseDown);
+    handle.addEventListener("dblclick", onDoubleClick);
     return () => {
       handle.style.cursor = "";
       handle.removeEventListener("mousedown", onMouseDown);
+      handle.removeEventListener("dblclick", onDoubleClick);
     };
   }, [pos.x, pos.y]);
 
@@ -90,7 +99,7 @@ export function DraggableWindow(props: {
   return (
     <div
       ref={rootRef}
-      className="floating-card-window"
+      className={`floating-card-window${collapsed ? " is-collapsed" : ""}`}
       style={{ left: pos.x, top: pos.y, width: props.width, zIndex: z }}
       onMouseDown={() => setZ((prev) => prev + 1)}
     >
