@@ -130,6 +130,10 @@ body{
   overflow: hidden;
 }
 
+.dash-body--floating-panels{
+  grid-template-columns: var(--sidebar-w) minmax(0, 1fr);
+}
+
 .dash-sidebar, .dash-main, .dash-right{
   font-family: var(--nav-font);
   min-width: 0;
@@ -392,6 +396,10 @@ body{
 .help-text{ font-size: 12px; color: rgba(226,232,240,0.7); line-height: 1.35; }
 
 .dash-main{ overflow: hidden; }
+
+.floating-card-window{
+  position: fixed;
+}
 
 .dash-right{ overflow: hidden; }
 .right-sticky{
