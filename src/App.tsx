@@ -7,7 +7,6 @@ import type { OverlayRequest } from "./components/SvgOverlay";
 
 import { RoomListPanel } from "./components/RoomListPanel";
 import { RoomDetailsPanel, type RoomDetailsPanelHandle } from "./components/RoomDetailsPanel";
-import { FloatingPanel, type FloatingRect } from "./components/FloatingPanel";
 
 import { api } from "./api";
 import type { Room, Point, ServiceColor } from "./types";
@@ -128,16 +127,6 @@ function isTypingTarget(target: unknown): boolean {
 
 function isValidSize(n: unknown): n is number {
   return typeof n === "number" && Number.isFinite(n) && n > 0;
-}
-
-function makeDefaultFloatingRect(width: number, y: number, height: number): FloatingRect {
-  const viewportWidth = typeof window === "undefined" ? 1440 : window.innerWidth;
-  return {
-    x: Math.max(16, viewportWidth - width - 24),
-    y,
-    w: width,
-    h: height,
-  };
 }
 
 // --------------------
@@ -455,10 +444,6 @@ export default function App() {
   const [selectedRoomId, setSelectedRoomId] = useState<string | null>(null);
   const detailsPanelRef = useRef<RoomDetailsPanelHandle | null>(null);
   const [detailsStatus, setDetailsStatus] = useState({ saving: false, canSave: false });
-  const [roomsPanelRect, setRoomsPanelRect] = useState<FloatingRect>(() => makeDefaultFloatingRect(380, 82, 380));
-  const [detailsPanelRect, setDetailsPanelRect] = useState<FloatingRect>(() => makeDefaultFloatingRect(420, 482, 420));
-  const [roomsPanelCollapsed, setRoomsPanelCollapsed] = useState(false);
-  const [detailsPanelCollapsed, setDetailsPanelCollapsed] = useState(false);
 
   const [adminMode, setAdminMode] = useState(true);
   const [drawingRoomId, setDrawingRoomId] = useState<string | null>(null);
@@ -935,7 +920,7 @@ export default function App() {
   return (
     <div className="dash-root">
       {/* BODY */}
-      <div className={`dash-body ${pageView === "plans" ? "dash-body-plans-floating" : ""}`}>
+      <div className="dash-body">
         {/* SIDEBAR */}
         <aside className="dash-sidebar ui-zoom" style={{ ["--ui-zoom" as any]: uiZoom }}>
           <div className="nav-title">Navigation</div>
@@ -1391,51 +1376,53 @@ export default function App() {
           </main>
         )}
 
+        {/* RIGHT */}
         {pageView === "plans" && (
-          <>
-            <FloatingPanel
-              title="Pièces"
-              rect={roomsPanelRect}
-              onRectChange={setRoomsPanelRect}
-              collapsed={roomsPanelCollapsed}
-              onToggleCollapsed={() => setRoomsPanelCollapsed((prev) => !prev)}
-            >
-              <RoomListPanel rooms={rooms} selectedRoomId={selectedRoomId} onSelectRoom={setSelectedRoomId} />
-            </FloatingPanel>
-
-            <FloatingPanel
-              title="Détails"
-              rect={detailsPanelRect}
-              onRectChange={setDetailsPanelRect}
-              collapsed={detailsPanelCollapsed}
-              onToggleCollapsed={() => setDetailsPanelCollapsed((prev) => !prev)}
-            >
-              <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 12 }}>
-                <button
-                  className="btn btn-save"
-                  onClick={() => detailsPanelRef.current?.save()}
-                  disabled={!detailsStatus.canSave || detailsStatus.saving}
-                >
-                  Enregistrer
-                </button>
+          <aside className="dash-right ui-zoom" style={{ ["--ui-zoom" as any]: uiZoom }}>
+            <div className="right-sticky">
+              <div className="card plan-card">
+                <div className="card-header">
+                  <div>
+                    <div className="card-title">Pièces</div>
+                  </div>
+                </div>
+                <div className="card-content card-scroll">
+                  <RoomListPanel rooms={rooms} selectedRoomId={selectedRoomId} onSelectRoom={setSelectedRoomId} />
+                </div>
               </div>
 
-              <RoomDetailsPanel
-                ref={detailsPanelRef}
-                room={selectedRoom}
-                services={services.map(({ uid: _uid, ...rest }) => rest)}
-                onStatusChange={setDetailsStatus}
-                onSave={async (room) => {
-                  const saved = await api.updateRoom(room);
-                  setRooms((prev) => prev.map((r) => (r.id === saved.id ? saved : r)));
-                }}
-                onUploadPhoto={async (roomId, file) => {
-                  const saved = await api.uploadPhoto(roomId, file);
-                  setRooms((prev) => prev.map((r) => (r.id === saved.id ? saved : r)));
-                }}
-              />
-            </FloatingPanel>
-          </>
+              <div className="card plan-card">
+                <div className="card-header">
+                  <div>
+                    <div className="card-title">Détails</div>
+                  </div>
+                  <button
+                    className="btn btn-save"
+                    onClick={() => detailsPanelRef.current?.save()}
+                    disabled={!detailsStatus.canSave || detailsStatus.saving}
+                  >
+                    Enregistrer
+                  </button>
+                </div>
+                <div className="card-content card-scroll">
+                  <RoomDetailsPanel
+                    ref={detailsPanelRef}
+                    room={selectedRoom}
+                    services={services.map(({ uid: _uid, ...rest }) => rest)}
+                    onStatusChange={setDetailsStatus}
+                    onSave={async (room) => {
+                      const saved = await api.updateRoom(room);
+                      setRooms((prev) => prev.map((r) => (r.id === saved.id ? saved : r)));
+                    }}
+                    onUploadPhoto={async (roomId, file) => {
+                      const saved = await api.uploadPhoto(roomId, file);
+                      setRooms((prev) => prev.map((r) => (r.id === saved.id ? saved : r)));
+                    }}
+                  />
+                </div>
+              </div>
+            </div>
+          </aside>
         )}
       </div>
     </div>
