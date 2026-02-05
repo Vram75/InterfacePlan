@@ -402,6 +402,18 @@ body{
 }
 
 .dash-right{ overflow: hidden; }
+
+.floating-card-window.is-collapsed .card{
+  overflow: visible;
+}
+
+.floating-card-window.is-collapsed .card-content{
+  display: none;
+}
+
+.floating-card-window.is-collapsed .card-header{
+  border-bottom: none;
+}
 .right-sticky{
   height: 100%;
   overflow: auto;
