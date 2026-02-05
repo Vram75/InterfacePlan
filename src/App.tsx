@@ -7,6 +7,7 @@ import type { OverlayRequest } from "./components/SvgOverlay";
 
 import { RoomListPanel } from "./components/RoomListPanel";
 import { RoomDetailsPanel, type RoomDetailsPanelHandle } from "./components/RoomDetailsPanel";
+import { DraggableWindow } from "./components/DraggableWindow";
 
 import { api } from "./api";
 import type { Room, Point, ServiceColor } from "./types";
@@ -920,7 +921,7 @@ export default function App() {
   return (
     <div className="dash-root">
       {/* BODY */}
-      <div className="dash-body">
+      <div className={`dash-body ${pageView === "plans" ? "dash-body--floating-panels" : ""}`}>
         {/* SIDEBAR */}
         <aside className="dash-sidebar ui-zoom" style={{ ["--ui-zoom" as any]: uiZoom }}>
           <div className="nav-title">Navigation</div>
@@ -1376,21 +1377,22 @@ export default function App() {
           </main>
         )}
 
-        {/* RIGHT */}
         {pageView === "plans" && (
-          <aside className="dash-right ui-zoom" style={{ ["--ui-zoom" as any]: uiZoom }}>
-            <div className="right-sticky">
+          <>
+            <DraggableWindow storageKey="iface.panel.rooms" defaultPosition={{ x: 88, y: 86 }} width={360}>
               <div className="card plan-card">
                 <div className="card-header">
                   <div>
                     <div className="card-title">Pièces</div>
                   </div>
                 </div>
-                <div className="card-content card-scroll">
+                <div className="card-content card-scroll" style={{ maxHeight: "min(72vh, 760px)" }}>
                   <RoomListPanel rooms={rooms} selectedRoomId={selectedRoomId} onSelectRoom={setSelectedRoomId} />
                 </div>
               </div>
+            </DraggableWindow>
 
+            <DraggableWindow storageKey="iface.panel.details" defaultPosition={{ x: 470, y: 86 }} width={420}>
               <div className="card plan-card">
                 <div className="card-header">
                   <div>
@@ -1404,7 +1406,7 @@ export default function App() {
                     Enregistrer
                   </button>
                 </div>
-                <div className="card-content card-scroll">
+                <div className="card-content card-scroll" style={{ maxHeight: "min(72vh, 760px)" }}>
                   <RoomDetailsPanel
                     ref={detailsPanelRef}
                     room={selectedRoom}
@@ -1421,8 +1423,8 @@ export default function App() {
                   />
                 </div>
               </div>
-            </div>
-          </aside>
+            </DraggableWindow>
+          </>
         )}
       </div>
     </div>
