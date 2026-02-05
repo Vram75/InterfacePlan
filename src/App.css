@@ -697,7 +697,9 @@ body{
 
 .btn:active{ transform: translateY(1px); }
 .btn-save{
-  min-width: 148px;
+  min-width: 118px;
+  padding: 7px 10px;
+  font-size: 12px;
 }
 
 .btn-icon{
