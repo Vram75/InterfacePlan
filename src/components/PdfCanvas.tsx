@@ -16,7 +16,7 @@ type Props = {
 
 export function PdfCanvas({ pdfUrl, page, scale, onPageCount, onSize }: Props) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
-  const renderTaskRef = useRef<pdfjsLib.PDFRenderTask | null>(null);
+  const renderTaskRef = useRef<pdfjsLib.RenderTask | null>(null);
 
   // ✅ keep latest callbacks without triggering effects
   const onPageCountRef = useRef<Props["onPageCount"]>(onPageCount);
@@ -108,7 +108,7 @@ export function PdfCanvas({ pdfUrl, page, scale, onPageCount, onSize }: Props) {
         ctx.setTransform(1, 0, 0, 1, 0, 0);
         ctx.clearRect(0, 0, w, h);
 
-        const task = pdfPage.render({ canvasContext: ctx, viewport });
+        const task = pdfPage.render({ canvas, canvasContext: ctx, viewport });
         renderTaskRef.current = task;
 
         await task.promise;
