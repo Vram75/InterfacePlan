@@ -552,10 +552,6 @@ export default function App() {
     return s;
   }, [rooms, currentPage]);
 
-  // ✅ Counter: X / Y
-  const pagesWithPolygonsCount = useMemo(() => pagesWithPolygons.size, [pagesWithPolygons]);
-  const totalPagesCount = useMemo(() => Math.max(1, pageCount), [pageCount]);
-
   // Visible pages according to filter + toggle "only with polys"
   const visiblePages = useMemo(() => {
     const total = Math.max(1, pageCount);
@@ -707,12 +703,6 @@ export default function App() {
     }
   }
 
-  async function handleSaveRoom(room: Room) {
-    const saved = await api.updateRoom(room);
-    const savedWithLock = applyLockOverridesToRooms([saved])[0];
-    setRooms((prev) => prev.map((r: any) => (r.id === savedWithLock.id ? mergeRoomPreserveLocks(r, savedWithLock) : r)));
-  }
-
   async function togglePolygonLock(roomId: string, page: number) {
     const current = roomsRef.current.find((r: any) => r.id === roomId);
     if (!current) return;
@@ -753,14 +743,6 @@ export default function App() {
       throw e;
     }
   }
-
-
-  async function handleUploadPhoto(roomId: string, file: File) {
-    const saved = await api.uploadPhoto(roomId, file);
-    const savedWithLock = applyLockOverridesToRooms([saved])[0];
-    setRooms((prev) => prev.map((r: any) => (r.id === savedWithLock.id ? mergeRoomPreserveLocks(r, savedWithLock) : r)));
-  }
-
   // ---- Services actions ----
   function addService() {
     const name = normalizeServiceName(newServiceName);

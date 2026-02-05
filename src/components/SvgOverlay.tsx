@@ -213,10 +213,6 @@ function extractPolygonEntryForPage(
   return {};
 }
 
-function extractPolygonForPage(room: any, pageIndex: number): Point[] | undefined {
-  return extractPolygonEntryForPage(room, pageIndex).polygon;
-}
-
 
 function readSnapFromStorage(): boolean {
   try {
@@ -297,7 +293,7 @@ export function SvgOverlay(props: {
   const [draft, setDraft] = useState<Point[]>([]);
   const [hoverRaw, setHoverRaw] = useState<Point | null>(null);
   const [hoverSnap, setHoverSnap] = useState<Point | null>(null);
-  const [hoverSnapInfo, setHoverSnapInfo] = useState<DraftSnapInfo>({ kind: "none" });
+  const [, setHoverSnapInfo] = useState<DraftSnapInfo>({ kind: "none" });
 
   const [localPoly, setLocalPoly] = useState<Record<string, Point[] | undefined>>({});
   const [lockedByRoom, setLockedByRoom] = useState<Record<string, boolean>>({});
@@ -752,15 +748,6 @@ export function SvgOverlay(props: {
     }
 
     props.onSelectRoom(null);
-    setMode({ kind: "view" });
-  }
-
-  function onRoomSelect(e: React.MouseEvent, roomId: string) {
-    e.preventDefault();
-    e.stopPropagation();
-    props.onSelectRoom(roomId);
-    if (!props.adminMode) return;
-    if (mode.kind === "draw") return;
     setMode({ kind: "view" });
   }
 
