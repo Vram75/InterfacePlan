@@ -890,8 +890,8 @@ export function SvgOverlay(props: {
         let tooltipY = 0;
         let arrowLeft = 0;
         if (showTooltip && hoverInfo) {
-          const tooltipWidth = 240;
-          const tooltipHeight = 168;
+          const tooltipWidth = 200;
+          const tooltipHeight = 180;
           const padding = 8;
           const anchorX = hoverInfo.point.x * w;
           const anchorY = hoverInfo.point.y * h;
