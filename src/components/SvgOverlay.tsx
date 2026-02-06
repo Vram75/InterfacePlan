@@ -969,7 +969,7 @@ export function SvgOverlay(props: {
                 x={tooltipX}
                 y={tooltipY}
                 width={240}
-                height={168}
+                height={120}
                 pointerEvents="auto"
                 className="poly-tooltip-anchor"
               >
@@ -991,13 +991,6 @@ export function SvgOverlay(props: {
                     <span className="poly-tooltip-label">Surface</span>
                     <span className="poly-tooltip-value">{formatSurface(r.surface)}</span>
                   </div>
-                  <button
-                    type="button"
-                    className="poly-tooltip-button"
-                    onClick={() => props.onSelectRoom?.(r.id)}
-                  >
-                    plus de détails
-                  </button>
                 </div>
               </foreignObject>
             )}
