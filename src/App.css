@@ -1411,3 +1411,80 @@ input::placeholder{
   zoom: var(--ui-zoom, 0.75);              /* ajuste: 0.95 / 0.9 / 0.85 */
   transform-origin: top left;
 }
+
+.poly-tooltip {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px 12px 10px;
+  background: #fff;
+  border: 1px solid #d7d7d7;
+  border-radius: 10px;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.18);
+  color: #1f1f1f;
+  font-size: 12px;
+  pointer-events: auto;
+}
+
+.poly-tooltip::after {
+  content: "";
+  position: absolute;
+  bottom: -8px;
+  left: var(--arrow-left, 50%);
+  width: 16px;
+  height: 16px;
+  background: #fff;
+  border-bottom: 1px solid #d7d7d7;
+  border-right: 1px solid #d7d7d7;
+  transform: translateX(-50%) rotate(45deg);
+  box-shadow: 4px 4px 8px rgba(0, 0, 0, 0.05);
+}
+
+.poly-tooltip-header {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  font-weight: 600;
+  font-size: 13px;
+}
+
+.poly-tooltip-number {
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.poly-tooltip-title {
+  color: #3b3b3b;
+}
+
+.poly-tooltip-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  font-size: 12px;
+}
+
+.poly-tooltip-label {
+  color: #6a6a6a;
+}
+
+.poly-tooltip-value {
+  color: #1f1f1f;
+  font-weight: 600;
+}
+
+.poly-tooltip-button {
+  margin-top: 4px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  border: 1px solid #324a6d;
+  background: #3f5f8c;
+  color: #fff;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.poly-tooltip-button:hover {
+  background: #324a6d;
+}
