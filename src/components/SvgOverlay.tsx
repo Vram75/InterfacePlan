@@ -888,16 +888,14 @@ export function SvgOverlay(props: {
         const showTooltip = hoverInfo?.roomId === r.id && mode.kind !== "draw";
         let tooltipX = 0;
         let tooltipY = 0;
-        let arrowLeft = 0;
         if (showTooltip && hoverInfo) {
-          const tooltipWidth = 200;
+          const tooltipWidth = 240;
           const tooltipHeight = 180;
           const padding = 8;
           const anchorX = hoverInfo.point.x * w;
           const anchorY = hoverInfo.point.y * h;
           tooltipX = Math.min(w - tooltipWidth - padding, Math.max(padding, anchorX - tooltipWidth / 2));
-          tooltipY = Math.min(h - tooltipHeight - padding, Math.max(padding, anchorY - tooltipHeight - 16));
-          arrowLeft = Math.min(tooltipWidth - 18, Math.max(18, anchorX - tooltipX));
+          tooltipY = Math.min(h - tooltipHeight - padding, Math.max(padding, anchorY - tooltipHeight - 6));
         }
 
         return (
@@ -975,7 +973,6 @@ export function SvgOverlay(props: {
               >
                 <div
                   className="poly-tooltip"
-                  style={{ "--arrow-left": `${arrowLeft}px` } as React.CSSProperties}
                   onMouseEnter={() => setHoverInfo((prev) => prev ?? { roomId: r.id, point: c })}
                   onMouseLeave={() => setHoverInfo(null)}
                 >
