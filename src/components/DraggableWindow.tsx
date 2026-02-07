@@ -66,7 +66,7 @@ export function DraggableWindow(props: {
     };
 
     const handleBindings = handles.map((handle) => {
-      const allowChildTargets = handle === headerHandle;
+      const allowChildTargets = true;
       const onHandleMouseDown = (e: MouseEvent) => onMouseDown(e, handle, allowChildTargets);
       handle.style.cursor = "grab";
       handle.addEventListener("mousedown", onHandleMouseDown);
