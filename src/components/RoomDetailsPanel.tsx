@@ -368,10 +368,12 @@ export const RoomDetailsPanel = forwardRef<RoomDetailsPanelHandle, RoomDetailsPa
   const [error, setError] = useState<string | null>(null);
 
   const [cropFile, setCropFile] = useState<File | null>(null);
+  const [selectedPhotoName, setSelectedPhotoName] = useState<string | null>(null);
 
   useEffect(() => {
     setDraft(props.room ? { ...props.room } : null);
     setError(null);
+    setSelectedPhotoName(null);
   }, [props.room]);
 
   const save = useCallback(async () => {
@@ -440,9 +442,7 @@ export const RoomDetailsPanel = forwardRef<RoomDetailsPanelHandle, RoomDetailsPa
       )}
 
       <div className="details-panel-section">
-        <div className="details-panel-section-title">Photo</div>
-
-        <div className="details-panel-row">
+        <div className="details-panel-row details-panel-photo-row">
           <div
             className="details-panel-photo"
           >
@@ -461,10 +461,12 @@ export const RoomDetailsPanel = forwardRef<RoomDetailsPanelHandle, RoomDetailsPa
                 const f = e.target.files?.[0];
                 if (!f) return;
                 setError(null);
+                setSelectedPhotoName(f.name);
                 setCropFile(f);
                 e.currentTarget.value = "";
               }}
             />
+            {selectedPhotoName && <div className="details-panel-filename">{selectedPhotoName}</div>}
            </div>
         </div>
       </div>
