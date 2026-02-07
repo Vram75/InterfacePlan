@@ -868,6 +868,10 @@ body{
   gap: 12px;
   align-items: center;
 }
+.details-panel-photo-row{
+  flex-direction: column;
+  align-items: flex-start;
+}
 .details-panel-photo{
   width: 96px;
   height: 96px;
@@ -881,6 +885,12 @@ body{
 .details-panel-upload{
   display: grid;
   gap: 8px;
+}
+.details-panel-filename{
+  font-size: 12px;
+  font-weight: 600;
+  opacity: 0.75;
+  word-break: break-word;
 }
 .details-panel-divider{
   border: none;
