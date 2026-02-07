@@ -465,8 +465,7 @@ export const RoomDetailsPanel = forwardRef<RoomDetailsPanelHandle, RoomDetailsPa
                 e.currentTarget.value = "";
               }}
             />
-            <div className="details-panel-muted">Recadrage avant upload (modale)</div>
-          </div>
+           </div>
         </div>
       </div>
 
