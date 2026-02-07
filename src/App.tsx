@@ -1378,7 +1378,6 @@ export default function App() {
                   <div className="card-header" data-drag-handle>
                     <div>
                       <div className="card-title">Détails</div>
-                      <div className="card-subtitle">Pièce {selectedRoom.numero}</div>
                     </div>
                   </div>
                   <div className="card-content card-scroll" style={{ maxHeight: "min(72vh, 760px)" }}>
