@@ -583,6 +583,12 @@ export const RoomDetailsPanel = forwardRef<RoomDetailsPanelHandle, RoomDetailsPa
         </div>
       </div>
 
+      <div className="details-panel-actions">
+        <button className="btn btn-save" onClick={save} disabled={!draft || saving}>
+          Enregistrer
+        </button>
+      </div>
+
       {cropFile && (
         <CropModal
           file={cropFile}
