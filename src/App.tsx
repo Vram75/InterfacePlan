@@ -444,7 +444,6 @@ export default function App() {
 
   const [selectedRoomId, setSelectedRoomId] = useState<string | null>(null);
   const detailsPanelRef = useRef<RoomDetailsPanelHandle | null>(null);
-  const [detailsStatus, setDetailsStatus] = useState({ saving: false, canSave: false });
 
   const [adminMode, setAdminMode] = useState(true);
   const [drawingRoomId, setDrawingRoomId] = useState<string | null>(null);
@@ -497,7 +496,6 @@ export default function App() {
     api.getRooms().then((r) => {
       const withLocks = applyLockOverridesToRooms(r);
       setRooms((prev) => mergeRoomsPreserveLocks(prev, withLocks));
-      if (r.length && !selectedRoomId) setSelectedRoomId(r[0].id);
 
       const used = new Set(withLocks.map((x) => (x.service ?? "").trim()).filter((s) => s.length > 0));
       if (used.size) {
@@ -1374,38 +1372,28 @@ export default function App() {
               </div>
             </DraggableWindow>
 
-            <DraggableWindow storageKey="iface.panel.details" defaultPosition={{ x: 470, y: 86 }} width={360}>
-              <div className="card plan-card">
-                <div className="card-header">
-                  <div>
-                    <div className="card-title">Détails</div>
+            {selectedRoom && (
+              <DraggableWindow storageKey="iface.panel.details" defaultPosition={{ x: 470, y: 86 }} width={360}>
+                <div className="card plan-card">
+                  <div className="card-content card-scroll" style={{ maxHeight: "min(72vh, 760px)" }}>
+                    <RoomDetailsPanel
+                      ref={detailsPanelRef}
+                      room={selectedRoom}
+                      services={services.map(({ uid: _uid, ...rest }) => rest)}
+                      onSave={async (room) => {
+                        const saved = await api.updateRoom(room);
+                        setRooms((prev) => prev.map((r) => (r.id === saved.id ? saved : r)));
+                        setSelectedRoomId(null);
+                      }}
+                      onUploadPhoto={async (roomId, file) => {
+                        const saved = await api.uploadPhoto(roomId, file);
+                        setRooms((prev) => prev.map((r) => (r.id === saved.id ? saved : r)));
+                      }}
+                    />
                   </div>
-                  <button
-                    className="btn btn-save"
-                    onClick={() => detailsPanelRef.current?.save()}
-                    disabled={!detailsStatus.canSave || detailsStatus.saving}
-                  >
-                    Enregistrer
-                  </button>
                 </div>
-                <div className="card-content card-scroll" style={{ maxHeight: "min(72vh, 760px)" }}>
-                  <RoomDetailsPanel
-                    ref={detailsPanelRef}
-                    room={selectedRoom}
-                    services={services.map(({ uid: _uid, ...rest }) => rest)}
-                    onStatusChange={setDetailsStatus}
-                    onSave={async (room) => {
-                      const saved = await api.updateRoom(room);
-                      setRooms((prev) => prev.map((r) => (r.id === saved.id ? saved : r)));
-                    }}
-                    onUploadPhoto={async (roomId, file) => {
-                      const saved = await api.uploadPhoto(roomId, file);
-                      setRooms((prev) => prev.map((r) => (r.id === saved.id ? saved : r)));
-                    }}
-                  />
-                </div>
-              </div>
-            </DraggableWindow>
+              </DraggableWindow>
+            )}
           </>
         )}
       </div>

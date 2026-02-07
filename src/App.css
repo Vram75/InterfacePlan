@@ -832,6 +832,10 @@ body{
   display: grid;
   gap: 12px;
 }
+.details-panel .input,
+.details-panel .select{
+  width: 50%;
+}
 .details-panel-titlebar{
   display: flex;
   justify-content: space-between;
@@ -885,6 +889,11 @@ body{
 .details-panel-muted{
   font-size: 12px;
   opacity: 0.7;
+}
+.details-panel-actions{
+  display: flex;
+  justify-content: flex-end;
+  padding-top: 4px;
 }
 
 .plan-card .input{
