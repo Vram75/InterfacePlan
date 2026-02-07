@@ -44,28 +44,45 @@ export function DraggableWindow(props: {
     const root = rootRef.current;
     if (!root) return;
 
-    const handle = root.querySelector(".card-header") as HTMLElement | null;
-    if (!handle) return;
+    const headerHandle = root.querySelector(".card-header") as HTMLElement | null;
+    const customHandles = Array.from(root.querySelectorAll("[data-drag-handle]")) as HTMLElement[];
+    const handles = [headerHandle, ...customHandles].filter(Boolean) as HTMLElement[];
+    if (!handles.length) return;
 
-    const onMouseDown = (e: MouseEvent) => {
+    const isInteractiveTarget = (target: HTMLElement | null) =>
+      Boolean(target?.closest("button, input, select, textarea, a, [role='button'], label"));
+
+    const onMouseDown = (e: MouseEvent, handle: HTMLElement, allowChildTargets: boolean) => {
       const target = e.target as HTMLElement | null;
-      if (target?.closest("button, input, select, textarea, a, [role='button']")) return;
+      if (isInteractiveTarget(target)) return;
+      if (!allowChildTargets && target !== handle) return;
       dragRef.current = { sx: e.clientX, sy: e.clientY, ox: pos.x, oy: pos.y };
     };
 
     const onDoubleClick = (e: MouseEvent) => {
       const target = e.target as HTMLElement | null;
-      if (target?.closest("button, input, select, textarea, a, [role='button']")) return;
+      if (isInteractiveTarget(target)) return;
       setCollapsed((prev) => !prev);
     };
 
-    handle.style.cursor = "grab";
-    handle.addEventListener("mousedown", onMouseDown);
-    handle.addEventListener("dblclick", onDoubleClick);
+    const handleBindings = handles.map((handle) => {
+      const allowChildTargets = handle === headerHandle;
+      const onHandleMouseDown = (e: MouseEvent) => onMouseDown(e, handle, allowChildTargets);
+      handle.style.cursor = "grab";
+      handle.addEventListener("mousedown", onHandleMouseDown);
+      if (handle === headerHandle) {
+        handle.addEventListener("dblclick", onDoubleClick);
+      }
+      return { handle, onHandleMouseDown };
+    });
     return () => {
-      handle.style.cursor = "";
-      handle.removeEventListener("mousedown", onMouseDown);
-      handle.removeEventListener("dblclick", onDoubleClick);
+      handleBindings.forEach(({ handle, onHandleMouseDown }) => {
+        handle.style.cursor = "";
+        handle.removeEventListener("mousedown", onHandleMouseDown);
+        if (handle === headerHandle) {
+          handle.removeEventListener("dblclick", onDoubleClick);
+        }
+      });
     };
   }, [pos.x, pos.y]);
 
