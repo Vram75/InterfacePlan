@@ -847,13 +847,16 @@ body{
 }
 .details-panel-header{
   display: flex;
-  justify-content: space-between;
+  flex-direction: column;
+  justify-content: flex-start;
   gap: 12px;
-  align-items: center;
+  align-items: flex-start;
+  padding-bottom: 2.4em;
 }
 .details-panel-number{
   font-weight: 900;
-  font-size: 16px;
+  font-size: 26px;
+  line-height: 1.1;
 }
 .details-panel-section{
   display: grid;

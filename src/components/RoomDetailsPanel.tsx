@@ -424,7 +424,7 @@ export const RoomDetailsPanel = forwardRef<RoomDetailsPanelHandle, RoomDetailsPa
 
   return (
     <div className="details-panel">
-      <div className="details-panel-header">
+      <div className="details-panel-header" data-drag-handle>
         <div className="details-panel-number">{draft.numero}</div>
       </div>
 
