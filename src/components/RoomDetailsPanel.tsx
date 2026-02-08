@@ -460,6 +460,8 @@ export const RoomDetailsPanel = forwardRef<RoomDetailsPanelHandle, RoomDetailsPa
 
           <div className="details-panel-upload">
             <input
+              className="details-panel-file-input"
+              id="room-photo-input"
               type="file"
               accept="image/*"
               onChange={(e) => {
@@ -471,8 +473,11 @@ export const RoomDetailsPanel = forwardRef<RoomDetailsPanelHandle, RoomDetailsPa
                 e.currentTarget.value = "";
               }}
             />
+            <label className="btn btn-mini details-panel-file-button" htmlFor="room-photo-input">
+              Parcourir...
+            </label>
             {selectedPhotoName && <div className="details-panel-filename">{selectedPhotoName}</div>}
-           </div>
+          </div>
         </div>
       </div>
 

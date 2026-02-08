@@ -886,8 +886,21 @@ body{
   place-items: center;
 }
 .details-panel-upload{
-  display: grid;
+  display: flex;
   gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+.details-panel-file-input{
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+  width: 1px;
+  height: 1px;
+}
+.details-panel-file-button{
+  display: inline-flex;
+  align-items: center;
 }
 .details-panel-filename{
   font-size: 12px;
