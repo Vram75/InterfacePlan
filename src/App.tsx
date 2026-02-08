@@ -1431,22 +1431,28 @@ export default function App() {
                     </div>
                   </div>
                   <div className="plan-controls-raw" aria-live="polite">
-                    {hoverRoom && (
-                      <div className="poly-tooltip">
-                        <div className="poly-tooltip-header">
-                          <span className="poly-tooltip-number">{hoverRoom.numero || "—"}</span>
-                          <span className="poly-tooltip-title">{hoverRoom.designation || "—"}</span>
-                        </div>
+                    <div className="poly-tooltip">
+                      {hoverRoom ? (
+                        <>
+                          <div className="poly-tooltip-header">
+                            <span className="poly-tooltip-number">{hoverRoom.numero || "—"}</span>
+                            <span className="poly-tooltip-title">{hoverRoom.designation || "—"}</span>
+                          </div>
+                          <div className="poly-tooltip-row">
+                            <span className="poly-tooltip-label">Service</span>
+                            <span className="poly-tooltip-value">{hoverRoom.service || "—"}</span>
+                          </div>
+                          <div className="poly-tooltip-row">
+                            <span className="poly-tooltip-label">Surface</span>
+                            <span className="poly-tooltip-value">{formatSurface(hoverRoom.surface)}</span>
+                          </div>
+                        </>
+                      ) : (
                         <div className="poly-tooltip-row">
-                          <span className="poly-tooltip-label">Service</span>
-                          <span className="poly-tooltip-value">{hoverRoom.service || "—"}</span>
+                          <span className="poly-tooltip-value">Survoler une zone</span>
                         </div>
-                        <div className="poly-tooltip-row">
-                          <span className="poly-tooltip-label">Surface</span>
-                          <span className="poly-tooltip-value">{formatSurface(hoverRoom.surface)}</span>
-                        </div>
-                      </div>
-                    )}
+                      )}
+                    </div>
                   </div>
                 </div>
 
