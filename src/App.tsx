@@ -443,6 +443,7 @@ export default function App() {
   }, [rooms]);
 
   const [selectedRoomId, setSelectedRoomId] = useState<string | null>(null);
+  const [detailsRoomId, setDetailsRoomId] = useState<string | null>(null);
   const detailsPanelRef = useRef<RoomDetailsPanelHandle | null>(null);
 
   const [adminMode, setAdminMode] = useState(true);
@@ -524,6 +525,7 @@ export default function App() {
   }, []);
 
   const selectedRoom = useMemo(() => rooms.find((r) => r.id === selectedRoomId) ?? null, [rooms, selectedRoomId]);
+  const detailsRoom = useMemo(() => rooms.find((r) => r.id === detailsRoomId) ?? null, [rooms, detailsRoomId]);
 
   // Clamp current page when pageCount changes
   useEffect(() => {
@@ -1335,9 +1337,13 @@ export default function App() {
                           rooms={rooms}
                           services={services.map(({ uid: _uid, ...rest }) => rest)}
                           selectedRoomId={selectedRoomId}
-                          onSelectRoom={setSelectedRoomId}
+                          onSelectRoom={(roomId) => {
+                            setSelectedRoomId(roomId);
+                            setDetailsRoomId((prev) => (roomId && prev === roomId ? prev : null));
+                          }}
                           onPolygonDoubleClick={(roomId) => {
                             setSelectedRoomId(roomId);
+                            setDetailsRoomId(roomId);
                           }}
                           adminMode={adminMode}
                           drawingRoomId={drawingRoomId}
@@ -1368,12 +1374,23 @@ export default function App() {
                   </div>
                 </div>
                 <div className="card-content card-scroll" style={{ maxHeight: "min(72vh, 760px)" }}>
-                  <RoomListPanel rooms={rooms} selectedRoomId={selectedRoomId} onSelectRoom={setSelectedRoomId} />
+                  <RoomListPanel
+                    rooms={rooms}
+                    selectedRoomId={selectedRoomId}
+                    onSelectRoom={(roomId) => {
+                      setSelectedRoomId(roomId);
+                      setDetailsRoomId((prev) => (prev === roomId ? prev : null));
+                    }}
+                    onOpenDetails={(roomId) => {
+                      setSelectedRoomId(roomId);
+                      setDetailsRoomId(roomId);
+                    }}
+                  />
                 </div>
               </div>
             </DraggableWindow>
 
-            {selectedRoom && (
+            {detailsRoom && (
               <DraggableWindow
                 storageKey="iface.panel.details"
                 defaultPosition={{ x: 470, y: 86 }}
@@ -1384,12 +1401,13 @@ export default function App() {
                   <div className="card-content card-scroll" style={{ maxHeight: "min(72vh, 760px)" }}>
                     <RoomDetailsPanel
                       ref={detailsPanelRef}
-                      room={selectedRoom}
+                      room={detailsRoom}
                       services={services.map(({ uid: _uid, ...rest }) => rest)}
                       onSave={async (room) => {
                         const saved = await api.updateRoom(room);
                         setRooms((prev) => prev.map((r) => (r.id === saved.id ? saved : r)));
                         setSelectedRoomId(null);
+                        setDetailsRoomId(null);
                       }}
                       onUploadPhoto={async (roomId, file) => {
                         const saved = await api.uploadPhoto(roomId, file);
