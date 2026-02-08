@@ -9,6 +9,7 @@ export function RoomListPanel(props: {
   rooms: Room[];
   selectedRoomId: string | null;
   onSelectRoom: (id: string) => void;
+  onOpenDetails: (id: string) => void;
 }) {
   const [q, setQ] = useState("");
 
@@ -76,6 +77,7 @@ export function RoomListPanel(props: {
             <div
               key={r.id}
               onClick={() => props.onSelectRoom(r.id)}
+              onDoubleClick={() => props.onOpenDetails(r.id)}
               className={`room-panel-item ${selected ? "room-panel-item--active" : ""}`}
             >
               <div className="room-panel-item-main">
