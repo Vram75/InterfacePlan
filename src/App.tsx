@@ -27,6 +27,8 @@ const UI_ZOOM_KEY = "iface.uiZoom";
 const UI_ZOOM_MIN = 0.7;
 const UI_ZOOM_MAX = 1.1;
 const UI_ZOOM_DEFAULT = 0.75;
+const UI_ACCENT_KEY = "iface.uiAccent";
+const UI_ACCENT_DEFAULT = "#4c86d8";
 
 type PageView = "dashboard" | "plans" | "settings";
 type ServiceEntry = ServiceColor & { uid: string };
@@ -113,6 +115,30 @@ function readUiZoom(): number {
 function writeUiZoom(v: number) {
   try {
     localStorage.setItem(UI_ZOOM_KEY, String(clampUiZoom(v)));
+  } catch {}
+}
+
+function scaleHex(hex: string, factor: number): string {
+  if (!isHexColor(hex)) return UI_ACCENT_DEFAULT;
+  const r = Math.round(parseInt(hex.slice(1, 3), 16) * factor);
+  const g = Math.round(parseInt(hex.slice(3, 5), 16) * factor);
+  const b = Math.round(parseInt(hex.slice(5, 7), 16) * factor);
+  return `#${toHexByte(r)}${toHexByte(g)}${toHexByte(b)}`;
+}
+
+function readUiAccent(): string {
+  try {
+    const v = localStorage.getItem(UI_ACCENT_KEY);
+    if (!v) return UI_ACCENT_DEFAULT;
+    return isHexColor(v) ? v : UI_ACCENT_DEFAULT;
+  } catch {
+    return UI_ACCENT_DEFAULT;
+  }
+}
+
+function writeUiAccent(v: string) {
+  try {
+    localStorage.setItem(UI_ACCENT_KEY, isHexColor(v) ? v : UI_ACCENT_DEFAULT);
   } catch {}
 }
 
@@ -470,10 +496,15 @@ export default function App() {
   const [gridEnabled, setGridEnabled] = useState<boolean>(() => readGridEnabled());
   const [gridSizePx, setGridSizePx] = useState<number>(() => readGridSizePx());
   const [uiZoom, setUiZoom] = useState<number>(() => readUiZoom());
+  const [uiAccent, setUiAccent] = useState<string>(() => readUiAccent());
 
   useEffect(() => {
     writeUiZoom(uiZoom);
   }, [uiZoom]);
+
+  useEffect(() => {
+    writeUiAccent(uiAccent);
+  }, [uiAccent]);
 
   const [overlayRequest, setOverlayRequest] = useState<OverlayRequest>({ kind: "none" });
 
@@ -900,8 +931,10 @@ export default function App() {
   const canDeletePolygon = adminMode && !!selectedRoomId && roomHasPolygonOnPage(selectedRoom as any, currentPage) && !selectedLocked;
   const overlayReady = isValidSize(size.w) && isValidSize(size.h);
 
+  const uiAccentDark = useMemo(() => scaleHex(uiAccent, 0.65), [uiAccent]);
+
   return (
-    <div className="dash-root">
+    <div className="dash-root" style={{ ["--accent" as any]: uiAccent, ["--accent-2" as any]: uiAccentDark }}>
       {/* BODY */}
       <div className={`dash-body ${pageView === "plans" ? "dash-body--floating-panels" : ""}`}>
         {/* SIDEBAR */}
@@ -1036,6 +1069,34 @@ export default function App() {
               </div>
 
               <div className="settings-panels">
+                <section className="card settings-card">
+                  <div className="card-header">
+                    <div>
+                      <div className="card-title">Personnalisation</div>
+                      <div className="card-subtitle"></div>
+                    </div>
+                  </div>
+
+                  <div className="card-content">
+                    <div className="field">
+                      <label className="label">Couleur de l’interface</label>
+                      <div className="settings-row">
+                        <div className="color-cell">
+                          <input
+                            className="color-input"
+                            type="color"
+                            value={isHexColor(uiAccent) ? uiAccent : UI_ACCENT_DEFAULT}
+                            onChange={(e) => setUiAccent(e.target.value)}
+                            aria-label="Couleur de l’interface"
+                            title="Choisir une couleur"
+                          />
+                          <span className="color-hex">{(isHexColor(uiAccent) ? uiAccent : UI_ACCENT_DEFAULT).toUpperCase()}</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </section>
+
                 <section className="card settings-card settings-service-card">
                   <div className="card-header">
                     <div>
