@@ -1119,7 +1119,7 @@ body{
 
 .service-row{
   display: grid;
-  grid-template-columns: 18px minmax(220px, 1fr) 190px 110px;
+  grid-template-columns: minmax(220px, 1fr) 110px;
   gap: 10px;
   align-items: center;
 }
@@ -1127,44 +1127,6 @@ body{
 .service-row .select{
   width: 100%;
   min-width: 0;
-}
-
-.swatch{
-  width: 16px;
-  height: 16px;
-  border-radius: 6px;
-  border: 1px solid rgba(0,0,0,0.14);
-}
-
-.color-cell{
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  border: 1px solid var(--stroke);
-  background: rgba(255,255,255,0.85);
-  border-radius: 14px;
-  padding: 6px 10px;
-  box-shadow: var(--shadow-soft);
-  height: 42px;
-}
-.color-input{
-  width: 34px;
-  height: 26px;
-  border: none;
-  background: transparent;
-  padding: 0;
-  cursor: pointer;
-}
-.color-input::-webkit-color-swatch-wrapper{ padding: 0; }
-.color-input::-webkit-color-swatch{
-  border: 1px solid rgba(0,0,0,0.18);
-  border-radius: 8px;
-}
-.color-hex{
-  font-size: 12px;
-  color: var(--muted);
-  font-weight: 800;
-  letter-spacing: 0.02em;
 }
 
 /* Global font: match navigation "Paramètres" and remove bold */
