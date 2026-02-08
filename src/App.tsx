@@ -1194,8 +1194,6 @@ export default function App() {
                       </button>
                     </div>
 
-                    <span className="meta-chip">Sélection: {selectedRoom?.numero ?? "—"}</span>
-
                     <div className="plan-field-inline plan-field-compact plan-subbar-field">
                       <span className="plan-field-label">Espace UI</span>
                       <input
