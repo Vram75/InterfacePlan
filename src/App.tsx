@@ -1417,14 +1417,29 @@ export default function App() {
 
                       <div className="plan-controls-raw" aria-live="polite">
                         <div className="poly-tooltip">
-                          <div className="poly-tooltip-row">
-                            <span className="poly-tooltip-value">&nbsp;</span>
+                          <div className="poly-tooltip-header">
+                            <span className="poly-tooltip-number">{hoverRoom ? hoverRoom.numero : "\u00a0"}</span>
+                            <span className="poly-tooltip-title">
+                              {hoverRoom ? (hoverRoom.designation?.trim() || "—") : "\u00a0"}
+                            </span>
                           </div>
                           <div className="poly-tooltip-row">
-                            <span className="poly-tooltip-value">&nbsp;</span>
+                            <span className="poly-tooltip-label">{hoverRoom ? "Service" : "\u00a0"}</span>
+                            <span className="poly-tooltip-value">
+                              {hoverRoom ? hoverRoom.service?.trim() || "—" : "\u00a0"}
+                            </span>
                           </div>
                           <div className="poly-tooltip-row">
-                            <span className="poly-tooltip-value">&nbsp;</span>
+                            <span className="poly-tooltip-label">{hoverRoom ? "Surface" : "\u00a0"}</span>
+                            <span className="poly-tooltip-value">{hoverRoom ? formatSurface(hoverRoom.surface) : "\u00a0"}</span>
+                          </div>
+                          <div className="poly-tooltip-row">
+                            <span className="poly-tooltip-label">{hoverRoom ? "Contact" : "\u00a0"}</span>
+                            <span className="poly-tooltip-value">
+                              {hoverRoom
+                                ? [hoverRoom.personneNom, hoverRoom.personneTel].filter(Boolean).join(" • ") || "—"
+                                : "\u00a0"}
+                            </span>
                           </div>
                         </div>
                       </div>
