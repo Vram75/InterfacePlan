@@ -1229,6 +1229,7 @@ body{
   /* Panels (pure gradients, no rgba backgrounds) */
   --panel-grad: radial-gradient(140% 120% at 30% 10%, #3a475a 0%, #263041 45%, #1a2230 100%);
   --panel-grad-strong: radial-gradient(140% 120% at 30% 10%, #3f4f64 0%, #2a3548 42%, #1b2332 100%);
+  --panel-header-grad: radial-gradient(180% 140% at 30% 0%, #48576b 0%, #2b3648 55%, #1b2432 100%);
 
   /* Inner highlights */
   --panel-topline: rgba(255,255,255,0.10);
@@ -1299,8 +1300,7 @@ html, body{
 
 /* Panel headers (if present) */
 .card-header{
-  background:
-    radial-gradient(180% 140% at 30% 0%, #48576b 0%, #2b3648 55%, #1b2432 100%);
+  background: var(--panel-header-grad);
   border-bottom: 1px solid rgba(255,255,255,0.08);
   box-shadow: inset 0 1px 0 rgba(255,255,255,0.08);
   border-top-left-radius: var(--r-xl);

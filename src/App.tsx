@@ -967,6 +967,22 @@ export default function App() {
   const uiPanelBase = useMemo(() => (isHexColor(uiPanelColor) ? uiPanelColor : UI_PANEL_DEFAULT), [uiPanelColor]);
   const uiPanelSoft = useMemo(() => rgbaFromHex(uiPanelBase, 0.72, "rgba(255,255,255,0.72)"), [uiPanelBase]);
   const uiPanelStrong = useMemo(() => rgbaFromHex(uiPanelBase, 0.9, "rgba(255,255,255,0.9)"), [uiPanelBase]);
+  const uiPanelHighlight = useMemo(() => scaleHex(uiPanelBase, 1.08), [uiPanelBase]);
+  const uiPanelMid = useMemo(() => scaleHex(uiPanelBase, 0.9), [uiPanelBase]);
+  const uiPanelDark = useMemo(() => scaleHex(uiPanelBase, 0.7), [uiPanelBase]);
+  const uiPanelDeep = useMemo(() => scaleHex(uiPanelBase, 0.55), [uiPanelBase]);
+  const uiPanelGrad = useMemo(
+    () => `radial-gradient(140% 120% at 30% 10%, ${uiPanelHighlight} 0%, ${uiPanelMid} 45%, ${uiPanelDark} 100%)`,
+    [uiPanelHighlight, uiPanelMid, uiPanelDark],
+  );
+  const uiPanelGradStrong = useMemo(
+    () => `radial-gradient(140% 120% at 30% 10%, ${scaleHex(uiPanelBase, 1.02)} 0%, ${uiPanelMid} 42%, ${uiPanelDeep} 100%)`,
+    [uiPanelBase, uiPanelMid, uiPanelDeep],
+  );
+  const uiPanelHeaderGrad = useMemo(
+    () => `radial-gradient(180% 140% at 30% 0%, ${scaleHex(uiPanelBase, 1.12)} 0%, ${uiPanelMid} 55%, ${uiPanelDeep} 100%)`,
+    [uiPanelBase, uiPanelMid, uiPanelDeep],
+  );
 
   return (
     <div
@@ -976,6 +992,9 @@ export default function App() {
         ["--accent-2" as any]: uiAccentDark,
         ["--panel" as any]: uiPanelSoft,
         ["--panel-strong" as any]: uiPanelStrong,
+        ["--panel-grad" as any]: uiPanelGrad,
+        ["--panel-grad-strong" as any]: uiPanelGradStrong,
+        ["--panel-header-grad" as any]: uiPanelHeaderGrad,
       }}
     >
       {/* BODY */}
