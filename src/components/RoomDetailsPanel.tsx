@@ -554,9 +554,6 @@ export const RoomDetailsPanel = forwardRef<RoomDetailsPanelHandle, RoomDetailsPa
             </div>
           )}
 
-          {serviceIsRecognized && (
-            <div className="hint">La couleur vient de Paramètres. Le service est sauvegardé via “Enregistrer”.</div>
-          )}
         </div>
 
         <div className="field">
