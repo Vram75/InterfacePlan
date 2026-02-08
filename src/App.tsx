@@ -1371,7 +1371,12 @@ export default function App() {
             </DraggableWindow>
 
             {selectedRoom && (
-              <DraggableWindow storageKey="iface.panel.details" defaultPosition={{ x: 470, y: 86 }} width={360}>
+              <DraggableWindow
+                storageKey="iface.panel.details"
+                defaultPosition={{ x: 470, y: 86 }}
+                width={360}
+                collapsible={false}
+              >
                 <div className="card plan-card">
                   <div className="card-content card-scroll" style={{ maxHeight: "min(72vh, 760px)" }}>
                     <RoomDetailsPanel
