@@ -1215,6 +1215,38 @@ export default function App() {
                           +
                         </button>
                       </div>
+
+                      <button
+                        className="btn btn-mini"
+                        type="button"
+                        disabled={!canDeletePolygon}
+                        onClick={() => {
+                          if (!selectedRoomId) return;
+                          setOverlayRequest({ kind: "deletePolygon", roomId: selectedRoomId });
+                        }}
+                        title={!canDeletePolygon ? "Aucun polygone sur cette page pour la pièce sélectionnée" : "Supprimer le polygone (page courante)"}
+                      >
+                        Suppr. polygone
+                      </button>
+
+                      <button
+                        className="btn btn-mini"
+                        type="button"
+                        onClick={() => {
+                          if (!selectedRoomId) return;
+                          togglePolygonLock(selectedRoomId, currentPage);
+                        }}
+                        disabled={!adminMode || !selectedRoomId || !roomHasPolygonOnPage(selectedRoom as any, currentPage)}
+                        title={
+                          !adminMode || !selectedRoomId || !roomHasPolygonOnPage(selectedRoom as any, currentPage)
+                            ? "Aucun polygone sur cette page pour la pièce sélectionnée"
+                            : selectedLocked
+                              ? "Déverrouiller le polygone (page courante)"
+                              : "Verrouiller le polygone (page courante)"
+                        }
+                      >
+                        {selectedLocked ? "Déverrouiller" : "Verrouiller"}
+                      </button>
                     </div>
 
                     {adminMode && (
@@ -1269,43 +1301,6 @@ export default function App() {
                     </div>
                   </div>
 
-                  <div className="plan-toolbar">
-                    <div className="plan-toolbar-row">
-                      <div className="plan-toolbar-group">
-                        <button
-                          className="btn btn-mini"
-                          type="button"
-                          disabled={!canDeletePolygon}
-                          onClick={() => {
-                            if (!selectedRoomId) return;
-                            setOverlayRequest({ kind: "deletePolygon", roomId: selectedRoomId });
-                          }}
-                          title={!canDeletePolygon ? "Aucun polygone sur cette page pour la pièce sélectionnée" : "Supprimer le polygone (page courante)"}
-                        >
-                          Suppr. polygone
-                        </button>
-
-                        <button
-                          className="btn btn-mini"
-                          type="button"
-                          onClick={() => {
-                            if (!selectedRoomId) return;
-                            togglePolygonLock(selectedRoomId, currentPage);
-                          }}
-                          disabled={!adminMode || !selectedRoomId || !roomHasPolygonOnPage(selectedRoom as any, currentPage)}
-                          title={
-                            !adminMode || !selectedRoomId || !roomHasPolygonOnPage(selectedRoom as any, currentPage)
-                              ? "Aucun polygone sur cette page pour la pièce sélectionnée"
-                              : selectedLocked
-                                ? "Déverrouiller le polygone (page courante)"
-                                : "Verrouiller le polygone (page courante)"
-                          }
-                        >
-                          {selectedLocked ? "Déverrouiller" : "Verrouiller"}
-                        </button>
-                      </div>
-                    </div>
-                  </div>
                 </div>
 
                 <div className="plan-viewport">

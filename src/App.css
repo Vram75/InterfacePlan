@@ -1204,7 +1204,6 @@ body{
   .plan-card{ height: auto; }
   .plan-viewport{ height: auto; min-height: 520px; }
   .plan-header-right{ align-items: flex-start; }
-  .plan-toolbar, .plan-toolbar-row{ align-items: flex-start; justify-content: flex-start; }
 }
 
 
@@ -1432,7 +1431,6 @@ input::placeholder{
 }
 
 /* Plan toolbar chips */
-.plan-toolbar,
 .plan-controls{
   background:
     radial-gradient(160% 160% at 30% 0%, #3a4659 0%, #273142 55%, #1c2432 100%);
