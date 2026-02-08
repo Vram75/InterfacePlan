@@ -285,6 +285,7 @@ export function SvgOverlay(props: {
   gridEnabled: boolean;
   gridSizePx: number;
   lockedRoomIdsOnPage?: Set<string>;
+  onHoverRoomChange?: (roomId: string | null) => void;
 }) {
   const { width: w, height: h } = props;
 
@@ -295,7 +296,7 @@ export function SvgOverlay(props: {
   const [hoverRaw, setHoverRaw] = useState<Point | null>(null);
   const [hoverSnap, setHoverSnap] = useState<Point | null>(null);
   const [, setHoverSnapInfo] = useState<DraftSnapInfo>({ kind: "none" });
-  const [hoverInfo, setHoverInfo] = useState<{ roomId: string; point: Point } | null>(null);
+  const hoverRoomRef = useRef<string | null>(null);
 
   const [localPoly, setLocalPoly] = useState<Record<string, Point[] | undefined>>({});
   const [lockedByRoom, setLockedByRoom] = useState<Record<string, boolean>>({});
@@ -690,7 +691,10 @@ export function SvgOverlay(props: {
     setHoverSnap(null);
     setHoverSnapInfo({ kind: "none" });
     setEdgePreview(null);
-    setHoverInfo(null);
+    if (hoverRoomRef.current !== null) {
+      hoverRoomRef.current = null;
+      props.onHoverRoomChange?.(null);
+    }
   }
 
   function tryAltInsertAtEvent(e: React.MouseEvent): boolean {
@@ -894,21 +898,23 @@ export function SvgOverlay(props: {
         const pts = toSvgPoints(poly, w, h);
         const d = toPathD(poly, w, h);
 
-        const showTooltip = hoverInfo?.roomId === r.id && mode.kind !== "draw";
-        let tooltipX = 0;
-        let tooltipY = 0;
-        if (showTooltip && hoverInfo) {
-          const tooltipWidth = 240;
-          const tooltipHeight = 180;
-          const padding = 8;
-          const anchorX = hoverInfo.point.x * w;
-          const anchorY = hoverInfo.point.y * h;
-          tooltipX = Math.min(w - tooltipWidth - padding, Math.max(padding, anchorX - tooltipWidth / 2));
-          tooltipY = Math.min(h - tooltipHeight - padding, Math.max(padding, anchorY - tooltipHeight - 6));
-        }
-
         return (
-          <g key={r.id}>
+          <g
+            key={r.id}
+            onMouseEnter={() => {
+              if (mode.kind === "draw") return;
+              if (hoverRoomRef.current !== r.id) {
+                hoverRoomRef.current = r.id;
+                props.onHoverRoomChange?.(r.id);
+              }
+            }}
+            onMouseLeave={() => {
+              if (hoverRoomRef.current !== null) {
+                hoverRoomRef.current = null;
+                props.onHoverRoomChange?.(null);
+              }
+            }}
+          >
             <path
               d={d}
               fill="none"
@@ -918,16 +924,6 @@ export function SvgOverlay(props: {
               onClick={(ev) => onPolygonClick(ev, r.id)}
               onDoubleClick={(ev) => onPolygonDoubleClick(ev, r.id)}
               onMouseDown={(ev) => onPolygonMouseDown(ev, r.id)}
-              onMouseMove={(ev) => {
-                const svg = svgRef.current;
-                if (!svg) return;
-                setHoverInfo({ roomId: r.id, point: pointer(svg, ev.clientX, ev.clientY) });
-              }}
-              onMouseLeave={(ev) => {
-                const next = ev.relatedTarget as Element | null;
-                if (next && next.closest?.(".poly-tooltip, .poly-tooltip-anchor")) return;
-                setHoverInfo(null);
-              }}
               style={{ cursor: "pointer" }}
             />
 
@@ -941,16 +937,6 @@ export function SvgOverlay(props: {
               onClick={(ev) => onPolygonClick(ev, r.id)}
               onDoubleClick={(ev) => onPolygonDoubleClick(ev, r.id)}
               onMouseDown={(ev) => onPolygonMouseDown(ev, r.id)}
-              onMouseMove={(ev) => {
-                const svg = svgRef.current;
-                if (!svg) return;
-                setHoverInfo({ roomId: r.id, point: pointer(svg, ev.clientX, ev.clientY) });
-              }}
-              onMouseLeave={(ev) => {
-                const next = ev.relatedTarget as Element | null;
-                if (next && next.closest?.(".poly-tooltip, .poly-tooltip-anchor")) return;
-                setHoverInfo(null);
-              }}
               style={{ cursor: "pointer" }}
             />
 
@@ -973,35 +959,6 @@ export function SvgOverlay(props: {
               {r.numero}
             </text>
 
-            {showTooltip && (
-              <foreignObject
-                x={tooltipX}
-                y={tooltipY}
-                width={240}
-                height={120}
-                pointerEvents="auto"
-                className="poly-tooltip-anchor"
-              >
-                <div
-                  className="poly-tooltip"
-                  onMouseEnter={() => setHoverInfo((prev) => prev ?? { roomId: r.id, point: c })}
-                  onMouseLeave={() => setHoverInfo(null)}
-                >
-                  <div className="poly-tooltip-header">
-                    <span className="poly-tooltip-number">{r.numero || "—"}</span>
-                    <span className="poly-tooltip-title">{r.designation || "—"}</span>
-                  </div>
-                  <div className="poly-tooltip-row">
-                    <span className="poly-tooltip-label">Service</span>
-                    <span className="poly-tooltip-value">{r.service || "—"}</span>
-                  </div>
-                  <div className="poly-tooltip-row">
-                    <span className="poly-tooltip-label">Surface</span>
-                    <span className="poly-tooltip-value">{formatSurface(r.surface)}</span>
-                  </div>
-                </div>
-              </foreignObject>
-            )}
           </g>
         );
       })}

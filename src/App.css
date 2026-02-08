@@ -568,6 +568,31 @@ body{
   margin-bottom: 12px;
 }
 
+.plan-controls-raw{
+  display: flex;
+  align-items: center;
+  min-height: 48px;
+  padding: 0 12px 10px;
+}
+
+.plan-controls-raw .poly-tooltip{
+  width: 200px;
+  max-width: 100%;
+  padding: 8px 10px;
+  border-radius: 4px;
+  gap: 4px;
+}
+
+.plan-controls-raw .poly-tooltip::after{
+  display: none;
+}
+
+.plan-controls-raw .poly-tooltip-title{
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .plan-card .meta-chip{
   color: rgba(226,232,240,0.85);
   border-color: rgba(148,163,184,0.3);
