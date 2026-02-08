@@ -1342,25 +1342,14 @@ html, body{
     0 10px 22px rgba(0,0,0,0.275);
 }
 
-.nav-item-active{
+.nav-item.active{
   background:
-    radial-gradient(
-      160% 140% at 30% 0%,
-      color-mix(in srgb, var(--accent) 85%, #172238 15%) 0%,
-      var(--accent-2) 60%,
-      #1a2744 100%
-    );
-  border-color: color-mix(in srgb, var(--accent) 65%, rgba(255,255,255,0.18));
+    radial-gradient(160% 140% at 30% 0%, #4f78bb 0%, #2f5ea6 60%, #1f3c70 100%);
+  border-color: rgba(118,170,255,0.35);
   box-shadow:
     inset 0 2px 0 rgba(255,255,255,0.09),
     inset 0 -2px 0 rgba(0,0,0,0.275),
-    0 16px 30px color-mix(in srgb, var(--accent) 35%, rgba(0,0,0,0.3));
-}
-
-.nav-item-active .nav-icon{
-  background: color-mix(in srgb, var(--accent) 70%, rgba(15,23,42,0.55));
-  border-color: color-mix(in srgb, var(--accent) 80%, rgba(255,255,255,0.2));
-  color: #ffffff;
+    0 16px 30px rgba(0,0,0,0.325);
 }
 
 /* Buttons / selects – solid gradient 3D */
@@ -1456,12 +1445,6 @@ input::placeholder{
 .sidebar-pages-hint,
 .meta-chip{
   color: var(--muted);
-}
-
-.meta-chip{
-  border-color: color-mix(in srgb, var(--accent) 60%, rgba(255,255,255,0.2));
-  background: color-mix(in srgb, var(--accent) 22%, rgba(15,23,42,0.5));
-  color: #f8fafc;
 }
 
 
