@@ -183,6 +183,11 @@ function isValidSize(n: unknown): n is number {
   return typeof n === "number" && Number.isFinite(n) && n > 0;
 }
 
+function formatSurface(surface: number | null | undefined) {
+  if (surface == null || Number.isNaN(surface)) return "—";
+  return `${surface.toLocaleString("fr-FR")} m²`;
+}
+
 // --------------------
 // Services (HEX only + picker)
 // --------------------
@@ -496,6 +501,7 @@ export default function App() {
   }, [rooms]);
 
   const [selectedRoomId, setSelectedRoomId] = useState<string | null>(null);
+  const [hoveredRoomId, setHoveredRoomId] = useState<string | null>(null);
   const [detailsRoomId, setDetailsRoomId] = useState<string | null>(null);
   const detailsPanelRef = useRef<RoomDetailsPanelHandle | null>(null);
 
@@ -589,6 +595,7 @@ export default function App() {
 
   const selectedRoom = useMemo(() => rooms.find((r) => r.id === selectedRoomId) ?? null, [rooms, selectedRoomId]);
   const detailsRoom = useMemo(() => rooms.find((r) => r.id === detailsRoomId) ?? null, [rooms, detailsRoomId]);
+  const hoveredRoom = useMemo(() => rooms.find((r) => r.id === hoveredRoomId) ?? null, [rooms, hoveredRoomId]);
 
   // Clamp current page when pageCount changes
   useEffect(() => {
@@ -1424,6 +1431,28 @@ export default function App() {
                     </div>
                   </div>
 
+                  <div className="plan-controls-raw">
+                    {hoveredRoom ? (
+                      <div className="plan-room-tooltip">
+                        <div className="plan-room-tooltip-header">
+                          <span className="plan-room-tooltip-number">{hoveredRoom.numero || "—"}</span>
+                          <span className="plan-room-tooltip-title">{hoveredRoom.designation || "—"}</span>
+                        </div>
+                        <div className="plan-room-tooltip-row">
+                          <span className="plan-room-tooltip-label">Service</span>
+                          <span className="plan-room-tooltip-value">{hoveredRoom.service || "—"}</span>
+                        </div>
+                        <div className="plan-room-tooltip-row">
+                          <span className="plan-room-tooltip-label">Surface</span>
+                          <span className="plan-room-tooltip-value">{formatSurface(hoveredRoom.surface)}</span>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="plan-room-tooltip plan-room-tooltip-empty">
+                        Survolez une pièce pour afficher ses informations.
+                      </div>
+                    )}
+                  </div>
                 </div>
 
                 <div className="plan-viewport">
@@ -1452,6 +1481,7 @@ export default function App() {
                             setSelectedRoomId(roomId);
                             setDetailsRoomId((prev) => (roomId && prev === roomId ? prev : null));
                           }}
+                          onRoomHover={setHoveredRoomId}
                           onPolygonDoubleClick={(roomId) => {
                             setSelectedRoomId(roomId);
                             setDetailsRoomId(roomId);

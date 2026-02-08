@@ -269,6 +269,7 @@ export function SvgOverlay(props: {
 
   selectedRoomId: string | null;
   onSelectRoom: (id: string | null) => void;
+  onRoomHover?: (id: string | null) => void;
   onPolygonDoubleClick?: (roomId: string) => void;
 
   adminMode: boolean;
@@ -649,9 +650,13 @@ export function SvgOverlay(props: {
   }, [props.adminMode, mode, localPoly, props.gridEnabled, props.gridSizePx, w, h, props.onPolygonCommit]);
 
   function onSvgMouseMove(e: React.MouseEvent) {
-    if (!props.adminMode) return;
     const svg = svgRef.current;
     if (!svg) return;
+    if (props.onRoomHover && e.target === svg) {
+      props.onRoomHover(null);
+    }
+
+    if (!props.adminMode) return;
 
     const raw = pointer(svg, e.clientX, e.clientY);
 
@@ -691,6 +696,7 @@ export function SvgOverlay(props: {
     setHoverSnapInfo({ kind: "none" });
     setEdgePreview(null);
     setHoverInfo(null);
+    props.onRoomHover?.(null);
   }
 
   function tryAltInsertAtEvent(e: React.MouseEvent): boolean {
@@ -922,11 +928,13 @@ export function SvgOverlay(props: {
                 const svg = svgRef.current;
                 if (!svg) return;
                 setHoverInfo({ roomId: r.id, point: pointer(svg, ev.clientX, ev.clientY) });
+                props.onRoomHover?.(r.id);
               }}
               onMouseLeave={(ev) => {
                 const next = ev.relatedTarget as Element | null;
                 if (next && next.closest?.(".poly-tooltip, .poly-tooltip-anchor")) return;
                 setHoverInfo(null);
+                props.onRoomHover?.(null);
               }}
               style={{ cursor: "pointer" }}
             />
@@ -945,11 +953,13 @@ export function SvgOverlay(props: {
                 const svg = svgRef.current;
                 if (!svg) return;
                 setHoverInfo({ roomId: r.id, point: pointer(svg, ev.clientX, ev.clientY) });
+                props.onRoomHover?.(r.id);
               }}
               onMouseLeave={(ev) => {
                 const next = ev.relatedTarget as Element | null;
                 if (next && next.closest?.(".poly-tooltip, .poly-tooltip-anchor")) return;
                 setHoverInfo(null);
+                props.onRoomHover?.(null);
               }}
               style={{ cursor: "pointer" }}
             />
@@ -984,8 +994,14 @@ export function SvgOverlay(props: {
               >
                 <div
                   className="poly-tooltip"
-                  onMouseEnter={() => setHoverInfo((prev) => prev ?? { roomId: r.id, point: c })}
-                  onMouseLeave={() => setHoverInfo(null)}
+                  onMouseEnter={() => {
+                    setHoverInfo((prev) => prev ?? { roomId: r.id, point: c });
+                    props.onRoomHover?.(r.id);
+                  }}
+                  onMouseLeave={() => {
+                    setHoverInfo(null);
+                    props.onRoomHover?.(null);
+                  }}
                 >
                   <div className="poly-tooltip-header">
                     <span className="poly-tooltip-number">{r.numero || "—"}</span>
