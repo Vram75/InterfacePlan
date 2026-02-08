@@ -28,6 +28,7 @@ export function DraggableWindow(props: {
   storageKey: string;
   defaultPosition: Position;
   width: number;
+  collapsible?: boolean;
   children: React.ReactNode;
 }) {
   const [pos, setPos] = useState<Position>(() => readStoredPosition(props.storageKey, props.defaultPosition));
@@ -41,6 +42,7 @@ export function DraggableWindow(props: {
   }, [props.storageKey, pos]);
 
   useEffect(() => {
+    if (props.collapsible === false) return;
     const root = rootRef.current;
     if (!root) return;
 
@@ -84,7 +86,7 @@ export function DraggableWindow(props: {
         }
       });
     };
-  }, [pos.x, pos.y]);
+  }, [pos.x, pos.y, props.collapsible]);
 
   useEffect(() => {
     const onMouseMove = (e: MouseEvent) => {
@@ -116,7 +118,7 @@ export function DraggableWindow(props: {
   return (
     <div
       ref={rootRef}
-      className={`floating-card-window${collapsed ? " is-collapsed" : ""}`}
+      className={`floating-card-window${collapsed && props.collapsible !== false ? " is-collapsed" : ""}`}
       style={{ left: pos.x, top: pos.y, width: props.width, zIndex: z }}
       onMouseDown={() => setZ((prev) => prev + 1)}
     >
