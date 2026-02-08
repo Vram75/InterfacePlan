@@ -1336,6 +1336,9 @@ export default function App() {
                           services={services.map(({ uid: _uid, ...rest }) => rest)}
                           selectedRoomId={selectedRoomId}
                           onSelectRoom={setSelectedRoomId}
+                          onPolygonDoubleClick={(roomId) => {
+                            setSelectedRoomId(roomId);
+                          }}
                           adminMode={adminMode}
                           drawingRoomId={drawingRoomId}
                           drawSessionId={drawSessionId}

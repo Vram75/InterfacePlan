@@ -269,6 +269,7 @@ export function SvgOverlay(props: {
 
   selectedRoomId: string | null;
   onSelectRoom: (id: string | null) => void;
+  onPolygonDoubleClick?: (roomId: string) => void;
 
   adminMode: boolean;
   drawingRoomId: string | null;
@@ -804,6 +805,14 @@ export function SvgOverlay(props: {
     props.onSelectRoom(roomId);
   }
 
+  function onPolygonDoubleClick(e: React.MouseEvent, roomId: string) {
+    e.preventDefault();
+    e.stopPropagation();
+    if (mode.kind === "draw") return;
+    props.onSelectRoom(roomId);
+    props.onPolygonDoubleClick?.(roomId);
+  }
+
   function onHandleMouseDown(e: React.MouseEvent, roomId: string, idx: number) {
     if (!props.adminMode) return;
     if (isRoomLocked(roomId)) return;
@@ -907,6 +916,7 @@ export function SvgOverlay(props: {
               strokeWidth={UI.edgeHitStrokePx}
               pointerEvents="stroke"
               onClick={(ev) => onPolygonClick(ev, r.id)}
+              onDoubleClick={(ev) => onPolygonDoubleClick(ev, r.id)}
               onMouseDown={(ev) => onPolygonMouseDown(ev, r.id)}
               onMouseMove={(ev) => {
                 const svg = svgRef.current;
@@ -929,6 +939,7 @@ export function SvgOverlay(props: {
               strokeWidth={selected ? UI.strokeWidthSelected : UI.strokeWidth}
               strokeDasharray={locked ? "6 4" : undefined}
               onClick={(ev) => onPolygonClick(ev, r.id)}
+              onDoubleClick={(ev) => onPolygonDoubleClick(ev, r.id)}
               onMouseDown={(ev) => onPolygonMouseDown(ev, r.id)}
               onMouseMove={(ev) => {
                 const svg = svgRef.current;
