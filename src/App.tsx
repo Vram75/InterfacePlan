@@ -1147,32 +1147,6 @@ export default function App() {
         {pageView === "plans" && (
           <main className="dash-main">
             <div className="card plan-card">
-              <div className="card-header">
-                <div>
-                  <div className="card-title">Plan</div>
-                </div>
-                <div className="plan-header-right">
-                  <label className="switch switch-compact" title="Snap (S)">
-                    <input type="checkbox" checked={snapUi} onChange={toggleSnapFromButton} />
-                    <span className="switch-track" />
-                    <span className="switch-label">Snap</span>
-                  </label>
-
-                  <label className="switch switch-compact" title="Activer/désactiver l’édition">
-                    <input
-                      type="checkbox"
-                      checked={adminMode}
-                      onChange={(e) => {
-                        setAdminMode(e.target.checked);
-                        setDrawingRoomId(null);
-                        setDrawSessionId((x) => x + 1);
-                      }}
-                    />
-                    <span className="switch-track" />
-                    <span className="switch-label">Admin</span>
-                  </label>
-                </div>
-              </div>
               <div className="card-content plan-content">
                 <div className="plan-controls">
                   <div className="plan-controls-row">
@@ -1274,6 +1248,28 @@ export default function App() {
                         </div>
                       </div>
                     )}
+
+                    <div className="plan-header-right">
+                      <label className="switch switch-compact" title="Snap (S)">
+                        <input type="checkbox" checked={snapUi} onChange={toggleSnapFromButton} />
+                        <span className="switch-track" />
+                        <span className="switch-label">Snap</span>
+                      </label>
+
+                      <label className="switch switch-compact" title="Activer/désactiver l’édition">
+                        <input
+                          type="checkbox"
+                          checked={adminMode}
+                          onChange={(e) => {
+                            setAdminMode(e.target.checked);
+                            setDrawingRoomId(null);
+                            setDrawSessionId((x) => x + 1);
+                          }}
+                        />
+                        <span className="switch-track" />
+                        <span className="switch-label">Admin</span>
+                      </label>
+                    </div>
                   </div>
 
                   <div className="plan-toolbar">
