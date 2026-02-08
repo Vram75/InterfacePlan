@@ -29,6 +29,8 @@ const UI_ZOOM_MAX = 1.1;
 const UI_ZOOM_DEFAULT = 0.75;
 const UI_ACCENT_KEY = "iface.uiAccent";
 const UI_ACCENT_DEFAULT = "#4c86d8";
+const UI_PANEL_KEY = "iface.uiPanelColor";
+const UI_PANEL_DEFAULT = "#ffffff";
 
 type PageView = "dashboard" | "plans" | "settings";
 type ServiceEntry = ServiceColor & { uid: string };
@@ -126,6 +128,15 @@ function scaleHex(hex: string, factor: number): string {
   return `#${toHexByte(r)}${toHexByte(g)}${toHexByte(b)}`;
 }
 
+function rgbaFromHex(hex: string, alpha: number, fallback: string) {
+  if (!isHexColor(hex)) return fallback;
+  const r = parseInt(hex.slice(1, 3), 16);
+  const g = parseInt(hex.slice(3, 5), 16);
+  const b = parseInt(hex.slice(5, 7), 16);
+  const safeAlpha = Math.min(1, Math.max(0, alpha));
+  return `rgba(${r}, ${g}, ${b}, ${safeAlpha})`;
+}
+
 function readUiAccent(): string {
   try {
     const v = localStorage.getItem(UI_ACCENT_KEY);
@@ -139,6 +150,22 @@ function readUiAccent(): string {
 function writeUiAccent(v: string) {
   try {
     localStorage.setItem(UI_ACCENT_KEY, isHexColor(v) ? v : UI_ACCENT_DEFAULT);
+  } catch {}
+}
+
+function readUiPanelColor(): string {
+  try {
+    const v = localStorage.getItem(UI_PANEL_KEY);
+    if (!v) return UI_PANEL_DEFAULT;
+    return isHexColor(v) ? v : UI_PANEL_DEFAULT;
+  } catch {
+    return UI_PANEL_DEFAULT;
+  }
+}
+
+function writeUiPanelColor(v: string) {
+  try {
+    localStorage.setItem(UI_PANEL_KEY, isHexColor(v) ? v : UI_PANEL_DEFAULT);
   } catch {}
 }
 
@@ -497,6 +524,7 @@ export default function App() {
   const [gridSizePx, setGridSizePx] = useState<number>(() => readGridSizePx());
   const [uiZoom, setUiZoom] = useState<number>(() => readUiZoom());
   const [uiAccent, setUiAccent] = useState<string>(() => readUiAccent());
+  const [uiPanelColor, setUiPanelColor] = useState<string>(() => readUiPanelColor());
 
   useEffect(() => {
     writeUiZoom(uiZoom);
@@ -505,6 +533,10 @@ export default function App() {
   useEffect(() => {
     writeUiAccent(uiAccent);
   }, [uiAccent]);
+
+  useEffect(() => {
+    writeUiPanelColor(uiPanelColor);
+  }, [uiPanelColor]);
 
   const [overlayRequest, setOverlayRequest] = useState<OverlayRequest>({ kind: "none" });
 
@@ -932,9 +964,20 @@ export default function App() {
   const overlayReady = isValidSize(size.w) && isValidSize(size.h);
 
   const uiAccentDark = useMemo(() => scaleHex(uiAccent, 0.65), [uiAccent]);
+  const uiPanelBase = useMemo(() => (isHexColor(uiPanelColor) ? uiPanelColor : UI_PANEL_DEFAULT), [uiPanelColor]);
+  const uiPanelSoft = useMemo(() => rgbaFromHex(uiPanelBase, 0.72, "rgba(255,255,255,0.72)"), [uiPanelBase]);
+  const uiPanelStrong = useMemo(() => rgbaFromHex(uiPanelBase, 0.9, "rgba(255,255,255,0.9)"), [uiPanelBase]);
 
   return (
-    <div className="dash-root" style={{ ["--accent" as any]: uiAccent, ["--accent-2" as any]: uiAccentDark }}>
+    <div
+      className="dash-root"
+      style={{
+        ["--accent" as any]: uiAccent,
+        ["--accent-2" as any]: uiAccentDark,
+        ["--panel" as any]: uiPanelSoft,
+        ["--panel-strong" as any]: uiPanelStrong,
+      }}
+    >
       {/* BODY */}
       <div className={`dash-body ${pageView === "plans" ? "dash-body--floating-panels" : ""}`}>
         {/* SIDEBAR */}
@@ -1091,6 +1134,23 @@ export default function App() {
                             title="Choisir une couleur"
                           />
                           <span className="color-hex">{(isHexColor(uiAccent) ? uiAccent : UI_ACCENT_DEFAULT).toUpperCase()}</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="field">
+                      <label className="label">Couleur des panneaux</label>
+                      <div className="settings-row">
+                        <div className="color-cell">
+                          <input
+                            className="color-input"
+                            type="color"
+                            value={isHexColor(uiPanelColor) ? uiPanelColor : UI_PANEL_DEFAULT}
+                            onChange={(e) => setUiPanelColor(e.target.value)}
+                            aria-label="Couleur des panneaux"
+                            title="Choisir une couleur"
+                          />
+                          <span className="color-hex">{(isHexColor(uiPanelColor) ? uiPanelColor : UI_PANEL_DEFAULT).toUpperCase()}</span>
                         </div>
                       </div>
                     </div>
