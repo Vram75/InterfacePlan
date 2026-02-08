@@ -180,6 +180,9 @@ body{
   cursor: pointer;
   color: #ffffff;
 }
+.nav-item + .nav-item{
+  margin-top: 5px;
+}
 .nav-item:hover{
   background: rgba(248,250,252,0.08);
   border-color: rgba(148,163,184,0.35);
