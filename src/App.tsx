@@ -988,9 +988,6 @@ export default function App() {
                 )}
               </div>
 
-              <div className="sidebar-pages-hint">
-                Astuce : <b>Ctrl/⌘ + F</b> pour focus le filtre
-              </div>
             </>
           )}
 
