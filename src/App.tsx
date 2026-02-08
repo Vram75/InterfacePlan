@@ -1094,6 +1094,25 @@ export default function App() {
                         </div>
                       </div>
                     </div>
+
+                    <div className="field">
+                      <label className="label">Espace UI</label>
+                      <div className="settings-row">
+                        <input
+                          className="select"
+                          type="number"
+                          min={UI_ZOOM_MIN}
+                          max={UI_ZOOM_MAX}
+                          step={0.01}
+                          value={uiZoom}
+                          onChange={(e) => {
+                            const n = Number(e.target.value);
+                            if (!Number.isFinite(n)) return;
+                            setUiZoom(clampUiZoom(n));
+                          }}
+                        />
+                      </div>
+                    </div>
                   </div>
                 </section>
 
@@ -1226,23 +1245,6 @@ export default function App() {
                       >
                         ▶
                       </button>
-                    </div>
-
-                    <div className="plan-field-inline plan-field-compact plan-subbar-field">
-                      <span className="plan-field-label">Espace UI</span>
-                      <input
-                        className="select plan-number plan-number-compact"
-                        type="number"
-                        min={UI_ZOOM_MIN}
-                        max={UI_ZOOM_MAX}
-                        step={0.01}
-                        value={uiZoom}
-                        onChange={(e) => {
-                          const n = Number(e.target.value);
-                          if (!Number.isFinite(n)) return;
-                          setUiZoom(clampUiZoom(n));
-                        }}
-                      />
                     </div>
 
                     <div className="plan-toolbar-group">
