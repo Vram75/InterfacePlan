@@ -369,11 +369,16 @@ export const RoomDetailsPanel = forwardRef<RoomDetailsPanelHandle, RoomDetailsPa
 
   const [cropFile, setCropFile] = useState<File | null>(null);
   const [selectedPhotoName, setSelectedPhotoName] = useState<string | null>(null);
+  const lastRoomIdRef = useRef<string | null>(null);
 
   useEffect(() => {
     setDraft(props.room ? { ...props.room } : null);
     setError(null);
-    setSelectedPhotoName(null);
+    const nextRoomId = props.room?.id ?? null;
+    if (lastRoomIdRef.current !== nextRoomId) {
+      setSelectedPhotoName(null);
+      lastRoomIdRef.current = nextRoomId;
+    }
   }, [props.room]);
 
   const save = useCallback(async () => {
