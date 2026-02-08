@@ -27,7 +27,9 @@ const UI_ZOOM_KEY = "iface.uiZoom";
 const UI_ZOOM_MIN = 0.7;
 const UI_ZOOM_MAX = 1.1;
 const UI_ZOOM_DEFAULT = 0.75;
+const UI_ACCENT_KEY = "iface.uiAccent";
 const UI_ACCENT_DEFAULT = "#4c86d8";
+const UI_PANEL_KEY = "iface.uiPanelColor";
 const UI_PANEL_DEFAULT = "#ffffff";
 
 type PageView = "dashboard" | "plans" | "settings";
@@ -135,6 +137,38 @@ function rgbaFromHex(hex: string, alpha: number, fallback: string) {
   return `rgba(${r}, ${g}, ${b}, ${safeAlpha})`;
 }
 
+function readUiAccent(): string {
+  try {
+    const v = localStorage.getItem(UI_ACCENT_KEY);
+    if (!v) return UI_ACCENT_DEFAULT;
+    return isHexColor(v) ? v : UI_ACCENT_DEFAULT;
+  } catch {
+    return UI_ACCENT_DEFAULT;
+  }
+}
+
+function writeUiAccent(v: string) {
+  try {
+    localStorage.setItem(UI_ACCENT_KEY, isHexColor(v) ? v : UI_ACCENT_DEFAULT);
+  } catch {}
+}
+
+function readUiPanelColor(): string {
+  try {
+    const v = localStorage.getItem(UI_PANEL_KEY);
+    if (!v) return UI_PANEL_DEFAULT;
+    return isHexColor(v) ? v : UI_PANEL_DEFAULT;
+  } catch {
+    return UI_PANEL_DEFAULT;
+  }
+}
+
+function writeUiPanelColor(v: string) {
+  try {
+    localStorage.setItem(UI_PANEL_KEY, isHexColor(v) ? v : UI_PANEL_DEFAULT);
+  } catch {}
+}
+
 function clampScale(next: number) {
   return Math.min(3, Math.max(0.4, +next.toFixed(2)));
 }
@@ -150,7 +184,7 @@ function isValidSize(n: unknown): n is number {
 }
 
 // --------------------
-// Services (deterministic colors)
+// Services (HEX only + picker)
 // --------------------
 function normalizeServiceName(s: string) {
   return s.trim();
@@ -183,7 +217,9 @@ function defaultColorForService(service: string): string {
   const b = 160 + (h & 0x3f);
   return `#${toHexByte(r)}${toHexByte(g)}${toHexByte(b)}`;
 }
-function sanitizeServiceColor(service: string, _color: string | undefined | null): string {
+function sanitizeServiceColor(service: string, color: string | undefined | null): string {
+  const c = (color || "").trim();
+  if (isHexColor(c)) return c;
   return defaultColorForService(service);
 }
 function sortServicesStable(list: ServiceEntry[]) {
@@ -487,10 +523,20 @@ export default function App() {
   const [gridEnabled, setGridEnabled] = useState<boolean>(() => readGridEnabled());
   const [gridSizePx, setGridSizePx] = useState<number>(() => readGridSizePx());
   const [uiZoom, setUiZoom] = useState<number>(() => readUiZoom());
+  const [uiAccent, setUiAccent] = useState<string>(() => readUiAccent());
+  const [uiPanelColor, setUiPanelColor] = useState<string>(() => readUiPanelColor());
 
   useEffect(() => {
     writeUiZoom(uiZoom);
   }, [uiZoom]);
+
+  useEffect(() => {
+    writeUiAccent(uiAccent);
+  }, [uiAccent]);
+
+  useEffect(() => {
+    writeUiPanelColor(uiPanelColor);
+  }, [uiPanelColor]);
 
   const [overlayRequest, setOverlayRequest] = useState<OverlayRequest>({ kind: "none" });
 
@@ -506,6 +552,8 @@ export default function App() {
 
   // Settings inputs
   const [newServiceName, setNewServiceName] = useState("");
+  const [newServiceColor, setNewServiceColor] = useState<string>("#aab4c2");
+  const [newServiceColorTouched, setNewServiceColorTouched] = useState(false);
 
   // Initial load
   useEffect(() => {
@@ -763,6 +811,7 @@ export default function App() {
     const name = normalizeServiceName(newServiceName);
     if (!name) return;
 
+    const color = isHexColor(newServiceColor) ? newServiceColor : defaultColorForService(name);
     const key = serviceKey(name);
 
     setServices((prev) => {
@@ -773,13 +822,15 @@ export default function App() {
         map.set(serviceKey(n), { ...s, service: n, color: sanitizeServiceColor(n, s.color) });
       }
       const existing = map.get(key);
-      if (existing) map.set(key, { ...existing, service: name, color: sanitizeServiceColor(name, existing.color) });
-      else map.set(key, { uid: makeUid(), service: name, color: sanitizeServiceColor(name, null) });
+      if (existing) map.set(key, { ...existing, service: name, color: sanitizeServiceColor(name, color) });
+      else map.set(key, { uid: makeUid(), service: name, color: sanitizeServiceColor(name, color) });
 
       return sortServicesStable(Array.from(map.values()));
     });
 
     setNewServiceName("");
+    setNewServiceColor("#aab4c2");
+    setNewServiceColorTouched(false);
   }
 
   function updateService(uid: string, patch: Partial<ServiceColor>) {
@@ -912,18 +963,10 @@ export default function App() {
   const canDeletePolygon = adminMode && !!selectedRoomId && roomHasPolygonOnPage(selectedRoom as any, currentPage) && !selectedLocked;
   const overlayReady = isValidSize(size.w) && isValidSize(size.h);
 
-  const uiAccent = UI_ACCENT_DEFAULT;
-  const uiAccentDark = scaleHex(uiAccent, 0.65);
-  const uiPanelBase = UI_PANEL_DEFAULT;
-  const uiPanelSoft = rgbaFromHex(uiPanelBase, 0.72, "rgba(255,255,255,0.72)");
-  const uiPanelStrong = rgbaFromHex(uiPanelBase, 0.9, "rgba(255,255,255,0.9)");
-  const uiPanelHighlight = scaleHex(uiPanelBase, 1.08);
-  const uiPanelMid = scaleHex(uiPanelBase, 0.9);
-  const uiPanelDark = scaleHex(uiPanelBase, 0.7);
-  const uiPanelDeep = scaleHex(uiPanelBase, 0.55);
-  const uiPanelGrad = `radial-gradient(140% 120% at 30% 10%, ${uiPanelHighlight} 0%, ${uiPanelMid} 45%, ${uiPanelDark} 100%)`;
-  const uiPanelGradStrong = `radial-gradient(140% 120% at 30% 10%, ${scaleHex(uiPanelBase, 1.02)} 0%, ${uiPanelMid} 42%, ${uiPanelDeep} 100%)`;
-  const uiPanelHeaderGrad = `radial-gradient(180% 140% at 30% 0%, ${scaleHex(uiPanelBase, 1.12)} 0%, ${uiPanelMid} 55%, ${uiPanelDeep} 100%)`;
+  const uiAccentDark = useMemo(() => scaleHex(uiAccent, 0.65), [uiAccent]);
+  const uiPanelBase = useMemo(() => (isHexColor(uiPanelColor) ? uiPanelColor : UI_PANEL_DEFAULT), [uiPanelColor]);
+  const uiPanelSoft = useMemo(() => rgbaFromHex(uiPanelBase, 0.72, "rgba(255,255,255,0.72)"), [uiPanelBase]);
+  const uiPanelStrong = useMemo(() => rgbaFromHex(uiPanelBase, 0.9, "rgba(255,255,255,0.9)"), [uiPanelBase]);
 
   return (
     <div
@@ -933,9 +976,6 @@ export default function App() {
         ["--accent-2" as any]: uiAccentDark,
         ["--panel" as any]: uiPanelSoft,
         ["--panel-strong" as any]: uiPanelStrong,
-        ["--panel-grad" as any]: uiPanelGrad,
-        ["--panel-grad-strong" as any]: uiPanelGradStrong,
-        ["--panel-header-grad" as any]: uiPanelHeaderGrad,
       }}
     >
       {/* BODY */}
@@ -1075,12 +1115,46 @@ export default function App() {
                 <section className="card settings-card">
                   <div className="card-header">
                     <div>
-                      <div className="card-title">Affichage</div>
+                      <div className="card-title">Personnalisation</div>
                       <div className="card-subtitle"></div>
                     </div>
                   </div>
 
                   <div className="card-content">
+                    <div className="field">
+                      <label className="label">Couleur de l’interface</label>
+                      <div className="settings-row">
+                        <div className="color-cell">
+                          <input
+                            className="color-input"
+                            type="color"
+                            value={isHexColor(uiAccent) ? uiAccent : UI_ACCENT_DEFAULT}
+                            onChange={(e) => setUiAccent(e.target.value)}
+                            aria-label="Couleur de l’interface"
+                            title="Choisir une couleur"
+                          />
+                          <span className="color-hex">{(isHexColor(uiAccent) ? uiAccent : UI_ACCENT_DEFAULT).toUpperCase()}</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="field">
+                      <label className="label">Couleur des panneaux</label>
+                      <div className="settings-row">
+                        <div className="color-cell">
+                          <input
+                            className="color-input"
+                            type="color"
+                            value={isHexColor(uiPanelColor) ? uiPanelColor : UI_PANEL_DEFAULT}
+                            onChange={(e) => setUiPanelColor(e.target.value)}
+                            aria-label="Couleur des panneaux"
+                            title="Choisir une couleur"
+                          />
+                          <span className="color-hex">{(isHexColor(uiPanelColor) ? uiPanelColor : UI_PANEL_DEFAULT).toUpperCase()}</span>
+                        </div>
+                      </div>
+                    </div>
+
                     <div className="field">
                       <label className="label">Espace UI</label>
                       <div className="settings-row">
@@ -1121,8 +1195,24 @@ export default function App() {
                           onChange={(e) => {
                             const v = e.target.value;
                             setNewServiceName(v);
+                            if (!newServiceColorTouched) setNewServiceColor(defaultColorForService(v || "Service"));
                           }}
                         />
+
+                        <div className="color-cell">
+                          <input
+                            className="color-input"
+                            type="color"
+                            value={isHexColor(newServiceColor) ? newServiceColor : "#aab4c2"}
+                            onChange={(e) => {
+                              setNewServiceColorTouched(true);
+                              setNewServiceColor(e.target.value);
+                            }}
+                            aria-label="Couleur"
+                            title="Choisir une couleur"
+                          />
+                          <span className="color-hex">{(isHexColor(newServiceColor) ? newServiceColor : "#aab4c2").toUpperCase()}</span>
+                        </div>
 
                         <button className="btn btn-mini" type="button" onClick={addService}>
                           Ajouter
@@ -1158,7 +1248,21 @@ export default function App() {
                       <div className="service-list">
                         {services.map((s) => (
                           <div className="service-row" key={s.uid}>
+                            <div className="swatch" style={{ background: sanitizeServiceColor(s.service, s.color) }} />
+
                             <input className="select" value={s.service} onChange={(e) => updateService(s.uid, { service: e.target.value })} onBlur={() => normalizeAndSortServices()} />
+
+                            <div className="color-cell">
+                              <input
+                                className="color-input"
+                                type="color"
+                                value={sanitizeServiceColor(s.service, s.color)}
+                                onChange={(e) => updateService(s.uid, { color: e.target.value })}
+                                aria-label={`Couleur ${s.service}`}
+                                title="Choisir une couleur"
+                              />
+                              <span className="color-hex">{sanitizeServiceColor(s.service, s.color).toUpperCase()}</span>
+                            </div>
 
                             <button className="btn btn-mini" type="button" onClick={() => removeService(s.uid)}>
                               Suppr.
