@@ -496,6 +496,7 @@ export default function App() {
   }, [rooms]);
 
   const [selectedRoomId, setSelectedRoomId] = useState<string | null>(null);
+  const [hoverRoomId, setHoverRoomId] = useState<string | null>(null);
   const [detailsRoomId, setDetailsRoomId] = useState<string | null>(null);
   const detailsPanelRef = useRef<RoomDetailsPanelHandle | null>(null);
 
@@ -588,6 +589,12 @@ export default function App() {
   }, []);
 
   const selectedRoom = useMemo(() => rooms.find((r) => r.id === selectedRoomId) ?? null, [rooms, selectedRoomId]);
+  const hoverRoom = useMemo(() => rooms.find((r) => r.id === hoverRoomId) ?? null, [rooms, hoverRoomId]);
+
+  const formatSurface = (surface: number | null | undefined) => {
+    if (surface == null || Number.isNaN(surface)) return "—";
+    return `${surface.toLocaleString("fr-FR")} m²`;
+  };
   const detailsRoom = useMemo(() => rooms.find((r) => r.id === detailsRoomId) ?? null, [rooms, detailsRoomId]);
 
   // Clamp current page when pageCount changes
@@ -1423,7 +1430,24 @@ export default function App() {
                       </label>
                     </div>
                   </div>
-
+                  <div className="plan-controls-raw" aria-live="polite">
+                    {hoverRoom && (
+                      <div className="poly-tooltip">
+                        <div className="poly-tooltip-header">
+                          <span className="poly-tooltip-number">{hoverRoom.numero || "—"}</span>
+                          <span className="poly-tooltip-title">{hoverRoom.designation || "—"}</span>
+                        </div>
+                        <div className="poly-tooltip-row">
+                          <span className="poly-tooltip-label">Service</span>
+                          <span className="poly-tooltip-value">{hoverRoom.service || "—"}</span>
+                        </div>
+                        <div className="poly-tooltip-row">
+                          <span className="poly-tooltip-label">Surface</span>
+                          <span className="poly-tooltip-value">{formatSurface(hoverRoom.surface)}</span>
+                        </div>
+                      </div>
+                    )}
+                  </div>
                 </div>
 
                 <div className="plan-viewport">
@@ -1465,6 +1489,7 @@ export default function App() {
                           gridEnabled={gridEnabled}
                           gridSizePx={gridSizePx}
                           lockedRoomIdsOnPage={lockedRoomIdsOnPage}
+                          onHoverRoomChange={setHoverRoomId}
                         />
                       )}
                     </div>
