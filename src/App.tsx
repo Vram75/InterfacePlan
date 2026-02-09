@@ -1334,25 +1334,32 @@ export default function App() {
                     </div>
 
                     <div className="plan-toolbar-group">
-                      <div className="plan-field-inline plan-field-compact" title="Taille de grille (px)">
-                        <label className="switch switch-compact plan-field-label" title="Afficher/masquer la grille">
-                          <input type="checkbox" checked={gridEnabled} onChange={toggleGridFromButton} />
+                      <div className="plan-grid-controls">
+                        <div className="plan-field-inline plan-field-compact" title="Taille de grille (px)">
+                          <label className="switch switch-compact plan-field-label" title="Afficher/masquer la grille">
+                            <input type="checkbox" checked={gridEnabled} onChange={toggleGridFromButton} />
+                            <span className="switch-track" />
+                            <span className="switch-label">Grille</span>
+                          </label>
+                          <input
+                            className="select plan-number plan-number-compact"
+                            type="number"
+                            min={4}
+                            max={200}
+                            step={1}
+                            value={gridSizePx}
+                            onChange={(e) => {
+                              const n = Math.min(200, Math.max(4, Math.round(Number(e.target.value) || 0)));
+                              setGridSizePx(n);
+                              writeGridSizePx(n);
+                            }}
+                          />
+                        </div>
+                        <label className="switch switch-compact plan-grid-snap" title="Snap (S)">
+                          <input type="checkbox" checked={snapUi} onChange={toggleSnapFromButton} />
                           <span className="switch-track" />
-                          <span className="switch-label">Grille</span>
+                          <span className="switch-label">Snap</span>
                         </label>
-                        <input
-                          className="select plan-number plan-number-compact"
-                          type="number"
-                          min={4}
-                          max={200}
-                          step={1}
-                          value={gridSizePx}
-                          onChange={(e) => {
-                            const n = Math.min(200, Math.max(4, Math.round(Number(e.target.value) || 0)));
-                            setGridSizePx(n);
-                            writeGridSizePx(n);
-                          }}
-                        />
                       </div>
 
                       <div className="plan-zoom-group">
@@ -1441,12 +1448,6 @@ export default function App() {
                           <line x1="16.65" y1="16.65" x2="21" y2="21" />
                         </svg>
                       </button>
-                      <label className="switch switch-compact" title="Snap (S)">
-                        <input type="checkbox" checked={snapUi} onChange={toggleSnapFromButton} />
-                        <span className="switch-track" />
-                        <span className="switch-label">Snap</span>
-                      </label>
-
                       <div className="plan-controls-raw" aria-live="polite">
                         <div className="poly-tooltip">
                           <div className="poly-tooltip-header">

@@ -663,6 +663,17 @@ body{
   gap: 6px;
 }
 
+.plan-grid-controls{
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+}
+
+.plan-grid-snap{
+  align-self: flex-start;
+}
+
 .plan-zoom-group{
   display: inline-flex;
   align-items: center;
