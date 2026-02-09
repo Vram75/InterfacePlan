@@ -670,6 +670,19 @@ body{
   gap: 6px;
 }
 
+.plan-grid-frame{
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+}
+
+.plan-grid-row{
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
 .plan-grid-snap{
   align-self: flex-start;
 }
