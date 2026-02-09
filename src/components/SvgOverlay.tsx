@@ -496,7 +496,7 @@ export function SvgOverlay(props: {
     let raw = raw0;
 
     if (shiftKey && draft.length >= 1) raw = applyOrthogonal(raw, draft[draft.length - 1]);
-    if (props.gridEnabled) raw = snapPointToGrid(raw, props.gridSizePx, w, h);
+    if (snapEnabled) raw = snapPointToGrid(raw, props.gridSizePx, w, h);
 
     if (!snapEnabled) return { snapped: raw, info: { kind: "none" } };
 
@@ -586,7 +586,7 @@ export function SvgOverlay(props: {
 
       if (mode.kind === "dragVertex") {
         const raw = pointer(svg, ev.clientX, ev.clientY);
-        const p0 = props.gridEnabled ? snapPointToGrid(raw, props.gridSizePx, w, h) : raw;
+        const p0 = snapEnabled ? snapPointToGrid(raw, props.gridSizePx, w, h) : raw;
 
         const poly = localPoly[mode.roomId];
         if (!poly) return;
@@ -604,7 +604,7 @@ export function SvgOverlay(props: {
         let dx = raw.x - mode.start.x;
         let dy = raw.y - mode.start.y;
 
-        if (props.gridEnabled) {
+        if (snapEnabled) {
           const dxPx = dx * w;
           const dyPx = dy * h;
           const gs = Math.max(2, props.gridSizePx);
@@ -647,7 +647,7 @@ export function SvgOverlay(props: {
       window.removeEventListener("mousemove", onMove);
       window.removeEventListener("mouseup", onUp);
     };
-  }, [props.adminMode, mode, localPoly, props.gridEnabled, props.gridSizePx, w, h, props.onPolygonCommit]);
+  }, [props.adminMode, mode, localPoly, snapEnabled, props.gridSizePx, w, h, props.onPolygonCommit]);
 
   function onSvgMouseMove(e: React.MouseEvent) {
     if (!props.adminMode) return;
@@ -680,7 +680,7 @@ export function SvgOverlay(props: {
     if (!poly || poly.length < 3) return;
 
     let pForInsert = raw;
-    if (props.gridEnabled) pForInsert = snapPointToGrid(pForInsert, props.gridSizePx, w, h);
+    if (snapEnabled) pForInsert = snapPointToGrid(pForInsert, props.gridSizePx, w, h);
 
     const ins = insertVertexOnNearestEdgeIfClose(poly, pForInsert, UI.edgeInsertPxThreshold, w, h, UI.insertEndEps);
     setEdgePreview(ins.ok ? { roomId, projected: ins.projected, insertAfterIdx: ins.insertAfterIdx } : null);
@@ -715,7 +715,7 @@ export function SvgOverlay(props: {
     if (!svg) return false;
 
     let raw = pointer(svg, e.clientX, e.clientY);
-    if (props.gridEnabled) raw = snapPointToGrid(raw, props.gridSizePx, w, h);
+    if (snapEnabled) raw = snapPointToGrid(raw, props.gridSizePx, w, h);
 
     const p = edgePreview?.roomId === roomId ? edgePreview.projected : raw;
     const ins = insertVertexOnNearestEdgeIfClose(poly, p, UI.edgeInsertPxThreshold, w, h, UI.insertEndEps);
