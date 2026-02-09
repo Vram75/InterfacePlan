@@ -499,6 +499,9 @@ export default function App() {
   const [hoverRoomId, setHoverRoomId] = useState<string | null>(null);
   const [detailsRoomId, setDetailsRoomId] = useState<string | null>(null);
   const detailsPanelRef = useRef<RoomDetailsPanelHandle | null>(null);
+  const [isRoomsPanelOpen, setIsRoomsPanelOpen] = useState(true);
+  const roomsPanelRef = useRef<HTMLDivElement | null>(null);
+  const roomsToggleRef = useRef<HTMLButtonElement | null>(null);
 
   const [adminMode, setAdminMode] = useState(true);
   const [drawingRoomId, setDrawingRoomId] = useState<string | null>(null);
@@ -601,6 +604,22 @@ export default function App() {
   useEffect(() => {
     setCurrentPage((p) => Math.max(0, Math.min(p, Math.max(1, pageCount) - 1)));
   }, [pageCount]);
+
+  useEffect(() => {
+    if (!isRoomsPanelOpen || pageView !== "plans") return;
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as Node | null;
+      const panel = roomsPanelRef.current;
+      const toggle = roomsToggleRef.current;
+      if (!target || !panel) return;
+      if (panel.contains(target) || toggle?.contains(target as Node)) return;
+      setIsRoomsPanelOpen(false);
+    };
+    window.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      window.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [isRoomsPanelOpen, pageView]);
 
   // Sidebar-only page selection indicators (dot + badge)
   const pagesPolyStats = useMemo(() => {
@@ -1409,6 +1428,19 @@ export default function App() {
                     )}
 
                     <div className="plan-header-right">
+                      <button
+                        ref={roomsToggleRef}
+                        className="btn btn-icon btn-mini"
+                        type="button"
+                        onClick={() => setIsRoomsPanelOpen((prev) => !prev)}
+                        title={isRoomsPanelOpen ? "Masquer le panneau pièce" : "Afficher le panneau pièce"}
+                        aria-pressed={isRoomsPanelOpen}
+                      >
+                        <svg aria-hidden="true" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <circle cx="11" cy="11" r="7" />
+                          <line x1="16.65" y1="16.65" x2="21" y2="21" />
+                        </svg>
+                      </button>
                       <label className="switch switch-compact" title="Snap (S)">
                         <input type="checkbox" checked={snapUi} onChange={toggleSnapFromButton} />
                         <span className="switch-track" />
@@ -1513,24 +1545,28 @@ export default function App() {
 
         {pageView === "plans" && (
           <>
-            <DraggableWindow storageKey="iface.panel.rooms" defaultPosition={{ x: 88, y: 86 }} width={360}>
-              <div className="card plan-card">
-                <div className="card-content card-scroll" style={{ maxHeight: "min(72vh, 760px)" }}>
-                  <RoomListPanel
-                    rooms={rooms}
-                    selectedRoomId={selectedRoomId}
-                    onSelectRoom={(roomId) => {
-                      setSelectedRoomId(roomId);
-                      setDetailsRoomId((prev) => (prev === roomId ? prev : null));
-                    }}
-                    onOpenDetails={(roomId) => {
-                      setSelectedRoomId(roomId);
-                      setDetailsRoomId(roomId);
-                    }}
-                  />
-                </div>
+            {isRoomsPanelOpen && (
+              <div ref={roomsPanelRef}>
+                <DraggableWindow storageKey="iface.panel.rooms" defaultPosition={{ x: 88, y: 86 }} width={360}>
+                  <div className="card plan-card">
+                    <div className="card-content card-scroll" style={{ maxHeight: "min(72vh, 760px)" }}>
+                      <RoomListPanel
+                        rooms={rooms}
+                        selectedRoomId={selectedRoomId}
+                        onSelectRoom={(roomId) => {
+                          setSelectedRoomId(roomId);
+                          setDetailsRoomId((prev) => (prev === roomId ? prev : null));
+                        }}
+                        onOpenDetails={(roomId) => {
+                          setSelectedRoomId(roomId);
+                          setDetailsRoomId(roomId);
+                        }}
+                      />
+                    </div>
+                  </div>
+                </DraggableWindow>
               </div>
-            </DraggableWindow>
+            )}
 
             {detailsRoom && (
               <DraggableWindow
