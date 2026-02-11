@@ -190,7 +190,7 @@ function CropModal(props: { file: File; onCancel: () => void; onConfirm: (croppe
     position: "relative",
     width: "min(760px, 92vw)",
     height: "min(560px, 76vh)",
-    borderRadius: 14,
+    borderRadius: 7,
     background:
       "linear-gradient(45deg, rgba(0,0,0,0.05) 25%, transparent 25%, transparent 50%, rgba(0,0,0,0.05) 50%, rgba(0,0,0,0.05) 75%, transparent 75%, transparent)",
     backgroundSize: "18px 18px",
@@ -219,7 +219,7 @@ function CropModal(props: { file: File; onCancel: () => void; onConfirm: (croppe
         onMouseDown={(e) => e.stopPropagation()}
         style={{
           width: "min(920px, 96vw)",
-          borderRadius: 18,
+          borderRadius: 9,
           background: "white",
           border: "1px solid rgba(0,0,0,0.12)",
           boxShadow: "0 24px 60px rgba(0,0,0,0.25)",
@@ -328,7 +328,7 @@ function CropModal(props: { file: File; onCancel: () => void; onConfirm: (croppe
                 height: cropDims.h,
                 transform: "translate(-50%, -50%)",
                 boxShadow: "0 0 0 9999px rgba(0,0,0,0.35)",
-                borderRadius: 14,
+                borderRadius: 7,
                 outline: "2px solid rgba(255,255,255,0.95)",
                 pointerEvents: "none",
               }}
