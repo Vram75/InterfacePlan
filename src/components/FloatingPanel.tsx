@@ -188,7 +188,7 @@ export function FloatingPanel({
         width: rect.w,
         height: displayH,
         zIndex: z,
-        borderRadius: 18,
+        borderRadius: 9,
         border: "1px solid var(--stroke)",
         background: "var(--panel-grad-strong)",
         boxShadow: "var(--shadow-panel), var(--shadow-inset)",
@@ -264,7 +264,7 @@ export function FloatingPanel({
             width: 16,
             height: 16,
             cursor: "nwse-resize",
-            borderRadius: 6,
+            borderRadius: 3,
             background: "rgba(255,255,255,0.08)",
             border: "1px solid rgba(255,255,255,0.14)",
           }}
