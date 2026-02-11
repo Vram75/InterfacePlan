@@ -479,6 +479,28 @@ export const RoomDetailsPanel = forwardRef<RoomDetailsPanelHandle, RoomDetailsPa
             {selectedPhotoName && <div className="details-panel-filename">{selectedPhotoName}</div>}
           </div>
         </div>
+
+        <div className="details-panel-row" style={{ alignItems: "flex-start" }}>
+          <div className="field" style={{ flex: 1 }}>
+            <label className="label">Nom de la personne</label>
+            <input
+              className="input"
+              style={{ width: "100%" }}
+              value={draft.personneNom ?? ""}
+              onChange={(e) => set("personneNom", e.target.value)}
+            />
+          </div>
+
+          <div className="field" style={{ flex: 1 }}>
+            <label className="label">Téléphone</label>
+            <input
+              className="input"
+              style={{ width: "100%" }}
+              value={draft.personneTel ?? ""}
+              onChange={(e) => set("personneTel", e.target.value)}
+            />
+          </div>
+        </div>
       </div>
 
       <hr className="details-panel-divider" />
@@ -486,74 +508,89 @@ export const RoomDetailsPanel = forwardRef<RoomDetailsPanelHandle, RoomDetailsPa
       <div className="details-panel-section">
         <div className="details-panel-section-title">Localisation</div>
 
-        <div className="field">
-          <label className="label">Niveau</label>
-          <input className="input" value={draft.niveau ?? ""} onChange={(e) => set("niveau", e.target.value)} />
-        </div>
+        <div className="details-panel-row" style={{ alignItems: "flex-start" }}>
+          {/* ✅ SERVICE = select + sécurité "non attribué" */}
+          <div className="field" style={{ flex: 1 }}>
+            <label className="label" style={{ display: "flex", alignItems: "center", gap: 10 }}>
+              <span>Services</span>
+              {serviceColor && (
+                <span
+                  title={serviceColor}
+                  style={{
+                    width: 14,
+                    height: 14,
+                    borderRadius: 4,
+                    background: serviceColor,
+                    border: "1px solid rgba(0,0,0,0.18)",
+                    display: "inline-block",
+                  }}
+                />
+              )}
+            </label>
 
-        <div className="field">
-          <label className="label">Aile</label>
-          <input className="input" value={draft.aile ?? ""} onChange={(e) => set("aile", e.target.value)} />
-        </div>
-
-        <div className="field">
-          <label className="label">Désignation</label>
-          <input
-            className="input"
-            value={draft.designation ?? ""}
-            onChange={(e) => set("designation", e.target.value)}
-          />
-        </div>
-
-        {/* ✅ SERVICE = select + sécurité "non attribué" */}
-        <div className="field">
-          <label className="label" style={{ display: "flex", alignItems: "center", gap: 10 }}>
-            <span>Service</span>
-            {serviceColor && (
-              <span
-                title={serviceColor}
-                style={{
-                  width: 14,
-                  height: 14,
-                  borderRadius: 4,
-                  background: serviceColor,
-                  border: "1px solid rgba(0,0,0,0.18)",
-                  display: "inline-block",
-                }}
-              />
-            )}
-          </label>
-
-          <select
-            className="select"
-            value={selectValue}
-            onChange={(e) => set("service", e.target.value || null)}
-          >
-            <option value="">— Aucun —</option>
-            {props.services.map((s) => (
-              <option key={s.service} value={s.service}>
-                {s.service}
-              </option>
-            ))}
-          </select>
-
-          {!serviceIsRecognized && (
-            <div
-              className="hint"
-              style={{
-                marginTop: 6,
-                padding: "8px 10px",
-                borderRadius: 12,
-                border: "1px solid rgba(0,0,0,0.12)",
-                background: "rgba(0,0,0,0.03)",
-              }}
+            <select
+              className="select"
+              style={{ width: "100%" }}
+              value={selectValue}
+              onChange={(e) => set("service", e.target.value || null)}
             >
-              Service <b>non attribué</b> (valeur actuelle non trouvée dans la palette).
-              <br />
-              Choisis un service puis clique sur <b>Enregistrer</b>.
-            </div>
-          )}
+              <option value="">— Aucun —</option>
+              {props.services.map((s) => (
+                <option key={s.service} value={s.service}>
+                  {s.service}
+                </option>
+              ))}
+            </select>
 
+            {!serviceIsRecognized && (
+              <div
+                className="hint"
+                style={{
+                  marginTop: 6,
+                  padding: "8px 10px",
+                  borderRadius: 12,
+                  border: "1px solid rgba(0,0,0,0.12)",
+                  background: "rgba(0,0,0,0.03)",
+                }}
+              >
+                Service <b>non attribué</b> (valeur actuelle non trouvée dans la palette).
+                <br />
+                Choisis un service puis clique sur <b>Enregistrer</b>.
+              </div>
+            )}
+          </div>
+
+          <div className="field" style={{ flex: 1 }}>
+            <label className="label">Désignation</label>
+            <input
+              className="input"
+              style={{ width: "100%" }}
+              value={draft.designation ?? ""}
+              onChange={(e) => set("designation", e.target.value)}
+            />
+          </div>
+        </div>
+
+        <div className="details-panel-row" style={{ alignItems: "flex-start" }}>
+          <div className="field" style={{ flex: 1 }}>
+            <label className="label">Niveau</label>
+            <input
+              className="input"
+              style={{ width: "100%" }}
+              value={draft.niveau ?? ""}
+              onChange={(e) => set("niveau", e.target.value)}
+            />
+          </div>
+
+          <div className="field" style={{ flex: 1 }}>
+            <label className="label">Aile</label>
+            <input
+              className="input"
+              style={{ width: "100%" }}
+              value={draft.aile ?? ""}
+              onChange={(e) => set("aile", e.target.value)}
+            />
+          </div>
         </div>
 
         <div className="field">
@@ -561,32 +598,9 @@ export const RoomDetailsPanel = forwardRef<RoomDetailsPanelHandle, RoomDetailsPa
           <input
             className="input"
             type="number"
+            style={{ width: "100%" }}
             value={draft.surface ?? ""}
             onChange={(e) => set("surface", e.target.value === "" ? null : Number(e.target.value))}
-          />
-        </div>
-      </div>
-
-      <hr style={{ border: "none", borderTop: "1px solid rgba(0,0,0,0.08)" }} />
-
-      <div style={{ display: "grid", gap: 10 }}>
-        <div style={{ fontWeight: 800, opacity: 0.85 }}>Contact</div>
-
-        <div className="field">
-          <label className="label">Nom de la personne</label>
-          <input
-            className="input"
-            value={draft.personneNom ?? ""}
-            onChange={(e) => set("personneNom", e.target.value)}
-          />
-        </div>
-
-        <div className="field">
-          <label className="label">Téléphone</label>
-          <input
-            className="input"
-            value={draft.personneTel ?? ""}
-            onChange={(e) => set("personneTel", e.target.value)}
           />
         </div>
       </div>
