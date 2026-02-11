@@ -1656,3 +1656,29 @@ input::placeholder{
   font-weight: 600;
   text-align: right;
 }
+
+/* Ajustement global UI : rayon des arrondis /2 + texte centré dans les boutons */
+:root{
+  --control-radius: 5px;
+}
+
+button,
+.btn{
+  border-radius: var(--control-radius);
+  text-align: center;
+  justify-content: center;
+}
+
+input,
+select,
+textarea,
+.input,
+.select{
+  border-radius: var(--control-radius);
+}
+
+/* Exception navigation: garder les libellés à gauche */
+.nav-item{
+  text-align: left;
+  justify-content: flex-start;
+}
