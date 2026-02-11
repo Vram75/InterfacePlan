@@ -1055,7 +1055,7 @@ export default function App() {
                 )}
               </div>
 
-              <label className="mini-switch" title="N’afficher que les pages qui ont des polygones">
+              <label className="mini-switch mini-switch-vivid mini-switch-vivid-amber" title="N’afficher que les pages qui ont des polygones">
                 <input type="checkbox" checked={onlyWithPolys} onChange={(e) => setOnlyWithPolys(e.target.checked)} />
                 <span className="mini-switch-track" />
                 <span className="mini-switch-text">Polygones uniquement</span>
@@ -1337,7 +1337,7 @@ export default function App() {
                         <div className="plan-grid-controls">
                           <div className="plan-field-inline plan-field-compact plan-grid-frame" title="Taille de grille (px)">
                             <div className="plan-grid-row">
-                              <label className="switch switch-compact plan-field-label" title="Afficher/masquer la grille">
+                              <label className="switch switch-compact switch-vivid switch-vivid-emerald plan-field-label" title="Afficher/masquer la grille">
                                 <input type="checkbox" checked={gridEnabled} onChange={toggleGridFromButton} />
                                 <span className="mini-switch-track" />
                                 <span className="mini-switch-label">Grille</span>
@@ -1356,7 +1356,7 @@ export default function App() {
                                 }}
                               />
                             </div>
-                            <label className="switch switch-compact plan-grid-snap" title="Snap (S)">
+                            <label className="switch switch-compact switch-vivid switch-vivid-aurora plan-grid-snap" title="Snap (S)">
                               <input type="checkbox" checked={snapUi} onChange={toggleSnapFromButton} />
                               <span className="mini-switch-track" />
                               <span className="mini-switch-label">Snap</span>
@@ -1479,7 +1479,7 @@ export default function App() {
                         </div>
                       </div>
 
-                      <label className="switch switch-compact" title="Activer/désactiver l’édition">
+                      <label className="switch switch-compact switch-vivid switch-vivid-magenta" title="Activer/désactiver l’édition">
                         <input
                           type="checkbox"
                           checked={adminMode}
