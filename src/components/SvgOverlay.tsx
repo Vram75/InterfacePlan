@@ -354,11 +354,6 @@ export function SvgOverlay(props: {
     return props.lockedRoomIdsOnPage?.has(roomId) ?? false;
   };
 
-  function formatSurface(surface: number | null | undefined) {
-    if (surface == null || Number.isNaN(surface)) return "—";
-    return `${surface.toLocaleString("fr-FR")} m²`;
-  }
-
   useEffect(() => {
     if (props.request.kind === "deletePolygon") {
       const roomId = props.request.roomId;
