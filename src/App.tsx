@@ -1339,8 +1339,8 @@ export default function App() {
                             <div className="plan-grid-row">
                               <label className="switch switch-compact plan-field-label" title="Afficher/masquer la grille">
                                 <input type="checkbox" checked={gridEnabled} onChange={toggleGridFromButton} />
-                                <span className="switch-track" />
-                                <span className="switch-label">Grille</span>
+                                <span className="mini-switch-track" />
+                                <span className="mini-switch-label">Grille</span>
                               </label>
                               <input
                                 className="select plan-number plan-number-compact"
@@ -1358,8 +1358,8 @@ export default function App() {
                             </div>
                             <label className="switch switch-compact plan-grid-snap" title="Snap (S)">
                               <input type="checkbox" checked={snapUi} onChange={toggleSnapFromButton} />
-                              <span className="switch-track" />
-                              <span className="switch-label">Snap</span>
+                              <span className="mini-switch-track" />
+                              <span className="mini-switch-label">Snap</span>
                             </label>
                           </div>
                         </div>
@@ -1489,8 +1489,8 @@ export default function App() {
                             setDrawSessionId((x) => x + 1);
                           }}
                         />
-                        <span className="switch-track" />
-                        <span className="switch-label">Admin</span>
+                        <span className="mini-switch-track" />
+                        <span className="mini-switch-label">Admin</span>
                       </label>
                     </div>
                   </div>
