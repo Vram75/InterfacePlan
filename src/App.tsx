@@ -1379,7 +1379,7 @@ export default function App() {
                     {adminMode && (
                       <div className="plan-toolbar-group">
                         <div className="plan-field-inline plan-field-compact plan-draw-field" style={{ minWidth: 240 }}>
-                          <span className="plan-field-label">Dessiner</span>
+                          <span className="plan-field-label">Création de zone</span>
                           <select
                             className="select"
                             value={drawingRoomId ?? ""}
@@ -1388,7 +1388,7 @@ export default function App() {
                               setDrawSessionId((x) => x + 1);
                             }}
                           >
-                            <option value="">— Dessiner un polygone pour… —</option>
+                            <option value="">Créer un polygone pour…</option>
                             {rooms.map((r: any) => {
                               const already = roomHasPolygonOnPage(r, currentPage);
                               const hasOtherPage = roomHasPolygonOnOtherPage(r, currentPage);
