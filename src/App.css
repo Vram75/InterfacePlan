@@ -1288,6 +1288,7 @@ body{
 @media (max-width: 1180px){
   :root{ --sidebar-w: 0px; --right-w: 360px; }
   .dash-body{ grid-template-columns: 0px minmax(0, 1fr) var(--right-w); }
+  .dash-body--floating-panels{ grid-template-columns: minmax(0, 1fr); }
   .dash-sidebar{ display: none; }
 }
 
