@@ -83,15 +83,26 @@ export function RoomListPanel(props: {
               <div className="room-panel-item-main">
                 <div className="room-panel-item-title">
                   <span className="room-panel-item-number">{r.numero}</span>
-                  {!hasPoly && (
-                    <span className="room-panel-muted">(sans polygone)</span>
-                  )}
+                  <span className={`room-panel-status ${hasPoly ? "room-panel-status--ready" : "room-panel-status--missing"}`}>
+                    {hasPoly ? "Cartographiée" : "À dessiner"}
+                  </span>
                 </div>
 
                 <div className="room-panel-muted room-panel-item-desc">
                   {descriptionParts.join(" · ")}
                 </div>
               </div>
+
+              <button
+                type="button"
+                className="btn btn-mini room-panel-item-action"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  props.onOpenDetails(r.id);
+                }}
+              >
+                Détails
+              </button>
             </div>
           );
         })}

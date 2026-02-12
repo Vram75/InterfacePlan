@@ -1711,3 +1711,157 @@ textarea,
   text-align: left;
   justify-content: flex-start;
 }
+
+/* =========================
+   Redesign windows + boutons
+   ========================= */
+:root{
+  --surface-1: #0f1727;
+  --surface-2: #19263b;
+  --surface-3: #22344f;
+  --surface-4: #2d4364;
+  --text-main: #e9f0fb;
+  --text-soft: #9cb2cf;
+}
+
+.dash-root{
+  border-radius: 18px;
+  border: 1px solid rgba(124, 145, 174, 0.28);
+}
+
+.dash-body{
+  border-radius: 16px;
+  padding: 18px;
+}
+
+.card,
+.plan-card,
+.dash-sidebar,
+.floating-card-window .card{
+  border-radius: 16px;
+  border: 1px solid rgba(122, 145, 173, 0.3);
+  box-shadow: 0 22px 42px rgba(3, 8, 19, 0.55), inset 0 1px 0 rgba(255,255,255,0.08);
+}
+
+.card-header{
+  background: linear-gradient(160deg, var(--surface-4), var(--surface-2) 70%);
+  border-bottom: 1px solid rgba(125, 154, 194, 0.3);
+}
+
+.card-title,
+.plan-card .card-title,
+.room-panel-title,
+.details-panel-title,
+.details-panel-number,
+.help-title,
+.room-panel-item-number{
+  color: var(--text-main);
+}
+
+.card-subtitle,
+.plan-card .card-subtitle,
+.room-panel-meta,
+.room-panel-muted,
+.help-text,
+.details-panel-muted,
+.plan-field-label,
+.switch-label,
+.mini-switch-text,
+.mini-switch-label{
+  color: var(--text-soft);
+}
+
+.btn,
+button.btn,
+.room-panel-item-action,
+.sidebar-page-item,
+.nav-item,
+.sidebar-clear{
+  border-radius: 12px;
+  border: 1px solid rgba(125, 154, 194, 0.34);
+  background: linear-gradient(180deg, #334d72, #233651 65%, #1a2a40);
+  color: #edf4ff;
+  transition: transform 140ms ease, box-shadow 140ms ease, border-color 140ms ease;
+  box-shadow: 0 8px 18px rgba(6, 10, 26, 0.45), inset 0 1px 0 rgba(255,255,255,0.12);
+}
+
+.btn:hover,
+button.btn:hover,
+.sidebar-page-item:hover,
+.nav-item:hover{
+  border-color: rgba(154, 189, 235, 0.65);
+  box-shadow: 0 12px 24px rgba(5, 11, 29, 0.55), inset 0 1px 0 rgba(255,255,255,0.16);
+  transform: translateY(-1px);
+}
+
+.btn:active,
+button.btn:active,
+.room-panel-item-action:active,
+.sidebar-page-item:active,
+.nav-item:active{
+  transform: translateY(1px);
+}
+
+.nav-item-active,
+.sidebar-page-item-active,
+.room-panel-item--active{
+  background: linear-gradient(170deg, #527bb4, #355a8f 70%, #244168);
+  border-color: rgba(188, 217, 255, 0.65);
+}
+
+.input,
+.select,
+.room-panel-search,
+.sidebar-page-filter,
+.plan-number{
+  border-radius: 12px;
+  border: 1px solid rgba(122, 145, 173, 0.45);
+  background: linear-gradient(170deg, #21324a, #162437);
+  color: #e8f1ff;
+}
+
+.room-panel-list{
+  border-radius: 14px;
+  border: 1px solid rgba(122, 145, 173, 0.32);
+  background: linear-gradient(180deg, rgba(18,30,47,0.9), rgba(14,24,38,0.92));
+}
+
+.room-panel-item{
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  padding: 10px;
+}
+
+.room-panel-status{
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  border: 1px solid rgba(164, 186, 214, 0.48);
+  font-size: 10px;
+  font-weight: 800;
+  padding: 2px 8px;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+
+.room-panel-status--ready{
+  color: #c8ffe3;
+  background: rgba(20, 118, 83, 0.4);
+}
+
+.room-panel-status--missing{
+  color: #ffe4b7;
+  background: rgba(150, 90, 24, 0.38);
+}
+
+.room-panel-item-action{
+  min-width: 80px;
+  flex: 0 0 auto;
+}
+
+.plan-viewport{
+  border: 1px solid rgba(131, 159, 198, 0.35);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.55), 0 14px 30px rgba(3, 7, 18, 0.38);
+}
