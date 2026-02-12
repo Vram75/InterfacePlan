@@ -968,7 +968,7 @@ body{
   align-items: center;
 }
 .details-panel-photo-row{
-  flex-direction: column;
+  flex-direction: row;
   align-items: flex-start;
 }
 .details-panel-photo{
