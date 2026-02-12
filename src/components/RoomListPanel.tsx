@@ -93,16 +93,6 @@ export function RoomListPanel(props: {
                 </div>
               </div>
 
-              <button
-                type="button"
-                className="btn btn-mini room-panel-item-action"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  props.onOpenDetails(r.id);
-                }}
-              >
-                Détails
-              </button>
             </div>
           );
         })}
