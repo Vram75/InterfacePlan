@@ -661,6 +661,7 @@ body{
   flex-wrap: wrap;
   gap: 13px;
   width: 100%;
+  border-radius: 2px;
 }
 
 .plan-toolbar-group{
