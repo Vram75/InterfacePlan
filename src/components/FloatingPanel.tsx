@@ -209,7 +209,7 @@ export function FloatingPanel({
           borderBottom: collapsed ? "none" : "1px solid rgba(255,255,255,0.08)",
           cursor: "grab",
           userSelect: "none",
-          background: "radial-gradient(180% 140% at 30% 0%, #48576b 0%, #2b3648 55%, #1b2432 100%)",
+          background: "radial-gradient(170% 140% at 30% 0%, #ece8e3 0%, #d7cfc8 58%, #c6bcb4 100%)",
         }}
         onMouseDown={(e) => {
           bringToFront();
