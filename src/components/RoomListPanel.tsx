@@ -41,6 +41,7 @@ export function RoomListPanel(props: {
     });
   }, [props.rooms, q]);
 
+
   const missingCount = useMemo(() => {
     return props.rooms.filter(r => !r.polygon || (Array.isArray(r.polygon) && r.polygon.length < 3)).length;
   }, [props.rooms]);
@@ -84,7 +85,7 @@ export function RoomListPanel(props: {
                 <div className="room-panel-item-title">
                   <span className="room-panel-item-number">{r.numero}</span>
                   <span className={`room-panel-status ${hasPoly ? "room-panel-status--ready" : "room-panel-status--missing"}`}>
-                    {hasPoly ? "Cartographiée" : "À dessiner"}
+                    {hasPoly ? "Cartographiée" : "A dessiner"}
                   </span>
                 </div>
 
