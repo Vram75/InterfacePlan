@@ -368,17 +368,10 @@ export const RoomDetailsPanel = forwardRef<RoomDetailsPanelHandle, RoomDetailsPa
   const [error, setError] = useState<string | null>(null);
 
   const [cropFile, setCropFile] = useState<File | null>(null);
-  const [selectedPhotoName, setSelectedPhotoName] = useState<string | null>(null);
-  const lastRoomIdRef = useRef<string | null>(null);
 
   useEffect(() => {
     setDraft(props.room ? { ...props.room } : null);
     setError(null);
-    const nextRoomId = props.room?.id ?? null;
-    if (lastRoomIdRef.current !== nextRoomId) {
-      setSelectedPhotoName(null);
-      lastRoomIdRef.current = nextRoomId;
-    }
   }, [props.room]);
 
   const save = useCallback(async () => {
@@ -469,7 +462,6 @@ export const RoomDetailsPanel = forwardRef<RoomDetailsPanelHandle, RoomDetailsPa
                   const f = e.target.files?.[0];
                   if (!f) return;
                   setError(null);
-                  setSelectedPhotoName(f.name);
                   setCropFile(f);
                   e.currentTarget.value = "";
                 }}
@@ -477,7 +469,6 @@ export const RoomDetailsPanel = forwardRef<RoomDetailsPanelHandle, RoomDetailsPa
               <label className="btn btn-mini details-panel-file-button" htmlFor="room-photo-input">
                 Parcourir...
               </label>
-              {selectedPhotoName && <div className="details-panel-filename">{selectedPhotoName}</div>}
             </div>
           </div>
 

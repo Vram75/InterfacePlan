@@ -998,12 +998,6 @@ body{
   display: inline-flex;
   align-items: center;
 }
-.details-panel-filename{
-  font-size: 12px;
-  font-weight: 600;
-  opacity: 0.75;
-  word-break: break-word;
-}
 .details-panel-divider{
   border: none;
   border-top: 1px solid rgba(15,23,42,0.08);
