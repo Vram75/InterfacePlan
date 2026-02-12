@@ -448,39 +448,39 @@ export const RoomDetailsPanel = forwardRef<RoomDetailsPanelHandle, RoomDetailsPa
 
       <div className="details-panel-section">
         <div className="details-panel-row details-panel-photo-row">
-          <div
-            className="details-panel-photo"
-          >
-            {imgSrc ? (
-              <img src={imgSrc} alt="" style={{ width: "100%", height: "100%", objectFit: "contain" }} />
-            ) : (
-              <span className="details-panel-muted">Pas de photo</span>
-            )}
+          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+            <div
+              className="details-panel-photo"
+            >
+              {imgSrc ? (
+                <img src={imgSrc} alt="" style={{ width: "100%", height: "100%", objectFit: "contain" }} />
+              ) : (
+                <span className="details-panel-muted">Pas de photo</span>
+              )}
+            </div>
+
+            <div className="details-panel-upload">
+              <input
+                className="details-panel-file-input"
+                id="room-photo-input"
+                type="file"
+                accept="image/*"
+                onChange={(e) => {
+                  const f = e.target.files?.[0];
+                  if (!f) return;
+                  setError(null);
+                  setSelectedPhotoName(f.name);
+                  setCropFile(f);
+                  e.currentTarget.value = "";
+                }}
+              />
+              <label className="btn btn-mini details-panel-file-button" htmlFor="room-photo-input">
+                Parcourir...
+              </label>
+              {selectedPhotoName && <div className="details-panel-filename">{selectedPhotoName}</div>}
+            </div>
           </div>
 
-          <div className="details-panel-upload">
-            <input
-              className="details-panel-file-input"
-              id="room-photo-input"
-              type="file"
-              accept="image/*"
-              onChange={(e) => {
-                const f = e.target.files?.[0];
-                if (!f) return;
-                setError(null);
-                setSelectedPhotoName(f.name);
-                setCropFile(f);
-                e.currentTarget.value = "";
-              }}
-            />
-            <label className="btn btn-mini details-panel-file-button" htmlFor="room-photo-input">
-              Parcourir...
-            </label>
-            {selectedPhotoName && <div className="details-panel-filename">{selectedPhotoName}</div>}
-          </div>
-        </div>
-
-        <div className="details-panel-row" style={{ alignItems: "flex-start" }}>
           <div className="field" style={{ flex: 1 }}>
             <label className="label">Nom de la personne</label>
             <input
@@ -489,10 +489,16 @@ export const RoomDetailsPanel = forwardRef<RoomDetailsPanelHandle, RoomDetailsPa
               value={draft.personneNom ?? ""}
               onChange={(e) => set("personneNom", e.target.value)}
             />
-          </div>
 
-          <div className="field" style={{ flex: 1 }}>
-            <label className="label">Téléphone</label>
+            <label className="label" style={{ marginTop: 10 }}>Prénom</label>
+            <input
+              className="input"
+              style={{ width: "100%" }}
+              value={draft.personnePrenom ?? ""}
+              onChange={(e) => set("personnePrenom", e.target.value)}
+            />
+
+            <label className="label" style={{ marginTop: 10 }}>Téléphone</label>
             <input
               className="input"
               style={{ width: "100%" }}

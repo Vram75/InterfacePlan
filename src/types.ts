@@ -18,6 +18,7 @@ export type Room = {
   surface?: number | null;
 
   personneNom?: string | null;
+  personnePrenom?: string | null;
   personneTel?: string | null;
 
   photoUrl?: string | null;
