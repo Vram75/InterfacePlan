@@ -348,12 +348,14 @@ body{
   border: 1px solid transparent;
   background: rgba(248,250,252,0.08);
   border-radius: 7px;
-  padding: px 10px;
+  padding: 8px 10px;
   cursor: pointer;
-  display: flex;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
   align-items: center;
-  justify-content: space-between;
   gap: 10px;
+  min-height: 38px;
+  width: 100%;
 }
 .sidebar-page-item:hover{
   background: rgba(248,250,252,0.16);
@@ -370,11 +372,14 @@ body{
   align-items: center;
   gap: 8px;
   min-width: 0;
+  width: 100%;
 }
 .sidebar-page-num{
   font-weight: 900;
   font-size: 12px;
   color: rgba(248,250,252,0.92);
+  font-variant-numeric: tabular-nums;
+  min-width: 2.5ch;
 }
 
 .sidebar-page-dot{
@@ -393,6 +398,14 @@ body{
   background: rgba(248,250,252,0.1);
   padding: 4px 8px;
   border-radius: 999px;
+  font-variant-numeric: tabular-nums;
+  min-width: 34px;
+  text-align: center;
+}
+
+.sidebar-page-dot-hidden,
+.sidebar-page-badge-hidden{
+  visibility: hidden;
 }
 
 .spacer{ flex: 1; }

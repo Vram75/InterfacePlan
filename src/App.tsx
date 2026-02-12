@@ -1080,10 +1080,12 @@ export default function App() {
                       >
                         <span className="sidebar-page-left">
                           <span className="sidebar-page-num">{p + 1}</span>
-                          {hasPoly && <span className="sidebar-page-dot" aria-hidden="true" />}
+                          <span className={`sidebar-page-dot ${hasPoly ? "" : "sidebar-page-dot-hidden"}`} aria-hidden="true" />
                         </span>
 
-                        {hasPoly && <span className="sidebar-page-badge">{polyCount}</span>}
+                        <span className={`sidebar-page-badge ${hasPoly ? "" : "sidebar-page-badge-hidden"}`} aria-hidden={!hasPoly}>
+                          {hasPoly ? polyCount : 0}
+                        </span>
                       </button>
                     );
                   })
