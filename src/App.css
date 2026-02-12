@@ -1686,9 +1686,24 @@ input::placeholder{
   text-align: right;
 }
 
-/* Ajustement global UI : rayon des arrondis /2 + texte centré dans les boutons */
+/* Ajustement global UI : rayon des arrondis fixé à 2px */
 :root{
-  --control-radius: 5px;
+  --control-radius: 2px;
+  --radius: 2px;
+  --r-xl: 2px;
+  --r-lg: 2px;
+  --r-md: 2px;
+}
+
+.dash-root,
+.dash-body,
+.dash-sidebar,
+.dash-right,
+.card,
+.help-card,
+.plan-viewport,
+.plan-stage{
+  border-radius: 2px;
 }
 
 button,
