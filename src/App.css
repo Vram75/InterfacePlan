@@ -2113,3 +2113,33 @@ button.btn,
   border-color: rgba(105, 88, 74, 0.62);
   color: #342a22 !important;
 }
+
+/* User request: remove all rounded corners from windows and buttons */
+.dash-root,
+.dash-body,
+.card,
+.plan-card,
+.help-card,
+.dash-sidebar,
+.dash-right,
+.floating-card-window,
+.floating-card-window .card,
+.room-panel-list,
+.room-panel-item,
+.room-panel-item-action,
+.room-panel-actions,
+.plan-viewport,
+.plan-stage,
+.plan-controls-row,
+.plan-controls,
+.plan-field-inline,
+.details-panel,
+.btn,
+button,
+button.btn,
+.sidebar-page-item,
+.nav-item,
+.sidebar-clear,
+.pill{
+  border-radius: 0 !important;
+}
