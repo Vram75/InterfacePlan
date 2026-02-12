@@ -1313,8 +1313,7 @@ export default function App() {
           <main className="dash-main">
             <div className="card plan-card">
               <div className="card-content plan-content">
-                <div className="plan-controls">
-                  <div className="plan-controls-row">
+                <div className="plan-controls-content">
                     <div className="plan-toolbar-group">
                       <button className="btn btn-icon btn-mini" title="Page précédente (PageUp)" type="button" onClick={() => goToPageIndex(currentPage - 1)} disabled={currentPage <= 0}>
                         ◀
@@ -1335,7 +1334,7 @@ export default function App() {
                       </button>
                     </div>
 
-                      <div className="plan-toolbar-group">
+                    <div className="plan-toolbar-group">
                         <div className="plan-grid-controls">
                           <div className="plan-field-inline plan-field-compact plan-grid-frame" title="Taille de grille (px)">
                             <div className="plan-grid-row">
@@ -1375,7 +1374,6 @@ export default function App() {
                           +
                         </button>
                       </div>
-
                     </div>
 
                     {adminMode && (
@@ -1497,7 +1495,6 @@ export default function App() {
                         <span className="mini-switch-label">Admin</span>
                       </label>
                     </div>
-                  </div>
                 </div>
 
                 <div className="plan-viewport">
