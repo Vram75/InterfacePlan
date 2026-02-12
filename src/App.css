@@ -1865,3 +1865,131 @@ button.btn:active,
   border: 1px solid rgba(131, 159, 198, 0.35);
   box-shadow: inset 0 1px 0 rgba(255,255,255,0.55), 0 14px 30px rgba(3, 7, 18, 0.38);
 }
+
+/* ======================================================
+   Beige neutral gradient override (requested full app)
+   ====================================================== */
+:root{
+  --accent: #b7aaa0;
+  --accent-2: #a3968d;
+  --surface-1: #ece9e6;
+  --surface-2: #ddd7d1;
+  --surface-3: #d2cbc5;
+  --surface-4: #c5bdb6;
+  --text-main: #5d554e;
+  --text-soft: #8e847b;
+  --panel-grad: radial-gradient(160% 140% at 30% 0%, #f4f2ef 0%, #e7e1db 58%, #d6cec6 100%);
+  --panel-grad-strong: radial-gradient(160% 140% at 30% 0%, #f0ece8 0%, #dfd8d2 54%, #cdc4bc 100%);
+}
+
+html,
+body,
+.dash-root,
+.dash-body{
+  color: var(--text-main);
+  background: radial-gradient(150% 120% at 30% 0%, #f7f5f2 0%, #ebe6e0 62%, #d8d0c8 100%);
+}
+
+.dash-sidebar,
+.dash-right,
+.card,
+.plan-card,
+.help-card,
+.floating-card-window .card{
+  color: var(--text-main);
+  border-color: rgba(156, 145, 135, 0.35);
+  background: var(--panel-grad-strong);
+  box-shadow: 0 18px 40px rgba(84, 74, 66, 0.2), inset 0 1px 0 rgba(255,255,255,0.7);
+}
+
+.card-header,
+.plan-card .card-header,
+.floating-card-window .card-header{
+  background: radial-gradient(170% 140% at 30% 0%, #ece8e3 0%, #d7cfc8 58%, #c6bcb4 100%);
+  border-bottom: 1px solid rgba(161, 150, 140, 0.35);
+}
+
+.card-title,
+.plan-card .card-title,
+.room-panel-title,
+.details-panel-title,
+.details-panel-number,
+.help-title,
+.room-panel-item-number,
+.brand-title{
+  color: #5b534d;
+}
+
+.card-subtitle,
+.plan-card .card-subtitle,
+.room-panel-meta,
+.room-panel-muted,
+.help-text,
+.details-panel-muted,
+.plan-field-label,
+.switch-label,
+.mini-switch-text,
+.mini-switch-label,
+.brand-subtitle{
+  color: var(--text-soft);
+}
+
+.btn,
+button,
+button.btn,
+.room-panel-item-action,
+.sidebar-page-item,
+.nav-item,
+.sidebar-clear,
+.pill{
+  border: 1px solid rgba(160, 150, 141, 0.45);
+  background: linear-gradient(180deg, #f3f0ed, #ddd6cf 65%, #c9c0b8);
+  color: #5a524c;
+  box-shadow: 0 8px 18px rgba(101, 91, 83, 0.2), inset 0 1px 0 rgba(255,255,255,0.72);
+}
+
+.btn:hover,
+button:hover,
+button.btn:hover,
+.sidebar-page-item:hover,
+.nav-item:hover{
+  border-color: rgba(142, 129, 118, 0.55);
+  background: linear-gradient(180deg, #faf8f6, #e5ddd6 65%, #d2c9c1);
+}
+
+.nav-item-active,
+.sidebar-page-item-active,
+.room-panel-item--active,
+.nav-item.active{
+  background: linear-gradient(170deg, #e7e0d9, #d4cac1 70%, #bfb4ab);
+  border-color: rgba(145, 132, 121, 0.58);
+  color: #524b45;
+}
+
+.input,
+.select,
+.room-panel-search,
+.sidebar-page-filter,
+.plan-number,
+input,
+select,
+textarea{
+  border: 1px solid rgba(163, 152, 143, 0.45);
+  background: linear-gradient(170deg, #f7f4f1, #e7e1db);
+  color: #5d554d;
+}
+
+.plan-viewport,
+.plan-stage,
+.room-panel-list{
+  border-color: rgba(156, 145, 134, 0.35);
+  background: radial-gradient(140% 120% at 30% 0%, #f9f7f4 0%, #eee9e3 65%, #ddd5ce 100%);
+}
+
+.mini-switch input:checked + .mini-switch-track,
+.switch input:checked + .mini-switch-track,
+.mini-switch-vivid input:checked + .mini-switch-track,
+.mini-switch-vivid-amber input:checked + .mini-switch-track{
+  background: linear-gradient(140deg, #e6dfd8, #cec2b8) !important;
+  border-color: rgba(154, 141, 131, 0.5) !important;
+}
