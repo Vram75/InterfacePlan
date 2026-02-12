@@ -1376,42 +1376,11 @@ export default function App() {
                         </button>
                       </div>
 
-                      <button
-                        className="btn btn-mini"
-                        type="button"
-                        disabled={!canDeletePolygon}
-                        onClick={() => {
-                          if (!selectedRoomId) return;
-                          setOverlayRequest({ kind: "deletePolygon", roomId: selectedRoomId });
-                        }}
-                        title={!canDeletePolygon ? "Aucun polygone sur cette page pour la pièce sélectionnée" : "Supprimer le polygone (page courante)"}
-                      >
-                        Suppr. polygone
-                      </button>
-
-                      <button
-                        className="btn btn-mini"
-                        type="button"
-                        onClick={() => {
-                          if (!selectedRoomId) return;
-                          togglePolygonLock(selectedRoomId, currentPage);
-                        }}
-                        disabled={!adminMode || !selectedRoomId || !roomHasPolygonOnPage(selectedRoom as any, currentPage)}
-                        title={
-                          !adminMode || !selectedRoomId || !roomHasPolygonOnPage(selectedRoom as any, currentPage)
-                            ? "Aucun polygone sur cette page pour la pièce sélectionnée"
-                            : selectedLocked
-                              ? "Déverrouiller le polygone (page courante)"
-                              : "Verrouiller le polygone (page courante)"
-                        }
-                      >
-                        {selectedLocked ? "Déverrouiller" : "Verrouiller"}
-                      </button>
                     </div>
 
                     {adminMode && (
                       <div className="plan-toolbar-group">
-                        <div className="plan-field-inline plan-field-compact" style={{ minWidth: 240 }}>
+                        <div className="plan-field-inline plan-field-compact plan-draw-field" style={{ minWidth: 240 }}>
                           <span className="plan-field-label">Dessiner</span>
                           <select
                             className="select"
@@ -1434,6 +1403,39 @@ export default function App() {
                               );
                             })}
                           </select>
+                          <div className="plan-draw-actions">
+                            <button
+                              className="btn btn-mini plan-lock-btn"
+                              type="button"
+                              onClick={() => {
+                                if (!selectedRoomId) return;
+                                togglePolygonLock(selectedRoomId, currentPage);
+                              }}
+                              disabled={!selectedRoomId || !roomHasPolygonOnPage(selectedRoom as any, currentPage)}
+                              title={
+                                !selectedRoomId || !roomHasPolygonOnPage(selectedRoom as any, currentPage)
+                                  ? "Aucun polygone sur cette page pour la pièce sélectionnée"
+                                  : selectedLocked
+                                    ? "Déverrouiller le polygone (page courante)"
+                                    : "Verrouiller le polygone (page courante)"
+                              }
+                            >
+                              {selectedLocked ? "Déverrouiller" : "Verrouiller"}
+                            </button>
+
+                            <button
+                              className="btn btn-mini"
+                              type="button"
+                              disabled={!canDeletePolygon}
+                              onClick={() => {
+                                if (!selectedRoomId) return;
+                                setOverlayRequest({ kind: "deletePolygon", roomId: selectedRoomId });
+                              }}
+                              title={!canDeletePolygon ? "Aucun polygone sur cette page pour la pièce sélectionnée" : "Supprimer le polygone (page courante)"}
+                            >
+                              Suppr. polygone
+                            </button>
+                          </div>
                         </div>
                       </div>
                     )}
