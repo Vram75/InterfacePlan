@@ -42,14 +42,13 @@ export function DraggableWindow(props: {
   }, [props.storageKey, pos]);
 
   useEffect(() => {
-    if (props.collapsible === false) return;
     const root = rootRef.current;
     if (!root) return;
 
     const headerHandle = root.querySelector(".card-header") as HTMLElement | null;
     const customHandles = Array.from(root.querySelectorAll("[data-drag-handle]")) as HTMLElement[];
-    const handles = [headerHandle, ...customHandles].filter(Boolean) as HTMLElement[];
-    if (!handles.length) return;
+    const handles = ([headerHandle, ...customHandles].filter(Boolean) as HTMLElement[]);
+    const dragHandles = handles.length ? handles : [root];
 
     const isInteractiveTarget = (target: HTMLElement | null) =>
       Boolean(target?.closest("button, input, select, textarea, a, [role='button'], label"));
@@ -67,12 +66,12 @@ export function DraggableWindow(props: {
       setCollapsed((prev) => !prev);
     };
 
-    const handleBindings = handles.map((handle) => {
+    const handleBindings = dragHandles.map((handle) => {
       const allowChildTargets = true;
       const onHandleMouseDown = (e: MouseEvent) => onMouseDown(e, handle, allowChildTargets);
       handle.style.cursor = "grab";
       handle.addEventListener("mousedown", onHandleMouseDown);
-      if (handle === headerHandle) {
+      if (props.collapsible !== false && handle === headerHandle) {
         handle.addEventListener("dblclick", onDoubleClick);
       }
       return { handle, onHandleMouseDown };
@@ -81,7 +80,7 @@ export function DraggableWindow(props: {
       handleBindings.forEach(({ handle, onHandleMouseDown }) => {
         handle.style.cursor = "";
         handle.removeEventListener("mousedown", onHandleMouseDown);
-        if (handle === headerHandle) {
+        if (props.collapsible !== false && handle === headerHandle) {
           handle.removeEventListener("dblclick", onDoubleClick);
         }
       });
