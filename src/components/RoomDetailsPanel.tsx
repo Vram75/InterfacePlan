@@ -204,6 +204,7 @@ function CropModal(props: { file: File; onCancel: () => void; onConfirm: (croppe
 
   const modal = (
     <div
+      data-room-details-modal="true"
       onMouseDown={() => props.onCancel()}
       style={{
         position: "fixed",
