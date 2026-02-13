@@ -428,6 +428,17 @@ body{
   position: fixed;
 }
 
+.dash-floating-layer{
+  position: fixed;
+  inset: 0;
+  z-index: 900;
+  pointer-events: none;
+}
+
+.dash-floating-layer > *{
+  pointer-events: auto;
+}
+
 .dash-right{ overflow: hidden; }
 
 .floating-card-window.is-collapsed .card{
