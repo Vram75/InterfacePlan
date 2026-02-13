@@ -499,6 +499,7 @@ export default function App() {
   const [hoverRoomId, setHoverRoomId] = useState<string | null>(null);
   const [detailsRoomId, setDetailsRoomId] = useState<string | null>(null);
   const detailsPanelRef = useRef<RoomDetailsPanelHandle | null>(null);
+  const detailsPanelContainerRef = useRef<HTMLDivElement | null>(null);
   const [isRoomsPanelOpen, setIsRoomsPanelOpen] = useState(true);
   const roomsPanelRef = useRef<HTMLDivElement | null>(null);
   const roomsToggleRef = useRef<HTMLButtonElement | null>(null);
@@ -967,6 +968,25 @@ export default function App() {
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
   }, []);
+
+  useEffect(() => {
+    if (!detailsRoomId) return;
+
+    const onPointerDown = (event: PointerEvent) => {
+      const target = event.target;
+      if (!(target instanceof Node)) return;
+      if (target instanceof HTMLElement && target.closest("[data-room-details-modal='true']")) return;
+
+      const panelEl = detailsPanelContainerRef.current;
+      if (!panelEl) return;
+      if (!panelEl.contains(target)) {
+        setDetailsRoomId(null);
+      }
+    };
+
+    document.addEventListener("pointerdown", onPointerDown);
+    return () => document.removeEventListener("pointerdown", onPointerDown);
+  }, [detailsRoomId]);
 
   const selectedLocked = adminMode && !!selectedRoomId && roomPolygonLockedOnPage(selectedRoom as any, currentPage);
 
@@ -1553,33 +1573,35 @@ export default function App() {
           )}
 
           {detailsRoom && (
-            <DraggableWindow
-              storageKey="iface.panel.details"
-              defaultPosition={{ x: 470, y: 86 }}
-              width={360}
-              collapsible={false}
-            >
-              <div className="card plan-card">
-                <div className="card-content card-scroll" style={{ maxHeight: "min(72vh, 760px)" }}>
-                  <RoomDetailsPanel
-                    ref={detailsPanelRef}
-                    room={detailsRoom}
-                    services={services.map(({ uid: _uid, ...rest }) => rest)}
-                    onSave={async (room) => {
-                      const saved = await api.updateRoom(room);
-                      setRooms((prev) => prev.map((r) => (r.id === saved.id ? saved : r)));
-                      setSelectedRoomId(null);
-                      setDetailsRoomId(null);
-                    }}
-                    onUploadPhoto={async (roomId, file) => {
-                      const saved = await api.uploadPhoto(roomId, file);
-                      setRooms((prev) => prev.map((r) => (r.id === saved.id ? saved : r)));
-                    }}
-                    onClose={() => setDetailsRoomId(null)}
-                  />
+            <div ref={detailsPanelContainerRef}>
+              <DraggableWindow
+                storageKey="iface.panel.details"
+                defaultPosition={{ x: 470, y: 86 }}
+                width={360}
+                collapsible={false}
+              >
+                <div className="card plan-card">
+                  <div className="card-content card-scroll" style={{ maxHeight: "min(72vh, 760px)" }}>
+                    <RoomDetailsPanel
+                      ref={detailsPanelRef}
+                      room={detailsRoom}
+                      services={services.map(({ uid: _uid, ...rest }) => rest)}
+                      onSave={async (room) => {
+                        const saved = await api.updateRoom(room);
+                        setRooms((prev) => prev.map((r) => (r.id === saved.id ? saved : r)));
+                        setSelectedRoomId(null);
+                        setDetailsRoomId(null);
+                      }}
+                      onUploadPhoto={async (roomId, file) => {
+                        const saved = await api.uploadPhoto(roomId, file);
+                        setRooms((prev) => prev.map((r) => (r.id === saved.id ? saved : r)));
+                      }}
+                      onClose={() => setDetailsRoomId(null)}
+                    />
+                  </div>
                 </div>
-              </div>
-            </DraggableWindow>
+              </DraggableWindow>
+            </div>
           )}
         </div>
       )}
