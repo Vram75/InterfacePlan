@@ -1097,7 +1097,7 @@ export default function App() {
 
         {/* MAIN */}
         {pageView === "dashboard" && (
-          <main className="dash-main">
+          <main className="dash-main ui-zoom" style={{ ["--ui-zoom" as any]: uiZoom }}>
             <div className="card">
               <div className="card-header">
                 <div>
@@ -1116,7 +1116,7 @@ export default function App() {
 
         {/* SETTINGS */}
         {pageView === "settings" && (
-          <main className="dash-main">
+          <main className="dash-main ui-zoom" style={{ ["--ui-zoom" as any]: uiZoom }}>
             <div className="settings-main-panel">
               <div className="settings-main-header">
                 <div className="card-title">Paramètres</div>
@@ -1167,24 +1167,6 @@ export default function App() {
                       </div>
                     </div>
 
-                    <div className="field">
-                      <label className="label">Espace UI</label>
-                      <div className="settings-row">
-                        <input
-                          className="select"
-                          type="number"
-                          min={UI_ZOOM_MIN}
-                          max={UI_ZOOM_MAX}
-                          step={0.01}
-                          value={uiZoom}
-                          onChange={(e) => {
-                            const n = Number(e.target.value);
-                            if (!Number.isFinite(n)) return;
-                            setUiZoom(clampUiZoom(n));
-                          }}
-                        />
-                      </div>
-                    </div>
                   </div>
                 </section>
 
@@ -1407,6 +1389,23 @@ export default function App() {
                 <button className="btn btn-icon btn-mini" type="button" onClick={() => setScale((s) => clampScale(s + 0.1))} title="Zoom + (+)">
                   +
                 </button>
+              </div>
+
+              <div className="plan-field-inline plan-field-compact" title="Échelle du panneau outils">
+                <span className="plan-field-label">Espace UI</span>
+                <input
+                  className="select plan-number plan-number-compact"
+                  type="number"
+                  min={UI_ZOOM_MIN}
+                  max={UI_ZOOM_MAX}
+                  step={0.01}
+                  value={uiZoom}
+                  onChange={(e) => {
+                    const n = Number(e.target.value);
+                    if (!Number.isFinite(n)) return;
+                    setUiZoom(clampUiZoom(n));
+                  }}
+                />
               </div>
             </div>
 
