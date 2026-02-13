@@ -1540,62 +1540,63 @@ export default function App() {
           </aside>
         )}
 
-        {pageView === "plans" && (
-          <>
-            {isRoomsPanelOpen && (
-              <div ref={roomsPanelRef}>
-                <DraggableWindow storageKey="iface.panel.rooms" defaultPosition={{ x: 88, y: 86 }} width={360}>
-                  <div className="card plan-card">
-                    <div className="card-content card-scroll" style={{ maxHeight: "min(72vh, 760px)" }}>
-                      <RoomListPanel
-                        rooms={rooms}
-                        selectedRoomId={selectedRoomId}
-                        onSelectRoom={(roomId) => {
-                          setSelectedRoomId(roomId);
-                          setDetailsRoomId((prev) => (prev === roomId ? prev : null));
-                        }}
-                        onOpenDetails={(roomId) => {
-                          setSelectedRoomId(roomId);
-                          setDetailsRoomId(roomId);
-                        }}
-                      />
-                    </div>
-                  </div>
-                </DraggableWindow>
-              </div>
-            )}
+      </div>
 
-            {detailsRoom && (
-              <DraggableWindow
-                storageKey="iface.panel.details"
-                defaultPosition={{ x: 470, y: 86 }}
-                width={360}
-                collapsible={false}
-              >
+      {pageView === "plans" && (
+        <div className="dash-floating-layer" aria-hidden="false">
+          {isRoomsPanelOpen && (
+            <div ref={roomsPanelRef}>
+              <DraggableWindow storageKey="iface.panel.rooms" defaultPosition={{ x: 88, y: 86 }} width={360}>
                 <div className="card plan-card">
                   <div className="card-content card-scroll" style={{ maxHeight: "min(72vh, 760px)" }}>
-                    <RoomDetailsPanel
-                      ref={detailsPanelRef}
-                      room={detailsRoom}
-                      services={services.map(({ uid: _uid, ...rest }) => rest)}
-                      onSave={async (room) => {
-                        const saved = await api.updateRoom(room);
-                        setRooms((prev) => prev.map((r) => (r.id === saved.id ? saved : r)));
-                        setSelectedRoomId(null);
-                        setDetailsRoomId(null);
+                    <RoomListPanel
+                      rooms={rooms}
+                      selectedRoomId={selectedRoomId}
+                      onSelectRoom={(roomId) => {
+                        setSelectedRoomId(roomId);
+                        setDetailsRoomId((prev) => (prev === roomId ? prev : null));
                       }}
-                      onUploadPhoto={async (roomId, file) => {
-                        const saved = await api.uploadPhoto(roomId, file);
-                        setRooms((prev) => prev.map((r) => (r.id === saved.id ? saved : r)));
+                      onOpenDetails={(roomId) => {
+                        setSelectedRoomId(roomId);
+                        setDetailsRoomId(roomId);
                       }}
                     />
                   </div>
                 </div>
               </DraggableWindow>
-            )}
-          </>
-        )}
-      </div>
+            </div>
+          )}
+
+          {detailsRoom && (
+            <DraggableWindow
+              storageKey="iface.panel.details"
+              defaultPosition={{ x: 470, y: 86 }}
+              width={360}
+              collapsible={false}
+            >
+              <div className="card plan-card">
+                <div className="card-content card-scroll" style={{ maxHeight: "min(72vh, 760px)" }}>
+                  <RoomDetailsPanel
+                    ref={detailsPanelRef}
+                    room={detailsRoom}
+                    services={services.map(({ uid: _uid, ...rest }) => rest)}
+                    onSave={async (room) => {
+                      const saved = await api.updateRoom(room);
+                      setRooms((prev) => prev.map((r) => (r.id === saved.id ? saved : r)));
+                      setSelectedRoomId(null);
+                      setDetailsRoomId(null);
+                    }}
+                    onUploadPhoto={async (roomId, file) => {
+                      const saved = await api.uploadPhoto(roomId, file);
+                      setRooms((prev) => prev.map((r) => (r.id === saved.id ? saved : r)));
+                    }}
+                  />
+                </div>
+              </div>
+            </DraggableWindow>
+          )}
+        </div>
+      )}
     </div>
   );
 }
