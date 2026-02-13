@@ -887,8 +887,13 @@ body{
 .room-panel-header{
   display: flex;
   justify-content: space-between;
-  align-items: baseline;
+  align-items: center;
   gap: 12px;
+}
+.room-panel-title-row{
+  display: inline-flex;
+  align-items: baseline;
+  gap: 10px;
 }
 .room-panel-title{
   font-weight: 800;
@@ -978,11 +983,9 @@ body{
 }
 .details-panel-header{
   display: flex;
-  flex-direction: column;
-  justify-content: flex-start;
+  justify-content: space-between;
   gap: 12px;
   align-items: flex-start;
-  padding-bottom: 2.4em;
 }
 .details-panel-number{
   font-weight: 900;
