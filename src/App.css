@@ -1471,6 +1471,34 @@ html, body{
     0 16px 30px rgba(0,0,0,0.325);
 }
 
+/* Outils: reprendre la même skin que la navigation */
+.dash-sidebar-right .btn,
+.dash-sidebar-right button,
+.dash-sidebar-right input,
+.dash-sidebar-right select,
+.dash-sidebar-right .select,
+.dash-sidebar-right .plan-field-inline,
+.dash-sidebar-right .meta-chip{
+  background:
+    radial-gradient(140% 140% at 30% 10%, #3a4659 0%, #273142 55%, #1c2432 100%);
+  border: 1px solid rgba(255,255,255,0.10);
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,0.04),
+    inset 0 -1px 0 rgba(0,0,0,0.3);
+}
+
+.dash-sidebar-right .btn:hover,
+.dash-sidebar-right button:hover,
+.dash-sidebar-right input:hover,
+.dash-sidebar-right select:hover,
+.dash-sidebar-right .select:hover{
+  border-color: rgba(255,255,255,0.14);
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,0.05),
+    inset 0 -1px 0 rgba(0,0,0,0.375),
+    0 10px 22px rgba(0,0,0,0.275);
+}
+
 /* Buttons / selects – solid gradient 3D */
 button,
 .btn,
