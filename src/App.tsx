@@ -1313,190 +1313,6 @@ export default function App() {
           <main className="dash-main">
             <div className="card plan-card">
               <div className="card-content plan-content">
-                <div className="plan-controls-content">
-                    <div className="plan-toolbar-group">
-                      <button className="btn btn-icon btn-mini" title="Page précédente (PageUp)" type="button" onClick={() => goToPageIndex(currentPage - 1)} disabled={currentPage <= 0}>
-                        ◀
-                      </button>
-
-                      <span className="meta-chip">
-                        Page {Math.min(pageCount, currentPage + 1)} / {pageCount}
-                      </span>
-
-                      <button
-                        className="btn btn-icon btn-mini"
-                        title="Page suivante (PageDown)"
-                        type="button"
-                        onClick={() => goToPageIndex(currentPage + 1)}
-                        disabled={currentPage >= Math.max(1, pageCount) - 1}
-                      >
-                        ▶
-                      </button>
-                    </div>
-
-                    <div className="plan-toolbar-group">
-                        <div className="plan-grid-controls">
-                          <div className="plan-field-inline plan-field-compact plan-grid-frame" title="Taille de grille (px)">
-                            <div className="plan-grid-row">
-                              <label className="switch switch-compact switch-vivid switch-vivid-emerald plan-field-label" title="Afficher/masquer la grille">
-                                <input type="checkbox" checked={gridEnabled} onChange={toggleGridFromButton} />
-                                <span className="mini-switch-track" />
-                                <span className="mini-switch-label">Grille</span>
-                              </label>
-                              <input
-                                className="select plan-number plan-number-compact"
-                                type="number"
-                                min={4}
-                                max={200}
-                                step={1}
-                                value={gridSizePx}
-                                onChange={(e) => {
-                                  const n = Math.min(200, Math.max(4, Math.round(Number(e.target.value) || 0)));
-                                  setGridSizePx(n);
-                                  writeGridSizePx(n);
-                                }}
-                              />
-                            </div>
-                            <label className="switch switch-compact switch-vivid switch-vivid-aurora plan-grid-snap" title="Snap (S)">
-                              <input type="checkbox" checked={snapUi} onChange={toggleSnapFromButton} />
-                              <span className="mini-switch-track" />
-                              <span className="mini-switch-label">Snap</span>
-                            </label>
-                          </div>
-                        </div>
-
-                      <div className="plan-zoom-group">
-                        <button className="btn btn-icon btn-mini" type="button" onClick={() => setScale((s) => clampScale(s - 0.1))} title="Zoom - (-)">
-                          −
-                        </button>
-                        <span className="meta-chip">Zoom x{scale.toFixed(2)}</span>
-                        <button className="btn btn-icon btn-mini" type="button" onClick={() => setScale((s) => clampScale(s + 0.1))} title="Zoom + (+)">
-                          +
-                        </button>
-                      </div>
-                    </div>
-
-                    {adminMode && (
-                      <div className="plan-toolbar-group">
-                        <div className="plan-field-inline plan-field-compact plan-draw-field" style={{ minWidth: 240 }}>
-                          <span className="plan-field-label">Création de zone</span>
-                          <select
-                            className="select"
-                            value={drawingRoomId ?? ""}
-                            onChange={(e) => {
-                              setDrawingRoomId(e.target.value || null);
-                              setDrawSessionId((x) => x + 1);
-                            }}
-                          >
-                            <option value="">Créer un polygone pour…</option>
-                            {rooms.map((r: any) => {
-                              const already = roomHasPolygonOnPage(r, currentPage);
-                              const hasOtherPage = roomHasPolygonOnOtherPage(r, currentPage);
-                              const disabled = already || hasOtherPage;
-                              return (
-                                <option key={r.id} value={r.id} disabled={disabled}>
-                                  {r.numero}{" "}
-                                  {already ? " — déjà défini (page)" : hasOtherPage ? " — déjà défini (autre page)" : ""}
-                                </option>
-                              );
-                            })}
-                          </select>
-                          <div className="plan-draw-actions">
-                            <button
-                              className="btn btn-mini plan-lock-btn"
-                              type="button"
-                              onClick={() => {
-                                if (!selectedRoomId) return;
-                                togglePolygonLock(selectedRoomId, currentPage);
-                              }}
-                              disabled={!selectedRoomId || !roomHasPolygonOnPage(selectedRoom as any, currentPage)}
-                              title={
-                                !selectedRoomId || !roomHasPolygonOnPage(selectedRoom as any, currentPage)
-                                  ? "Aucun polygone sur cette page pour la pièce sélectionnée"
-                                  : selectedLocked
-                                    ? "Déverrouiller le polygone (page courante)"
-                                    : "Verrouiller le polygone (page courante)"
-                              }
-                            >
-                              {selectedLocked ? "Déverrouiller" : "Verrouiller"}
-                            </button>
-
-                            <button
-                              className="btn btn-mini"
-                              type="button"
-                              disabled={!canDeletePolygon}
-                              onClick={() => {
-                                if (!selectedRoomId) return;
-                                setOverlayRequest({ kind: "deletePolygon", roomId: selectedRoomId });
-                              }}
-                              title={!canDeletePolygon ? "Aucun polygone sur cette page pour la pièce sélectionnée" : "Supprimer le polygone (page courante)"}
-                            >
-                              Suppr. polygone
-                            </button>
-                          </div>
-                        </div>
-                      </div>
-                    )}
-
-                    <div className="plan-header-right">
-                      <button
-                        ref={roomsToggleRef}
-                        className="btn btn-icon btn-mini"
-                        type="button"
-                        onClick={() => setIsRoomsPanelOpen((prev) => !prev)}
-                        title={isRoomsPanelOpen ? "Masquer le panneau pièce" : "Afficher le panneau pièce"}
-                        aria-pressed={isRoomsPanelOpen}
-                      >
-                        <svg aria-hidden="true" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                          <circle cx="11" cy="11" r="7" />
-                          <line x1="16.65" y1="16.65" x2="21" y2="21" />
-                        </svg>
-                      </button>
-                      <div className="plan-controls-raw" aria-live="polite">
-                        <div className="poly-tooltip">
-                          <div className="poly-tooltip-header">
-                            <span className="poly-tooltip-number">{hoverRoom ? hoverRoom.numero : "\u00a0"}</span>
-                            <span className="poly-tooltip-title">
-                              {hoverRoom ? (hoverRoom.designation?.trim() || "—") : "\u00a0"}
-                            </span>
-                          </div>
-                          <div className="poly-tooltip-row">
-                            <span className="poly-tooltip-label">{hoverRoom ? "Service" : "\u00a0"}</span>
-                            <span className="poly-tooltip-value">
-                              {hoverRoom ? hoverRoom.service?.trim() || "—" : "\u00a0"}
-                            </span>
-                          </div>
-                          <div className="poly-tooltip-row">
-                            <span className="poly-tooltip-label">{hoverRoom ? "Surface" : "\u00a0"}</span>
-                            <span className="poly-tooltip-value">{hoverRoom ? formatSurface(hoverRoom.surface) : "\u00a0"}</span>
-                          </div>
-                          <div className="poly-tooltip-row">
-                            <span className="poly-tooltip-label">{hoverRoom ? "Contact" : "\u00a0"}</span>
-                            <span className="poly-tooltip-value">
-                              {hoverRoom
-                                ? [hoverRoom.personneNom, hoverRoom.personneTel].filter(Boolean).join(" • ") || "—"
-                                : "\u00a0"}
-                            </span>
-                          </div>
-                        </div>
-                      </div>
-
-                      <label className="switch switch-compact switch-vivid switch-vivid-magenta" title="Activer/désactiver l’édition">
-                        <input
-                          type="checkbox"
-                          checked={adminMode}
-                          onChange={(e) => {
-                            setAdminMode(e.target.checked);
-                            setDrawingRoomId(null);
-                            setDrawSessionId((x) => x + 1);
-                          }}
-                        />
-                        <span className="mini-switch-track" />
-                        <span className="mini-switch-label">Admin</span>
-                      </label>
-                    </div>
-                </div>
-
                 <div className="plan-viewport">
                   <div className="plan-stage">
                     <div className="plan-layer">
@@ -1545,6 +1361,183 @@ export default function App() {
               </div>
             </div>
           </main>
+        )}
+
+        {pageView === "plans" && (
+          <aside className="dash-sidebar dash-sidebar-right ui-zoom" style={{ ["--ui-zoom" as any]: uiZoom }}>
+            <div className="nav-title">Outils</div>
+
+            <div className="plan-toolbar-group plan-toolbar-group-vertical">
+              <button className="btn btn-icon btn-mini" title="Page précédente (PageUp)" type="button" onClick={() => goToPageIndex(currentPage - 1)} disabled={currentPage <= 0}>
+                ◀
+              </button>
+              <span className="meta-chip">
+                Page {Math.min(pageCount, currentPage + 1)} / {pageCount}
+              </span>
+              <button
+                className="btn btn-icon btn-mini"
+                title="Page suivante (PageDown)"
+                type="button"
+                onClick={() => goToPageIndex(currentPage + 1)}
+                disabled={currentPage >= Math.max(1, pageCount) - 1}
+              >
+                ▶
+              </button>
+            </div>
+
+            <div className="plan-toolbar-group plan-toolbar-group-vertical">
+              <div className="plan-grid-controls">
+                <div className="plan-field-inline plan-field-compact plan-grid-frame" title="Taille de grille (px)">
+                  <div className="plan-grid-row">
+                    <label className="switch switch-compact switch-vivid switch-vivid-emerald plan-field-label" title="Afficher/masquer la grille">
+                      <input type="checkbox" checked={gridEnabled} onChange={toggleGridFromButton} />
+                      <span className="mini-switch-track" />
+                      <span className="mini-switch-label">Grille</span>
+                    </label>
+                    <input
+                      className="select plan-number plan-number-compact"
+                      type="number"
+                      min={4}
+                      max={200}
+                      step={1}
+                      value={gridSizePx}
+                      onChange={(e) => {
+                        const n = Math.min(200, Math.max(4, Math.round(Number(e.target.value) || 0)));
+                        setGridSizePx(n);
+                        writeGridSizePx(n);
+                      }}
+                    />
+                  </div>
+                  <label className="switch switch-compact switch-vivid switch-vivid-aurora plan-grid-snap" title="Snap (S)">
+                    <input type="checkbox" checked={snapUi} onChange={toggleSnapFromButton} />
+                    <span className="mini-switch-track" />
+                    <span className="mini-switch-label">Snap</span>
+                  </label>
+                </div>
+              </div>
+
+              <div className="plan-zoom-group">
+                <button className="btn btn-icon btn-mini" type="button" onClick={() => setScale((s) => clampScale(s - 0.1))} title="Zoom - (-)">
+                  −
+                </button>
+                <span className="meta-chip">Zoom x{scale.toFixed(2)}</span>
+                <button className="btn btn-icon btn-mini" type="button" onClick={() => setScale((s) => clampScale(s + 0.1))} title="Zoom + (+)">
+                  +
+                </button>
+              </div>
+            </div>
+
+            {adminMode && (
+              <div className="plan-toolbar-group plan-toolbar-group-vertical">
+                <div className="plan-field-inline plan-field-compact plan-draw-field">
+                  <span className="plan-field-label">Création de zone</span>
+                  <select
+                    className="select"
+                    value={drawingRoomId ?? ""}
+                    onChange={(e) => {
+                      setDrawingRoomId(e.target.value || null);
+                      setDrawSessionId((x) => x + 1);
+                    }}
+                  >
+                    <option value="">Créer un polygone pour…</option>
+                    {rooms.map((r: any) => {
+                      const already = roomHasPolygonOnPage(r, currentPage);
+                      const hasOtherPage = roomHasPolygonOnOtherPage(r, currentPage);
+                      const disabled = already || hasOtherPage;
+                      return (
+                        <option key={r.id} value={r.id} disabled={disabled}>
+                          {r.numero} {already ? " — déjà défini (page)" : hasOtherPage ? " — déjà défini (autre page)" : ""}
+                        </option>
+                      );
+                    })}
+                  </select>
+                  <div className="plan-draw-actions">
+                    <button
+                      className="btn btn-mini plan-lock-btn"
+                      type="button"
+                      onClick={() => {
+                        if (!selectedRoomId) return;
+                        togglePolygonLock(selectedRoomId, currentPage);
+                      }}
+                      disabled={!selectedRoomId || !roomHasPolygonOnPage(selectedRoom as any, currentPage)}
+                      title={
+                        !selectedRoomId || !roomHasPolygonOnPage(selectedRoom as any, currentPage)
+                          ? "Aucun polygone sur cette page pour la pièce sélectionnée"
+                          : selectedLocked
+                            ? "Déverrouiller le polygone (page courante)"
+                            : "Verrouiller le polygone (page courante)"
+                      }
+                    >
+                      {selectedLocked ? "Déverrouiller" : "Verrouiller"}
+                    </button>
+
+                    <button
+                      className="btn btn-mini"
+                      type="button"
+                      disabled={!canDeletePolygon}
+                      onClick={() => {
+                        if (!selectedRoomId) return;
+                        setOverlayRequest({ kind: "deletePolygon", roomId: selectedRoomId });
+                      }}
+                      title={!canDeletePolygon ? "Aucun polygone sur cette page pour la pièce sélectionnée" : "Supprimer le polygone (page courante)"}
+                    >
+                      Suppr. polygone
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            <div className="plan-toolbar-group plan-toolbar-group-vertical">
+              <button
+                ref={roomsToggleRef}
+                className="btn btn-icon btn-mini"
+                type="button"
+                onClick={() => setIsRoomsPanelOpen((prev) => !prev)}
+                title={isRoomsPanelOpen ? "Masquer le panneau pièce" : "Afficher le panneau pièce"}
+                aria-pressed={isRoomsPanelOpen}
+              >
+                <svg aria-hidden="true" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <circle cx="11" cy="11" r="7" />
+                  <line x1="16.65" y1="16.65" x2="21" y2="21" />
+                </svg>
+              </button>
+              <div className="plan-controls-raw" aria-live="polite">
+                <div className="poly-tooltip">
+                  <div className="poly-tooltip-header">
+                    <span className="poly-tooltip-number">{hoverRoom ? hoverRoom.numero : "\u00a0"}</span>
+                    <span className="poly-tooltip-title">{hoverRoom ? hoverRoom.designation?.trim() || "—" : "\u00a0"}</span>
+                  </div>
+                  <div className="poly-tooltip-row">
+                    <span className="poly-tooltip-label">{hoverRoom ? "Service" : "\u00a0"}</span>
+                    <span className="poly-tooltip-value">{hoverRoom ? hoverRoom.service?.trim() || "—" : "\u00a0"}</span>
+                  </div>
+                  <div className="poly-tooltip-row">
+                    <span className="poly-tooltip-label">{hoverRoom ? "Surface" : "\u00a0"}</span>
+                    <span className="poly-tooltip-value">{hoverRoom ? formatSurface(hoverRoom.surface) : "\u00a0"}</span>
+                  </div>
+                  <div className="poly-tooltip-row">
+                    <span className="poly-tooltip-label">{hoverRoom ? "Contact" : "\u00a0"}</span>
+                    <span className="poly-tooltip-value">{hoverRoom ? [hoverRoom.personneNom, hoverRoom.personneTel].filter(Boolean).join(" • ") || "—" : "\u00a0"}</span>
+                  </div>
+                </div>
+              </div>
+
+              <label className="switch switch-compact switch-vivid switch-vivid-magenta" title="Activer/désactiver l’édition">
+                <input
+                  type="checkbox"
+                  checked={adminMode}
+                  onChange={(e) => {
+                    setAdminMode(e.target.checked);
+                    setDrawingRoomId(null);
+                    setDrawSessionId((x) => x + 1);
+                  }}
+                />
+                <span className="mini-switch-track" />
+                <span className="mini-switch-label">Admin</span>
+              </label>
+            </div>
+          </aside>
         )}
 
         {pageView === "plans" && (

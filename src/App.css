@@ -27,6 +27,7 @@ html, body, #root {
 
   --gap: 16px;
   --sidebar-w: 190px;   /* c'est ici pour la largeur du panneau navigation */
+  --tools-w: 260px;
   --right-w: 420px;
 }
 
@@ -133,7 +134,7 @@ body{
 }
 
 .dash-body--floating-panels{
-  grid-template-columns: var(--sidebar-w) minmax(0, 1fr);
+  grid-template-columns: var(--sidebar-w) minmax(0, 1fr) var(--tools-w);
 }
 
 .dash-sidebar, .dash-main, .dash-right{
@@ -547,7 +548,7 @@ body{
 }
 
 .plan-content{
-  padding: 12px;
+  padding: 8px;
   flex: 1;
   min-height: 0;
   overflow: hidden;
@@ -592,6 +593,36 @@ body{
   flex-wrap: wrap;
   gap: 8px;
   margin-bottom: 12px;
+  width: 100%;
+}
+
+.dash-sidebar-right{
+  justify-content: flex-start;
+  gap: 10px;
+}
+
+.plan-toolbar-group-vertical{
+  width: 100%;
+  flex-direction: column;
+  align-items: stretch;
+  border: 1px solid rgba(148,163,184,0.25);
+  border-radius: 14px;
+  padding: 10px;
+  background: rgba(15,23,42,0.25);
+}
+
+.plan-toolbar-group-vertical .meta-chip,
+.plan-toolbar-group-vertical .btn,
+.plan-toolbar-group-vertical .plan-field-inline,
+.plan-toolbar-group-vertical .plan-controls-raw,
+.plan-toolbar-group-vertical .switch,
+.plan-toolbar-group-vertical .plan-grid-row,
+.plan-toolbar-group-vertical .plan-zoom-group,
+.plan-toolbar-group-vertical .plan-draw-actions{
+  width: 100%;
+}
+
+.plan-toolbar-group-vertical .plan-controls-raw .poly-tooltip{
   width: 100%;
 }
 
@@ -1268,7 +1299,7 @@ body{
 }
 
 @media (max-width: 1320px){
-  :root{ --right-w: 340px; --sidebar-w: 220px; }
+  :root{ --right-w: 340px; --sidebar-w: 220px; --tools-w: 220px; }
   .search-input{ width: 200px; }
 }
 
