@@ -1527,7 +1527,7 @@ export default function App() {
       {pageView === "plans" && (
         <div className="dash-floating-layer" aria-hidden="false">
           {isRoomsPanelOpen && (
-            <div ref={roomsPanelRef}>
+            <div ref={roomsPanelRef} className="ui-zoom" style={{ ["--ui-zoom" as any]: uiZoom }}>
               <DraggableWindow storageKey="iface.panel.rooms" defaultPosition={{ x: 88, y: 86 }} width={360}>
                 <div className="card plan-card">
                   <div className="card-content card-scroll" style={{ maxHeight: "min(72vh, 760px)" }}>
@@ -1550,7 +1550,7 @@ export default function App() {
           )}
 
           {detailsRoom && (
-            <div>
+            <div className="ui-zoom" style={{ ["--ui-zoom" as any]: uiZoom }}>
               <DraggableWindow
                 storageKey="iface.panel.details"
                 defaultPosition={{ x: 470, y: 86 }}
