@@ -356,6 +356,7 @@ type RoomDetailsPanelProps = {
   services: ServiceColor[];
   onSave: (room: Room) => Promise<void>;
   onUploadPhoto: (roomId: string, file: File) => Promise<void>;
+  onClose: () => void;
   onStatusChange?: (status: RoomDetailsPanelStatus) => void;
 };
 
@@ -424,6 +425,9 @@ export const RoomDetailsPanel = forwardRef<RoomDetailsPanelHandle, RoomDetailsPa
     <div className="details-panel">
       <div className="details-panel-header" data-drag-handle>
         <div className="details-panel-number">{draft.numero}</div>
+        <button className="btn btn-icon btn-mini" type="button" onClick={props.onClose} title="Fermer le panneau détails" aria-label="Fermer le panneau détails">
+          ×
+        </button>
       </div>
 
       {error && (

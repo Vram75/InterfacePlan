@@ -605,22 +605,6 @@ export default function App() {
     setCurrentPage((p) => Math.max(0, Math.min(p, Math.max(1, pageCount) - 1)));
   }, [pageCount]);
 
-  useEffect(() => {
-    if (!isRoomsPanelOpen || pageView !== "plans") return;
-    const handleClickOutside = (event: MouseEvent) => {
-      const target = event.target as Node | null;
-      const panel = roomsPanelRef.current;
-      const toggle = roomsToggleRef.current;
-      if (!target || !panel) return;
-      if (panel.contains(target) || toggle?.contains(target as Node)) return;
-      setIsRoomsPanelOpen(false);
-    };
-    window.addEventListener("mousedown", handleClickOutside);
-    return () => {
-      window.removeEventListener("mousedown", handleClickOutside);
-    };
-  }, [isRoomsPanelOpen, pageView]);
-
   // Sidebar-only page selection indicators (dot + badge)
   const pagesPolyStats = useMemo(() => {
     const map = new Map<number, number>(); // page -> count of polygons on that page
@@ -1552,6 +1536,7 @@ export default function App() {
                     <RoomListPanel
                       rooms={rooms}
                       selectedRoomId={selectedRoomId}
+                      onClose={() => setIsRoomsPanelOpen(false)}
                       onSelectRoom={(roomId) => {
                         setSelectedRoomId(roomId);
                         setDetailsRoomId((prev) => (prev === roomId ? prev : null));
@@ -1590,6 +1575,7 @@ export default function App() {
                       const saved = await api.uploadPhoto(roomId, file);
                       setRooms((prev) => prev.map((r) => (r.id === saved.id ? saved : r)));
                     }}
+                    onClose={() => setDetailsRoomId(null)}
                   />
                 </div>
               </div>
