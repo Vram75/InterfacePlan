@@ -499,7 +499,6 @@ export default function App() {
   const [hoverRoomId, setHoverRoomId] = useState<string | null>(null);
   const [detailsRoomId, setDetailsRoomId] = useState<string | null>(null);
   const detailsPanelRef = useRef<RoomDetailsPanelHandle | null>(null);
-  const detailsPanelContainerRef = useRef<HTMLDivElement | null>(null);
   const [isRoomsPanelOpen, setIsRoomsPanelOpen] = useState(true);
   const roomsPanelRef = useRef<HTMLDivElement | null>(null);
   const roomsToggleRef = useRef<HTMLButtonElement | null>(null);
@@ -969,25 +968,6 @@ export default function App() {
     return () => window.removeEventListener("keydown", onKeyDown);
   }, []);
 
-  useEffect(() => {
-    if (!detailsRoomId) return;
-
-    const onPointerDown = (event: PointerEvent) => {
-      const target = event.target;
-      if (!(target instanceof Node)) return;
-      if (target instanceof HTMLElement && target.closest("[data-room-details-modal='true']")) return;
-
-      const panelEl = detailsPanelContainerRef.current;
-      if (!panelEl) return;
-      if (!panelEl.contains(target)) {
-        setDetailsRoomId(null);
-      }
-    };
-
-    document.addEventListener("pointerdown", onPointerDown);
-    return () => document.removeEventListener("pointerdown", onPointerDown);
-  }, [detailsRoomId]);
-
   const selectedLocked = adminMode && !!selectedRoomId && roomPolygonLockedOnPage(selectedRoom as any, currentPage);
 
   const canDeletePolygon = adminMode && !!selectedRoomId && roomHasPolygonOnPage(selectedRoom as any, currentPage) && !selectedLocked;
@@ -1341,7 +1321,6 @@ export default function App() {
                           selectedRoomId={selectedRoomId}
                           onSelectRoom={(roomId) => {
                             setSelectedRoomId(roomId);
-                            setDetailsRoomId((prev) => (roomId && prev === roomId ? prev : null));
                           }}
                           onPolygonDoubleClick={(roomId) => {
                             setSelectedRoomId(roomId);
@@ -1559,7 +1538,6 @@ export default function App() {
                       onClose={() => setIsRoomsPanelOpen(false)}
                       onSelectRoom={(roomId) => {
                         setSelectedRoomId(roomId);
-                        setDetailsRoomId((prev) => (prev === roomId ? prev : null));
                       }}
                       onOpenDetails={(roomId) => {
                         setSelectedRoomId(roomId);
@@ -1573,7 +1551,7 @@ export default function App() {
           )}
 
           {detailsRoom && (
-            <div ref={detailsPanelContainerRef}>
+            <div>
               <DraggableWindow
                 storageKey="iface.panel.details"
                 defaultPosition={{ x: 470, y: 86 }}
@@ -1589,8 +1567,6 @@ export default function App() {
                       onSave={async (room) => {
                         const saved = await api.updateRoom(room);
                         setRooms((prev) => prev.map((r) => (r.id === saved.id ? saved : r)));
-                        setSelectedRoomId(null);
-                        setDetailsRoomId(null);
                       }}
                       onUploadPhoto={async (roomId, file) => {
                         const saved = await api.uploadPhoto(roomId, file);
