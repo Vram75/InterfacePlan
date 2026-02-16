@@ -36,7 +36,6 @@ html, body, #root {
 body{
   margin: 0;
   overflow: hidden;
-  scrollbar-gutter: stable;
   font-family: var(--nav-font);
   color: var(--text);
   background: radial-gradient(1200px 800px at 5% -20%, rgba(241,245,249,0.95), transparent 55%),
