@@ -10,7 +10,6 @@ export function RoomListPanel(props: {
   selectedRoomId: string | null;
   onSelectRoom: (id: string) => void;
   onOpenDetails: (id: string) => void;
-  onClose: () => void;
 }) {
   const [q, setQ] = useState("");
 
@@ -58,9 +57,6 @@ export function RoomListPanel(props: {
           </div>
           <div className="room-panel-meta">{missingCount} sans polygone</div>
         </div>
-        <button className="btn btn-icon btn-mini" type="button" onClick={props.onClose} title="Fermer le panneau recherche" aria-label="Fermer le panneau recherche">
-          ×
-        </button>
       </div>
 
       <input
