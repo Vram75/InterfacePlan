@@ -1372,12 +1372,12 @@ export default function App() {
                         writeGridSizePx(n);
                       }}
                     />
+                    <label className="switch switch-compact switch-vivid switch-vivid-aurora plan-grid-snap" title="Snap (S)">
+                      <input type="checkbox" checked={snapUi} onChange={toggleSnapFromButton} />
+                      <span className="mini-switch-track" />
+                      <span className="mini-switch-label">Snap</span>
+                    </label>
                   </div>
-                  <label className="switch switch-compact switch-vivid switch-vivid-aurora plan-grid-snap" title="Snap (S)">
-                    <input type="checkbox" checked={snapUi} onChange={toggleSnapFromButton} />
-                    <span className="mini-switch-track" />
-                    <span className="mini-switch-label">Snap</span>
-                  </label>
                 </div>
               </div>
 
