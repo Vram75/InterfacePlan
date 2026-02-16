@@ -2,13 +2,15 @@ import { useEffect, useRef, useState } from "react";
 
 type Position = { x: number; y: number };
 
+const MIN_VISIBLE_GRAB_AREA = 32;
+
 function clamp(n: number, min: number, max: number) {
   return Math.min(max, Math.max(min, n));
 }
 
 function clampPositionToViewport(pos: Position, width: number): Position {
-  const minX = 6 - width + 120;
-  const maxX = window.innerWidth - 120;
+  const minX = 6 - width + MIN_VISIBLE_GRAB_AREA;
+  const maxX = window.innerWidth - MIN_VISIBLE_GRAB_AREA;
   const minY = 6;
   const maxY = window.innerHeight - 50;
 
@@ -134,7 +136,7 @@ export function DraggableWindow(props: {
       const nextY = d.oy + (e.clientY - d.sy);
 
       setPos({
-        x: clamp(nextX, 6 - w + 120, window.innerWidth - 120),
+        x: clamp(nextX, 6 - w + MIN_VISIBLE_GRAB_AREA, window.innerWidth - MIN_VISIBLE_GRAB_AREA),
         y: clamp(nextY, 6, window.innerHeight - 50),
       });
     };
