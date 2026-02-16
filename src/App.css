@@ -894,8 +894,10 @@ body{
   gap: 12px;
 }
 .room-panel-title-row{
-  display: inline-flex;
+  display: flex;
   align-items: baseline;
+  width: 100%;
+  min-width: 0;
   gap: 10px;
 }
 .room-panel-title{
@@ -908,6 +910,9 @@ body{
   opacity: 0.7;
 }
 .room-panel-meta{
+  margin-left: auto;
+  text-align: right;
+  white-space: nowrap;
   font-size: 12px;
   opacity: 0.7;
 }
