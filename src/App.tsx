@@ -499,9 +499,7 @@ export default function App() {
   const [hoverRoomId, setHoverRoomId] = useState<string | null>(null);
   const [detailsRoomId, setDetailsRoomId] = useState<string | null>(null);
   const detailsPanelRef = useRef<RoomDetailsPanelHandle | null>(null);
-  const [isRoomsPanelOpen, setIsRoomsPanelOpen] = useState(true);
   const roomsPanelRef = useRef<HTMLDivElement | null>(null);
-  const roomsToggleRef = useRef<HTMLButtonElement | null>(null);
 
   const [adminMode, setAdminMode] = useState(true);
   const [drawingRoomId, setDrawingRoomId] = useState<string | null>(null);
@@ -1477,19 +1475,6 @@ export default function App() {
                 )}
 
                 <div className="plan-toolbar-group plan-toolbar-group-vertical">
-                  <button
-                    ref={roomsToggleRef}
-                    className="btn btn-icon btn-mini"
-                    type="button"
-                    onClick={() => setIsRoomsPanelOpen((prev) => !prev)}
-                    title={isRoomsPanelOpen ? "Masquer le panneau pièce" : "Afficher le panneau pièce"}
-                    aria-pressed={isRoomsPanelOpen}
-                  >
-                    <svg aria-hidden="true" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <circle cx="11" cy="11" r="7" />
-                      <line x1="16.65" y1="16.65" x2="21" y2="21" />
-                    </svg>
-                  </button>
                   <div className="plan-controls-raw" aria-live="polite">
                     <div className="poly-tooltip">
                       <div className="poly-tooltip-header">
@@ -1528,35 +1513,33 @@ export default function App() {
               </aside>
             </DraggableWindow>
           </div>
-          {isRoomsPanelOpen && (
-            <div ref={roomsPanelRef} className="ui-zoom" style={{ ["--ui-zoom" as any]: uiZoom }}>
-              <DraggableWindow storageKey="iface.panel.rooms" defaultPosition={{ x: 88, y: 86 }} width={360} title="Pièces">
-                <div className="card plan-card">
-                  <div
-                    className="card-content card-scroll"
-                    style={{
-                      height: "min(72vh, 760px)",
-                      minHeight: 220,
-                      maxHeight: "min(88vh, 920px)",
-                      overflow: "auto",
+          <div ref={roomsPanelRef} className="ui-zoom" style={{ ["--ui-zoom" as any]: uiZoom }}>
+            <DraggableWindow storageKey="iface.panel.rooms" defaultPosition={{ x: 88, y: 86 }} width={360} title="Pièces">
+              <div className="card plan-card">
+                <div
+                  className="card-content card-scroll"
+                  style={{
+                    height: "min(72vh, 760px)",
+                    minHeight: 220,
+                    maxHeight: "min(88vh, 920px)",
+                    overflow: "auto",
+                  }}
+                >
+                  <RoomListPanel
+                    rooms={rooms}
+                    selectedRoomId={selectedRoomId}
+                    onSelectRoom={(roomId) => {
+                      setSelectedRoomId(roomId);
                     }}
-                  >
-                    <RoomListPanel
-                      rooms={rooms}
-                      selectedRoomId={selectedRoomId}
-                      onSelectRoom={(roomId) => {
-                        setSelectedRoomId(roomId);
-                      }}
-                      onOpenDetails={(roomId) => {
-                        setSelectedRoomId(roomId);
-                        setDetailsRoomId(roomId);
-                      }}
-                    />
-                  </div>
+                    onOpenDetails={(roomId) => {
+                      setSelectedRoomId(roomId);
+                      setDetailsRoomId(roomId);
+                    }}
+                  />
                 </div>
-              </DraggableWindow>
-            </div>
-          )}
+              </div>
+            </DraggableWindow>
+          </div>
 
           {detailsRoom && (
             <div className="ui-zoom" style={{ ["--ui-zoom" as any]: uiZoom }}>

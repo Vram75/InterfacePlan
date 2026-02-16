@@ -1004,7 +1004,7 @@ body{
   color: rgba(15,23,42,0.55);
 }
 .room-panel-list{
-  max-height: 300px;
+  max-height: 600px;
   overflow: auto;
   border-radius: 14px;
   border: 1px solid var(--stroke);
