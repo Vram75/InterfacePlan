@@ -66,7 +66,14 @@ export function DraggableWindow(props: {
   const [pos, setPos] = useState<Position>(() => readStoredPosition(props.storageKey, props.defaultPosition));
   const [collapsed, setCollapsed] = useState(false);
   const [z, setZ] = useState(1000);
-  const dragRef = useRef<{ pointerId: number; sx: number; sy: number; ox: number; oy: number } | null>(null);
+  const dragRef = useRef<{
+    pointerId: number;
+    sx: number;
+    sy: number;
+    ox: number;
+    oy: number;
+    moved: boolean;
+  } | null>(null);
   const captureHandleRef = useRef<HTMLElement | null>(null);
   const rootRef = useRef<HTMLDivElement | null>(null);
 
@@ -102,7 +109,7 @@ export function DraggableWindow(props: {
       if (!allowChildTargets && target !== handle) return;
       handle.setPointerCapture(e.pointerId);
       captureHandleRef.current = handle;
-      dragRef.current = { pointerId: e.pointerId, sx: e.clientX, sy: e.clientY, ox: pos.x, oy: pos.y };
+      dragRef.current = { pointerId: e.pointerId, sx: e.clientX, sy: e.clientY, ox: pos.x, oy: pos.y, moved: false };
     };
 
     const onDoubleClick = (e: MouseEvent) => {
@@ -149,9 +156,16 @@ export function DraggableWindow(props: {
       if (!d) return;
       if (e.pointerId !== d.pointerId) return;
 
+      const dx = e.clientX - d.sx;
+      const dy = e.clientY - d.sy;
+      const movedEnough = Math.hypot(dx, dy) >= 4;
+
+      if (!d.moved && !movedEnough) return;
+      if (!d.moved) d.moved = true;
+
       const w = rootRef.current?.offsetWidth ?? props.width;
-      const nextX = d.ox + (e.clientX - d.sx);
-      const nextY = d.oy + (e.clientY - d.sy);
+      const nextX = d.ox + dx;
+      const nextY = d.oy + dy;
 
       const zoom = readZoomFromNode(rootRef.current);
       const viewport = getViewportBounds(zoom);
