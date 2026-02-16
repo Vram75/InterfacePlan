@@ -988,51 +988,26 @@ export default function App() {
         ["--panel-strong" as any]: uiPanelStrong,
       }}
     >
+      <div className="page-tabs ui-zoom" style={{ ["--ui-zoom" as any]: uiZoom }}>
+        <button className={`page-tab ${pageView === "dashboard" ? "page-tab-active" : ""}`} onClick={() => setPageView("dashboard")} type="button" title="Tableau de bord" aria-label="Tableau de bord">
+          <span className="nav-icon" aria-hidden="true">
+            ⌂
+          </span>
+        </button>
+        <button className={`page-tab ${pageView === "plans" ? "page-tab-active" : ""}`} onClick={() => setPageView("plans")} type="button" title="Plans" aria-label="Plans">
+          <span className="nav-icon" aria-hidden="true">
+            ▦
+          </span>
+        </button>
+        <button className={`page-tab ${pageView === "settings" ? "page-tab-active" : ""}`} onClick={() => setPageView("settings")} type="button" title="Paramètres" aria-label="Paramètres">
+          <span className="nav-icon" aria-hidden="true">
+            ⛭
+          </span>
+        </button>
+      </div>
+
       {/* BODY */}
       <div className={`dash-body ${pageView === "plans" ? "dash-body--floating-panels" : ""}`}>
-        {/* SIDEBAR */}
-        {pageView !== "plans" && (
-        <aside className="dash-sidebar ui-zoom" style={{ ["--ui-zoom" as any]: uiZoom }}>
-          <div className="nav-title">Navigation</div>
-
-          <button className="nav-item" onClick={() => setPageView("dashboard")} type="button">
-            <span className="nav-icon" aria-hidden="true">
-              ⌂
-            </span>
-            Tableau de bord
-          </button>
-
-          <button className="nav-item" onClick={() => setPageView("plans")} type="button">
-            <span className="nav-icon" aria-hidden="true">
-              ▦
-            </span>
-            Plans
-          </button>
-
-          <button className="nav-item" onClick={() => setPageView("settings")} type="button">
-            <span className="nav-icon" aria-hidden="true">
-              ⛭
-            </span>
-            Paramètres
-          </button>
-
-
-          <div className="spacer" />
-
-          <div className="help-card">
-            <div className="help-title">Raccourcis</div>
-            <div className="help-text">
-              <b>S</b> Snap • <b>+</b>/<b>-</b> Zoom • <b>Shift</b> orthogonal
-              <br />
-              <b>Alt+clic</b> insérer • <b>Delete</b> supprimer sommet
-              <br />
-              <b>Ctrl/⌘</b> drag = déplacer polygone
-              <br />
-              <b>PageUp/PageDown</b> pages • <b>Home/End</b> début/fin
-            </div>
-          </div>
-        </aside>
-        )}
 
         {/* MAIN */}
         {pageView === "dashboard" && (
@@ -1046,7 +1021,7 @@ export default function App() {
               </div>
               <div className="card-content">
                 <div className="hint">
-                  L’éditeur est dans <b>Plans</b>.
+                  Contenu du tableau de bord à intégrer.
                 </div>
               </div>
             </div>
@@ -1056,13 +1031,14 @@ export default function App() {
         {/* SETTINGS */}
         {pageView === "settings" && (
           <main className="dash-main ui-zoom" style={{ ["--ui-zoom" as any]: uiZoom }}>
-            <div className="settings-main-panel">
-              <div className="settings-main-header">
-                <div className="card-title">Paramètres</div>
-                <div className="card-subtitle"></div>
-              </div>
+            <div className="card settings-main-panel">
+              <div className="card-content">
+                <div className="settings-main-header">
+                  <div className="card-title">Paramètres</div>
+                  <div className="card-subtitle"></div>
+                </div>
 
-              <div className="settings-panels">
+                <div className="settings-panels">
                 <section className="card settings-card">
                   <div className="card-header">
                     <div>
@@ -1209,6 +1185,7 @@ export default function App() {
                   </div>
                 </section>
               </div>
+              </div>
             </div>
           </main>
         )}
@@ -1274,34 +1251,11 @@ export default function App() {
       {pageView === "plans" && (
         <div className="dash-floating-layer" aria-hidden="false">
           <div className="ui-zoom" style={{ ["--ui-zoom" as any]: uiZoom }}>
-            <DraggableWindow storageKey="iface.panel.navigation" defaultPosition={{ x: 18, y: 18 }} width={290} title="Navigation">
+            <DraggableWindow storageKey="iface.panel.navigation" defaultPosition={{ x: 18, y: 18 }} width={290} title="Gestion des pages">
               <aside className="dash-sidebar floating-sidebar-panel floating-sidebar-panel-nav">
                 <div className="nav-title" data-drag-handle>
-                  Navigation
+                  Gestion des pages
                 </div>
-
-                <button className="nav-item" onClick={() => setPageView("dashboard")} type="button">
-                  <span className="nav-icon" aria-hidden="true">
-                    ⌂
-                  </span>
-                  Tableau de bord
-                </button>
-
-                <button className="nav-item nav-item-active" onClick={() => setPageView("plans")} type="button">
-                  <span className="nav-icon" aria-hidden="true">
-                    ▦
-                  </span>
-                  Plans
-                </button>
-
-                <button className="nav-item" onClick={() => setPageView("settings")} type="button">
-                  <span className="nav-icon" aria-hidden="true">
-                    ⛭
-                  </span>
-                  Paramètres
-                </button>
-
-                <div className="nav-divider" />
                 <div className="nav-title" style={{ marginTop: 10 }}>
                   Pages
                 </div>

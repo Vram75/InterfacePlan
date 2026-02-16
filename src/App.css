@@ -44,6 +44,7 @@ body{
 }
 
 .dash-root{
+  position: relative;
   height: 100vh;
   display: grid;
   grid-template-rows: 1fr;
@@ -123,12 +124,49 @@ body{
   box-shadow: var(--shadow-soft);
 }
 
+.page-tabs{
+  position: absolute;
+  top: 16px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 45;
+  display: flex;
+  gap: 10px;
+  padding: 8px;
+  border-radius: 18px;
+  border: 1px solid rgba(15,23,42,0.35);
+  background: linear-gradient(180deg, rgba(30,41,59,0.92), rgba(15,23,42,0.96));
+  box-shadow: 0 18px 40px rgba(15,23,42,0.18);
+  backdrop-filter: blur(14px);
+}
+
+.page-tab{
+  border: 1px solid transparent;
+  background: transparent;
+  width: 46px;
+  height: 46px;
+  border-radius: 14px;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+}
+.page-tab:hover{
+  background: rgba(248,250,252,0.08);
+  border-color: rgba(148,163,184,0.35);
+}
+.page-tab-active{
+  background: color-mix(in srgb, var(--accent) 22%, rgba(248,250,252,0.12));
+  border-color: color-mix(in srgb, var(--accent) 55%, rgba(226,232,240,0.45));
+  box-shadow: 0 10px 20px rgba(15,23,42,0.175);
+}
+
+
 .dash-body{
   height: 100vh;
   display: grid;
-  grid-template-columns: var(--sidebar-w) minmax(0, 1fr);
+  grid-template-columns: minmax(0, 1fr);
   gap: var(--gap);
-  padding: var(--gap);
+  padding: 74px var(--gap) var(--gap);
   overflow: hidden;
 }
 
@@ -1229,9 +1267,6 @@ body{
 }
 
 .settings-main-panel{
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
   width: 100%;
 }
 
