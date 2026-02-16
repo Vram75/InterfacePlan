@@ -444,7 +444,6 @@ body{
   width: 100%;
   max-height: min(88vh, 920px);
   min-height: 240px;
-  resize: vertical;
 }
 
 .floating-sidebar-panel-nav{
@@ -455,16 +454,42 @@ body{
   min-height: 320px;
 }
 
-.floating-card-window.is-collapsed .card{
-  overflow: visible;
-}
-
-.floating-card-window.is-collapsed .card-content{
+.floating-card-window.is-collapsed .floating-panel-content{
   display: none;
 }
 
-.floating-card-window.is-collapsed .card-header{
+.floating-card-window.is-collapsed .floating-panel-header{
   border-bottom: none;
+}
+
+.floating-panel-shell{
+  border: 1px solid var(--stroke);
+  background: var(--panel-grad-strong);
+  border-radius: var(--r-xl);
+  box-shadow: var(--shadow-panel), var(--shadow-inset);
+  overflow: hidden;
+}
+
+.floating-panel-header{
+  cursor: grab;
+  user-select: none;
+  align-items: center;
+  background:
+    radial-gradient(180% 140% at 30% 0%, #48576b 0%, #2b3648 55%, #1b2432 100%);
+  color: var(--text);
+}
+
+.floating-panel-content{
+  overflow: hidden;
+}
+
+
+.floating-panel-content > .dash-sidebar,
+.floating-panel-content > .dash-right,
+.floating-panel-content > .card{
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
 }
 .right-sticky{
   height: 100%;
