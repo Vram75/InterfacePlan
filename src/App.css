@@ -126,7 +126,7 @@ body{
 .dash-body{
   height: 100vh;
   display: grid;
-  grid-template-columns: var(--sidebar-w) minmax(0, 1fr) var(--right-w);
+  grid-template-columns: var(--sidebar-w) minmax(0, 1fr);
   gap: var(--gap);
   padding: var(--gap);
   overflow: hidden;
@@ -1341,7 +1341,7 @@ body{
 
 @media (max-width: 1180px){
   :root{ --sidebar-w: 0px; --right-w: 360px; }
-  .dash-body{ grid-template-columns: 0px minmax(0, 1fr) var(--right-w); }
+  .dash-body{ grid-template-columns: 0px minmax(0, 1fr); }
   .dash-body--floating-panels{ grid-template-columns: minmax(0, 1fr); }
   .dash-sidebar{ display: none; }
 }
