@@ -65,8 +65,17 @@ function clampRectToViewport(
 
 type DragState =
   | null
-  | { kind: "move"; sx: number; sy: number; ox: number; oy: number }
-  | { kind: "resize"; sx: number; sy: number; ow: number; oh: number };
+  | { kind: "move"; pointerId: number; sx: number; sy: number; ox: number; oy: number }
+  | {
+      kind: "resize";
+      pointerId: number;
+      sx: number;
+      sy: number;
+      ox: number;
+      oy: number;
+      ow: number;
+      oh: number;
+    };
 
 export function FloatingPanel({
   title,
@@ -118,9 +127,9 @@ export function FloatingPanel({
 
   // Drag + Resize handling
   useEffect(() => {
-    const onMove = (e: MouseEvent) => {
+    const onMove = (e: PointerEvent) => {
       const d = dragRef.current;
-      if (!d) return;
+      if (!d || e.pointerId !== d.pointerId) return;
 
       if (d.kind === "move") {
         const raw: FloatingRect = {
@@ -145,7 +154,8 @@ export function FloatingPanel({
       if (d.kind === "resize") {
         // resize from bottom-right: keep x/y fixed, change w/h
         const raw: FloatingRect = {
-          ...rect,
+          x: d.ox,
+          y: d.oy,
           w: d.ow + (e.clientX - d.sx),
           h: d.oh + (e.clientY - d.sy),
         };
@@ -164,15 +174,19 @@ export function FloatingPanel({
       }
     };
 
-    const onUp = () => {
+    const onUp = (e: PointerEvent) => {
+      const d = dragRef.current;
+      if (!d || e.pointerId !== d.pointerId) return;
       dragRef.current = null;
     };
 
-    window.addEventListener("mousemove", onMove);
-    window.addEventListener("mouseup", onUp);
+    window.addEventListener("pointermove", onMove);
+    window.addEventListener("pointerup", onUp);
+    window.addEventListener("pointercancel", onUp);
     return () => {
-      window.removeEventListener("mousemove", onMove);
-      window.removeEventListener("mouseup", onUp);
+      window.removeEventListener("pointermove", onMove);
+      window.removeEventListener("pointerup", onUp);
+      window.removeEventListener("pointercancel", onUp);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [rect, collapsed, onRectChange]);
@@ -211,9 +225,18 @@ export function FloatingPanel({
           userSelect: "none",
           background: "radial-gradient(170% 140% at 30% 0%, #ece8e3 0%, #d7cfc8 58%, #c6bcb4 100%)",
         }}
-        onMouseDown={(e) => {
+        onPointerDown={(e) => {
+          e.preventDefault();
           bringToFront();
-          dragRef.current = { kind: "move", sx: e.clientX, sy: e.clientY, ox: rect.x, oy: rect.y };
+          e.currentTarget.setPointerCapture(e.pointerId);
+          dragRef.current = {
+            kind: "move",
+            pointerId: e.pointerId,
+            sx: e.clientX,
+            sy: e.clientY,
+            ox: rect.x,
+            oy: rect.y,
+          };
         }}
         onDoubleClick={(e) => {
           e.stopPropagation();
@@ -249,12 +272,22 @@ export function FloatingPanel({
       {/* Resize handle (bottom-right) */}
       {!collapsed && (
         <div
-          onMouseDown={(e) => {
+          onPointerDown={(e) => {
             // prevent initiating move or clicks behind
             e.preventDefault();
             e.stopPropagation();
             bringToFront();
-            dragRef.current = { kind: "resize", sx: e.clientX, sy: e.clientY, ow: rect.w, oh: rect.h };
+            e.currentTarget.setPointerCapture(e.pointerId);
+            dragRef.current = {
+              kind: "resize",
+              pointerId: e.pointerId,
+              sx: e.clientX,
+              sy: e.clientY,
+              ox: rect.x,
+              oy: rect.y,
+              ow: rect.w,
+              oh: rect.h,
+            };
           }}
           title="Redimensionner"
           style={{
