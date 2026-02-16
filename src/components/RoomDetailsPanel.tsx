@@ -223,42 +223,21 @@ function CropModal(props: { file: File; onCancel: () => void; onConfirm: (croppe
     <div
       data-room-details-modal="true"
       onMouseDown={() => props.onCancel()}
-      style={{
-        position: "fixed",
-        inset: 0,
-        zIndex: 9999,
-        background: "rgba(0,0,0,0.45)",
-        display: "grid",
-        placeItems: "center",
-        padding: 18,
-      }}
+      className="crop-modal-overlay"
     >
       <div
         onMouseDown={(e) => e.stopPropagation()}
-        style={{
-          width: "min(920px, 96vw)",
-          borderRadius: 9,
-          background: "white",
-          border: "1px solid rgba(0,0,0,0.12)",
-          boxShadow: "0 24px 60px rgba(0,0,0,0.25)",
-          overflow: "hidden",
-        }}
+        className="crop-modal-panel"
       >
-        <div style={{ padding: 14, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
-          <div style={{ fontWeight: 900 }}>Recadrer la photo</div>
+        <div className="crop-modal-header">
+          <div className="crop-modal-title">Recadrer la photo</div>
 
-          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-            <span style={{ fontWeight: 700, opacity: 0.7 }}>Ratio</span>
+          <div className="crop-modal-toolbar">
+            <span className="crop-modal-toolbar-label">Ratio</span>
             <select
               value={aspect}
               onChange={(e) => setAspect(e.target.value as AspectMode)}
-              style={{
-                padding: "8px 10px",
-                borderRadius: 12,
-                border: "1px solid rgba(0,0,0,0.14)",
-                background: "white",
-                fontWeight: 700,
-              }}
+              className="crop-modal-select"
             >
               <option value="1:1">1:1</option>
               <option value="4:3">4:3</option>
@@ -267,27 +246,14 @@ function CropModal(props: { file: File; onCancel: () => void; onConfirm: (croppe
 
             <button
               onClick={props.onCancel}
-              style={{
-                padding: "8px 12px",
-                borderRadius: 12,
-                border: "1px solid rgba(0,0,0,0.14)",
-                background: "white",
-                fontWeight: 800,
-              }}
+              className="btn btn-mini crop-modal-btn"
             >
               Annuler
             </button>
 
             <button
               onClick={confirmCrop}
-              style={{
-                padding: "8px 12px",
-                borderRadius: 12,
-                border: "1px solid rgba(0,0,0,0.14)",
-                background: "black",
-                color: "white",
-                fontWeight: 900,
-              }}
+              className="btn btn-mini crop-modal-btn crop-modal-btn-primary"
             >
               Utiliser ce recadrage
             </button>

@@ -1140,6 +1140,71 @@ body{
   padding-top: 4px;
 }
 
+.crop-modal-overlay{
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  background: rgba(6, 10, 18, 0.62);
+  display: grid;
+  place-items: center;
+  padding: 18px;
+  backdrop-filter: blur(3px);
+}
+
+.crop-modal-panel{
+  width: min(920px, 96vw);
+  border-radius: var(--r-xl);
+  border: 1px solid var(--stroke);
+  background: var(--panel-grad-strong);
+  box-shadow: var(--shadow-panel), var(--shadow-inset);
+  overflow: hidden;
+}
+
+.crop-modal-header{
+  padding: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  border-bottom: 1px solid rgba(255,255,255,0.08);
+}
+
+.crop-modal-title{
+  font-weight: 900;
+  color: var(--text);
+}
+
+.crop-modal-toolbar{
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.crop-modal-toolbar-label{
+  font-weight: 700;
+  color: var(--muted);
+}
+
+.crop-modal-select{
+  min-width: 88px;
+}
+
+.crop-modal-btn{
+  font-weight: 800;
+}
+
+.crop-modal-btn-primary{
+  border-color: color-mix(in srgb, var(--accent) 55%, rgba(255,255,255,0.24));
+  background:
+    radial-gradient(180% 160% at 30% 0%, #5f8fdb 0%, #3968b4 52%, #284a82 100%);
+  color: #f8fbff;
+}
+
+.crop-modal-btn-primary:hover{
+  background:
+    radial-gradient(180% 160% at 30% 0%, #6a9ce6 0%, #4275c0 52%, #30548d 100%);
+}
+
 .plan-card .input{
   border-color: rgba(148,163,184,0.25);
   background: rgba(15,23,42,0.35);
