@@ -134,7 +134,7 @@ body{
 }
 
 .dash-body--floating-panels{
-  grid-template-columns: var(--sidebar-w) minmax(0, 1fr) var(--tools-w);
+  grid-template-columns: minmax(0, 1fr);
 }
 
 .dash-sidebar, .dash-main, .dash-right{
@@ -440,6 +440,21 @@ body{
 }
 
 .dash-right{ overflow: hidden; }
+
+.floating-sidebar-panel{
+  width: 100%;
+  max-height: min(88vh, 920px);
+  min-height: 240px;
+  resize: vertical;
+}
+
+.floating-sidebar-panel-nav{
+  min-height: 420px;
+}
+
+.floating-sidebar-panel-tools{
+  min-height: 320px;
+}
 
 .floating-card-window.is-collapsed .card{
   overflow: visible;
