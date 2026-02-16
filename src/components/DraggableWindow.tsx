@@ -2,15 +2,26 @@ import { useEffect, useRef, useState } from "react";
 
 type Position = { x: number; y: number };
 
+const MIN_VISIBLE_GRAB_AREA = 32;
+
 function clamp(n: number, min: number, max: number) {
   return Math.min(max, Math.max(min, n));
 }
 
-function clampPositionToViewport(pos: Position, width: number): Position {
-  const minX = 6 - width + 120;
-  const maxX = window.innerWidth - 120;
+function getViewportBounds(zoom = 1) {
+  const safeZoom = Number.isFinite(zoom) && zoom > 0 ? zoom : 1;
+  return {
+    width: window.innerWidth / safeZoom,
+    height: window.innerHeight / safeZoom,
+  };
+}
+
+function clampPositionToViewport(pos: Position, width: number, zoom = 1): Position {
+  const viewport = getViewportBounds(zoom);
+  const minX = 6 - width + MIN_VISIBLE_GRAB_AREA;
+  const maxX = viewport.width - MIN_VISIBLE_GRAB_AREA;
   const minY = 6;
-  const maxY = window.innerHeight - 50;
+  const maxY = viewport.height - 50;
 
   return {
     x: clamp(pos.x, minX, maxX),
@@ -18,6 +29,15 @@ function clampPositionToViewport(pos: Position, width: number): Position {
   };
 }
 
+
+function readZoomFromNode(node: HTMLElement | null): number {
+  if (!node) return 1;
+  const zoomNode = node.closest(".ui-zoom") as HTMLElement | null;
+  if (!zoomNode) return 1;
+  const raw = window.getComputedStyle(zoomNode).zoom;
+  const parsed = Number.parseFloat(raw);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : 1;
+}
 function readStoredPosition(key: string, fallback: Position): Position {
   try {
     const raw = localStorage.getItem(key);
@@ -57,7 +77,7 @@ export function DraggableWindow(props: {
   useEffect(() => {
     const width = rootRef.current?.offsetWidth ?? props.width;
     setPos((prev) => {
-      const next = clampPositionToViewport(prev, width);
+      const next = clampPositionToViewport(prev, width, readZoomFromNode(rootRef.current));
       if (next.x === prev.x && next.y === prev.y) return prev;
       return next;
     });
@@ -116,7 +136,7 @@ export function DraggableWindow(props: {
     const clampCurrentPosition = () => {
       const width = rootRef.current?.offsetWidth ?? props.width;
       setPos((prev) => {
-        const next = clampPositionToViewport(prev, width);
+        const next = clampPositionToViewport(prev, width, readZoomFromNode(rootRef.current));
         if (next.x === prev.x && next.y === prev.y) return prev;
         return next;
       });
@@ -133,9 +153,12 @@ export function DraggableWindow(props: {
       const nextX = d.ox + (e.clientX - d.sx);
       const nextY = d.oy + (e.clientY - d.sy);
 
+      const zoom = readZoomFromNode(rootRef.current);
+      const viewport = getViewportBounds(zoom);
+
       setPos({
-        x: clamp(nextX, 6 - w + 120, window.innerWidth - 120),
-        y: clamp(nextY, 6, window.innerHeight - 50),
+        x: clamp(nextX, 6 - w + MIN_VISIBLE_GRAB_AREA, viewport.width - MIN_VISIBLE_GRAB_AREA),
+        y: clamp(nextY, 6, viewport.height - 50),
       });
     };
 
