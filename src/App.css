@@ -1057,6 +1057,11 @@ body{
 .details-panel .select{
   width: 50%;
 }
+.details-panel .details-panel-compact-input{
+  width: 86%;
+  min-height: 34px;
+  padding: 7px 10px;
+}
 .details-panel-titlebar{
   display: flex;
   justify-content: space-between;

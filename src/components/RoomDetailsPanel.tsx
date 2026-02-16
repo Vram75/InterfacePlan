@@ -499,26 +499,23 @@ export const RoomDetailsPanel = forwardRef<RoomDetailsPanelHandle, RoomDetailsPa
           </div>
 
           <div className="field" style={{ flex: 1 }}>
-            <label className="label">Nom de la personne</label>
+            <label className="label">Nom</label>
             <input
-              className="input"
-              style={{ width: "100%" }}
+              className="input details-panel-compact-input"
               value={draft.personneNom ?? ""}
               onChange={(e) => set("personneNom", e.target.value)}
             />
 
             <label className="label" style={{ marginTop: 10 }}>Prénom</label>
             <input
-              className="input"
-              style={{ width: "100%" }}
+              className="input details-panel-compact-input"
               value={draft.personnePrenom ?? ""}
               onChange={(e) => set("personnePrenom", e.target.value)}
             />
 
             <label className="label" style={{ marginTop: 10 }}>Téléphone</label>
             <input
-              className="input"
-              style={{ width: "100%" }}
+              className="input details-panel-compact-input"
               value={draft.personneTel ?? ""}
               onChange={(e) => set("personneTel", e.target.value)}
             />
@@ -552,8 +549,7 @@ export const RoomDetailsPanel = forwardRef<RoomDetailsPanelHandle, RoomDetailsPa
             </label>
 
             <select
-              className="select"
-              style={{ width: "100%" }}
+              className="select details-panel-compact-input"
               value={selectValue}
               onChange={(e) => set("service", e.target.value || null)}
             >
@@ -586,8 +582,7 @@ export const RoomDetailsPanel = forwardRef<RoomDetailsPanelHandle, RoomDetailsPa
           <div className="field" style={{ flex: 1 }}>
             <label className="label">Désignation</label>
             <input
-              className="input"
-              style={{ width: "100%" }}
+              className="input details-panel-compact-input"
               value={draft.designation ?? ""}
               onChange={(e) => set("designation", e.target.value)}
             />
@@ -598,8 +593,7 @@ export const RoomDetailsPanel = forwardRef<RoomDetailsPanelHandle, RoomDetailsPa
           <div className="field" style={{ flex: 1 }}>
             <label className="label">Niveau</label>
             <input
-              className="input"
-              style={{ width: "100%" }}
+              className="input details-panel-compact-input"
               value={draft.niveau ?? ""}
               onChange={(e) => set("niveau", e.target.value)}
             />
@@ -608,8 +602,7 @@ export const RoomDetailsPanel = forwardRef<RoomDetailsPanelHandle, RoomDetailsPa
           <div className="field" style={{ flex: 1 }}>
             <label className="label">Aile</label>
             <input
-              className="input"
-              style={{ width: "100%" }}
+              className="input details-panel-compact-input"
               value={draft.aile ?? ""}
               onChange={(e) => set("aile", e.target.value)}
             />
@@ -619,9 +612,8 @@ export const RoomDetailsPanel = forwardRef<RoomDetailsPanelHandle, RoomDetailsPa
         <div className="field">
           <label className="label">Surface</label>
           <input
-            className="input"
+            className="input details-panel-compact-input"
             type="number"
-            style={{ width: "100%" }}
             value={draft.surface ?? ""}
             onChange={(e) => set("surface", e.target.value === "" ? null : Number(e.target.value))}
           />
