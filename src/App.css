@@ -726,14 +726,14 @@ body{
 
 .plan-grid-controls{
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
   align-items: flex-start;
   gap: 6px;
 }
 
 .plan-grid-frame{
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
   align-items: flex-start;
   gap: 6px;
 }
@@ -745,7 +745,7 @@ body{
 }
 
 .plan-grid-snap{
-  align-self: flex-start;
+  align-self: center;
 }
 
 .plan-zoom-group{
@@ -801,9 +801,12 @@ body{
   border-radius: 12px;
 }
 .plan-number-compact{
-  width: 70px;
-  padding: 6px 8px;
+  width: 62px;
+  min-height: 30px;
+  padding: 5px 6px;
   border-radius: 10px;
+  font-size: 12px;
+  font-weight: 600;
 }
 
 .btn{
