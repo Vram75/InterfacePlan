@@ -1274,7 +1274,7 @@ export default function App() {
       {pageView === "plans" && (
         <div className="dash-floating-layer" aria-hidden="false">
           <div className="ui-zoom" style={{ ["--ui-zoom" as any]: uiZoom }}>
-            <DraggableWindow storageKey="iface.panel.navigation" defaultPosition={{ x: 18, y: 18 }} width={290} collapsible={false}>
+            <DraggableWindow storageKey="iface.panel.navigation" defaultPosition={{ x: 18, y: 18 }} width={290} title="Navigation">
               <aside className="dash-sidebar floating-sidebar-panel floating-sidebar-panel-nav">
                 <div className="nav-title" data-drag-handle>
                   Navigation
@@ -1378,7 +1378,7 @@ export default function App() {
           </div>
 
           <div className="ui-zoom" style={{ ["--ui-zoom" as any]: uiZoom }}>
-            <DraggableWindow storageKey="iface.panel.tools" defaultPosition={{ x: 1180, y: 18 }} width={290} collapsible={false}>
+            <DraggableWindow storageKey="iface.panel.tools" defaultPosition={{ x: 1180, y: 18 }} width={290} title="Outils">
               <aside className="dash-sidebar dash-sidebar-right floating-sidebar-panel floating-sidebar-panel-tools">
                 <div className="nav-title" data-drag-handle>
                   Outils
@@ -1576,7 +1576,7 @@ export default function App() {
           </div>
           {isRoomsPanelOpen && (
             <div ref={roomsPanelRef} className="ui-zoom" style={{ ["--ui-zoom" as any]: uiZoom }}>
-              <DraggableWindow storageKey="iface.panel.rooms" defaultPosition={{ x: 88, y: 86 }} width={360}>
+              <DraggableWindow storageKey="iface.panel.rooms" defaultPosition={{ x: 88, y: 86 }} width={360} title="Pièces">
                 <div className="card plan-card">
                   <div
                     className="card-content card-scroll"
@@ -1585,7 +1585,6 @@ export default function App() {
                       minHeight: 220,
                       maxHeight: "min(88vh, 920px)",
                       overflow: "auto",
-                      resize: "vertical",
                     }}
                   >
                     <RoomListPanel
@@ -1612,7 +1611,7 @@ export default function App() {
                 storageKey="iface.panel.details"
                 defaultPosition={{ x: 470, y: 86 }}
                 width={360}
-                collapsible={false}
+                title="Détails de la pièce"
               >
                 <div className="card plan-card">
                   <div
@@ -1622,7 +1621,6 @@ export default function App() {
                       minHeight: 220,
                       maxHeight: "min(88vh, 920px)",
                       overflow: "auto",
-                      resize: "vertical",
                     }}
                   >
                     <RoomDetailsPanel

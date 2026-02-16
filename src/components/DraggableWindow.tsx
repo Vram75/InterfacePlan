@@ -60,6 +60,7 @@ export function DraggableWindow(props: {
   storageKey: string;
   defaultPosition: Position;
   width: number;
+  title: string;
   collapsible?: boolean;
   children: React.ReactNode;
 }) {
@@ -94,10 +95,8 @@ export function DraggableWindow(props: {
     const root = rootRef.current;
     if (!root) return;
 
-    const headerHandle = root.querySelector(".card-header") as HTMLElement | null;
-    const customHandles = Array.from(root.querySelectorAll("[data-drag-handle]")) as HTMLElement[];
-    const handles = ([headerHandle, ...customHandles].filter(Boolean) as HTMLElement[]);
-    const dragHandles = handles.length ? handles : [root];
+    const headerHandle = root.querySelector(".floating-panel-header") as HTMLElement | null;
+    if (!headerHandle) return;
 
     const isInteractiveTarget = (target: HTMLElement | null) =>
       Boolean(target?.closest("button, input, select, textarea, a, [role='button'], label"));
@@ -118,24 +117,19 @@ export function DraggableWindow(props: {
       setCollapsed((prev) => !prev);
     };
 
-    const handleBindings = dragHandles.map((handle) => {
-      const allowChildTargets = true;
-      const onHandlePointerDown = (e: PointerEvent) => onPointerDown(e, handle, allowChildTargets);
-      handle.style.cursor = "grab";
-      handle.addEventListener("pointerdown", onHandlePointerDown);
-      if (props.collapsible !== false && handle === headerHandle) {
-        handle.addEventListener("dblclick", onDoubleClick);
-      }
-      return { handle, onHandlePointerDown };
-    });
+    const onHandlePointerDown = (e: PointerEvent) => onPointerDown(e, headerHandle, true);
+    headerHandle.style.cursor = "grab";
+    headerHandle.addEventListener("pointerdown", onHandlePointerDown);
+    if (props.collapsible !== false) {
+      headerHandle.addEventListener("dblclick", onDoubleClick);
+    }
+
     return () => {
-      handleBindings.forEach(({ handle, onHandlePointerDown }) => {
-        handle.style.cursor = "";
-        handle.removeEventListener("pointerdown", onHandlePointerDown);
-        if (props.collapsible !== false && handle === headerHandle) {
-          handle.removeEventListener("dblclick", onDoubleClick);
-        }
-      });
+      headerHandle.style.cursor = "";
+      headerHandle.removeEventListener("pointerdown", onHandlePointerDown);
+      if (props.collapsible !== false) {
+        headerHandle.removeEventListener("dblclick", onDoubleClick);
+      }
     };
   }, [pos.x, pos.y, props.collapsible]);
 
@@ -214,7 +208,24 @@ export function DraggableWindow(props: {
       style={{ left: pos.x, top: pos.y, width: props.width, zIndex: z }}
       onMouseDown={() => setZ((prev) => prev + 1)}
     >
-      {props.children}
+      <div className="floating-panel-shell">
+        <div className="card-header floating-panel-header" title="Glisser pour déplacer • Double-clic pour replier/déplier">
+          <div className="card-title">{props.title}</div>
+          {props.collapsible !== false && (
+            <button
+              type="button"
+              className="btn btn-mini"
+              onClick={() => setCollapsed((prev) => !prev)}
+              onPointerDown={(e) => e.stopPropagation()}
+              title={collapsed ? "Déplier" : "Replier"}
+              aria-label={collapsed ? "Déplier" : "Replier"}
+            >
+              {collapsed ? "▾" : "▴"}
+            </button>
+          )}
+        </div>
+        <div className="floating-panel-content">{props.children}</div>
+      </div>
     </div>
   );
 }
