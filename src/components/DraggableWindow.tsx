@@ -6,6 +6,18 @@ function clamp(n: number, min: number, max: number) {
   return Math.min(max, Math.max(min, n));
 }
 
+function clampPositionToViewport(pos: Position, width: number): Position {
+  const minX = 6 - width + 120;
+  const maxX = window.innerWidth - 120;
+  const minY = 6;
+  const maxY = window.innerHeight - 50;
+
+  return {
+    x: clamp(pos.x, minX, maxX),
+    y: clamp(pos.y, minY, maxY),
+  };
+}
+
 function readStoredPosition(key: string, fallback: Position): Position {
   try {
     const raw = localStorage.getItem(key);
@@ -41,6 +53,15 @@ export function DraggableWindow(props: {
   useEffect(() => {
     writeStoredPosition(props.storageKey, pos);
   }, [props.storageKey, pos]);
+
+  useEffect(() => {
+    const width = rootRef.current?.offsetWidth ?? props.width;
+    setPos((prev) => {
+      const next = clampPositionToViewport(prev, width);
+      if (next.x === prev.x && next.y === prev.y) return prev;
+      return next;
+    });
+  }, [props.width]);
 
   useEffect(() => {
     const root = rootRef.current;
@@ -92,6 +113,17 @@ export function DraggableWindow(props: {
   }, [pos.x, pos.y, props.collapsible]);
 
   useEffect(() => {
+    const clampCurrentPosition = () => {
+      const width = rootRef.current?.offsetWidth ?? props.width;
+      setPos((prev) => {
+        const next = clampPositionToViewport(prev, width);
+        if (next.x === prev.x && next.y === prev.y) return prev;
+        return next;
+      });
+    };
+
+    window.addEventListener("resize", clampCurrentPosition);
+
     const onPointerMove = (e: PointerEvent) => {
       const d = dragRef.current;
       if (!d) return;
@@ -131,6 +163,7 @@ export function DraggableWindow(props: {
     window.addEventListener("pointerup", onPointerUp);
     window.addEventListener("pointercancel", onPointerCancel);
     return () => {
+      window.removeEventListener("resize", clampCurrentPosition);
       window.removeEventListener("pointermove", onPointerMove);
       window.removeEventListener("pointerup", onPointerUp);
       window.removeEventListener("pointercancel", onPointerCancel);
