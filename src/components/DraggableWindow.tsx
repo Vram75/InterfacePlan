@@ -150,6 +150,9 @@ export function DraggableWindow(props: {
       if (!d) return;
       if (e.pointerId !== d.pointerId) return;
 
+      const zoom = readZoomFromNode(rootRef.current);
+      const safeZoom = Number.isFinite(zoom) && zoom > 0 ? zoom : 1;
+
       const dx = e.clientX - d.sx;
       const dy = e.clientY - d.sy;
       const movedEnough = Math.hypot(dx, dy) >= 4;
@@ -158,10 +161,9 @@ export function DraggableWindow(props: {
       if (!d.moved) d.moved = true;
 
       const w = rootRef.current?.offsetWidth ?? props.width;
-      const nextX = d.ox + dx;
-      const nextY = d.oy + dy;
+      const nextX = d.ox + dx / safeZoom;
+      const nextY = d.oy + dy / safeZoom;
 
-      const zoom = readZoomFromNode(rootRef.current);
       const viewport = getViewportBounds(zoom);
 
       setPos({
