@@ -1565,7 +1565,16 @@ export default function App() {
                       services={services.map(({ uid: _uid, ...rest }) => rest)}
                       onSave={async (room) => {
                         const saved = await api.updateRoom(room);
-                        setRooms((prev) => prev.map((r) => (r.id === saved.id ? saved : r)));
+                        setRooms((prev) =>
+                          prev.map((r) => {
+                            if (r.id !== saved.id) return r;
+                            return {
+                              ...r,
+                              ...saved,
+                              personnePrenom: saved.personnePrenom ?? room.personnePrenom ?? r.personnePrenom,
+                            };
+                          })
+                        );
                       }}
                       onUploadPhoto={async (roomId, file) => {
                         const saved = await api.uploadPhoto(roomId, file);
