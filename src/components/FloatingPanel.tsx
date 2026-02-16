@@ -65,7 +65,15 @@ function clampRectToViewport(
 
 type DragState =
   | null
-  | { kind: "move"; pointerId: number; sx: number; sy: number; ox: number; oy: number }
+  | {
+      kind: "move";
+      pointerId: number;
+      sx: number;
+      sy: number;
+      ox: number;
+      oy: number;
+      moved: boolean;
+    }
   | {
       kind: "resize";
       pointerId: number;
@@ -95,6 +103,7 @@ export function FloatingPanel({
   const minH = 220;
 
   const dragRef = useRef<DragState>(null);
+  const dragStartThreshold = 4;
 
   const bringToFront = () => setZ((prev) => Math.max(prev + 1, 99990));
 
@@ -132,10 +141,22 @@ export function FloatingPanel({
       if (!d || e.pointerId !== d.pointerId) return;
 
       if (d.kind === "move") {
+        const dx = e.clientX - d.sx;
+        const dy = e.clientY - d.sy;
+        const distance = Math.hypot(dx, dy);
+
+        if (!d.moved && distance < dragStartThreshold) {
+          return;
+        }
+
+        if (!d.moved) {
+          dragRef.current = { ...d, moved: true };
+        }
+
         const raw: FloatingRect = {
           ...rect,
-          x: d.ox + (e.clientX - d.sx),
-          y: d.oy + (e.clientY - d.sy),
+          x: d.ox + dx,
+          y: d.oy + dy,
         };
 
         const next = clampRectToViewport(raw, {
@@ -236,6 +257,7 @@ export function FloatingPanel({
             sy: e.clientY,
             ox: rect.x,
             oy: rect.y,
+            moved: false,
           };
         }}
         onDoubleClick={(e) => {
@@ -252,6 +274,7 @@ export function FloatingPanel({
           <button
             className="btn btn-mini"
             onMouseDown={(e) => e.stopPropagation()}
+            onPointerDown={(e) => e.stopPropagation()}
             onClick={onToggleCollapsed}
             title={collapsed ? "Déplier" : "Replier"}
             style={{ padding: "8px 10px" }}
