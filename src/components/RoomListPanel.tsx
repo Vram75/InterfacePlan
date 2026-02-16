@@ -51,7 +51,7 @@ export function RoomListPanel(props: {
 
   return (
     <div className="room-panel">
-      <div className="room-panel-header">
+      <div className="room-panel-header" data-drag-handle>
         <div className="room-panel-title-row">
           <div className="room-panel-title">
             Pièces <span className="room-panel-count">{totalCount}</span>
@@ -83,8 +83,16 @@ export function RoomListPanel(props: {
           return (
             <div
               key={r.id}
+              role="button"
+              tabIndex={0}
               onClick={() => props.onSelectRoom(r.id)}
               onDoubleClick={() => props.onOpenDetails(r.id)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === " ") {
+                  e.preventDefault();
+                  props.onSelectRoom(r.id);
+                }
+              }}
               className={`room-panel-item ${selected ? "room-panel-item--active" : ""}`}
             >
               <div className="room-panel-item-main">
