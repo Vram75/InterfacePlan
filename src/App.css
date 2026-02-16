@@ -1057,6 +1057,9 @@ body{
 .details-panel .select{
   width: 50%;
 }
+.details-panel .label{
+  margin-bottom: 3px;
+}
 .details-panel .details-panel-compact-input{
   width: 86%;
   min-height: 34px;
