@@ -1,4 +1,4 @@
-import { forwardRef, useCallback, useEffect, useImperativeHandle, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import type { Room, ServiceColor } from "../types";
 
@@ -368,10 +368,6 @@ function CropModal(props: { file: File; onCancel: () => void; onConfirm: (croppe
   return createPortal(modal, document.body);
 }
 
-export type RoomDetailsPanelHandle = {
-  save: () => void;
-};
-
 type RoomDetailsPanelStatus = {
   saving: boolean;
   canSave: boolean;
@@ -385,41 +381,49 @@ type RoomDetailsPanelProps = {
   onStatusChange?: (status: RoomDetailsPanelStatus) => void;
 };
 
-export const RoomDetailsPanel = forwardRef<RoomDetailsPanelHandle, RoomDetailsPanelProps>(function RoomDetailsPanel(
-  props,
-  ref
-) {
+export function RoomDetailsPanel(props: RoomDetailsPanelProps) {
+  const { room, services, onSave, onUploadPhoto, onStatusChange } = props;
   const [draft, setDraft] = useState<Room | null>(null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const isSavingRef = useRef(false);
+  const pendingDraftRef = useRef<Room | null>(null);
 
   const [cropFile, setCropFile] = useState<File | null>(null);
 
   useEffect(() => {
-    setDraft(props.room ? { ...props.room } : null);
+    setDraft(room ? { ...room } : null);
     setError(null);
-  }, [props.room]);
+  }, [room]);
 
-  const save = useCallback(async () => {
-    if (!draft) return;
-    setSaving(true);
-    setError(null);
-    try {
-      await props.onSave(draft);
-    } catch (e: any) {
-      setError(String(e?.message ?? e));
-    } finally {
+  const saveDraft = async (nextDraft: Room) => {
+      pendingDraftRef.current = nextDraft;
+      if (isSavingRef.current) return;
+
+      isSavingRef.current = true;
+      while (pendingDraftRef.current) {
+        const payload = pendingDraftRef.current;
+        pendingDraftRef.current = null;
+
+        setSaving(true);
+        setError(null);
+        try {
+          await onSave(payload);
+        } catch (e: any) {
+          setError(String(e?.message ?? e));
+          pendingDraftRef.current = null;
+          break;
+        }
+      }
       setSaving(false);
-    }
-  }, [draft, props.onSave]);
-
-  useImperativeHandle(ref, () => ({ save }), [save]);
+      isSavingRef.current = false;
+    };
 
   useEffect(() => {
-    props.onStatusChange?.({ saving, canSave: Boolean(draft) });
-  }, [draft, props.onStatusChange, saving]);
+    onStatusChange?.({ saving, canSave: Boolean(draft) });
+  }, [draft, onStatusChange, saving]);
 
-  if (!props.room || !draft) {
+  if (!room || !draft) {
     return (
       <div className="details-panel">
         <div className="details-panel-muted">Sélectionne une pièce.</div>
@@ -428,14 +432,19 @@ export const RoomDetailsPanel = forwardRef<RoomDetailsPanelHandle, RoomDetailsPa
   }
 
   function set<K extends keyof Room>(k: K, v: Room[K]) {
-    setDraft((prev) => (prev ? { ...prev, [k]: v } : prev));
+    setDraft((prev) => {
+      if (!prev) return prev;
+      const nextDraft = { ...prev, [k]: v };
+      void saveDraft(nextDraft);
+      return nextDraft;
+    });
   }
 
   const imgSrc = resolvePhotoUrl(draft.photoUrl);
 
   const rawService = String(draft.service ?? "").trim();
   const match = rawService
-    ? props.services.find((s) => s.service.trim() === rawService) ?? null
+    ? services.find((s) => s.service.trim() === rawService) ?? null
     : null;
 
   // ✅ Sécurité UX :
@@ -554,7 +563,7 @@ export const RoomDetailsPanel = forwardRef<RoomDetailsPanelHandle, RoomDetailsPa
               onChange={(e) => set("service", e.target.value || null)}
             >
               <option value="">— Aucun —</option>
-              {props.services.map((s) => (
+              {services.map((s) => (
                 <option key={s.service} value={s.service}>
                   {s.service}
                 </option>
@@ -574,7 +583,7 @@ export const RoomDetailsPanel = forwardRef<RoomDetailsPanelHandle, RoomDetailsPa
               >
                 Service <b>non attribué</b> (valeur actuelle non trouvée dans la palette).
                 <br />
-                Choisis un service puis clique sur <b>Enregistrer</b>.
+                Choisis un service pour sauvegarder automatiquement.
               </div>
             )}
           </div>
@@ -619,13 +628,6 @@ export const RoomDetailsPanel = forwardRef<RoomDetailsPanelHandle, RoomDetailsPa
           />
         </div>
       </div>
-
-      <div className="details-panel-actions">
-        <button className="btn btn-save" onClick={save} disabled={!draft || saving}>
-          Enregistrer
-        </button>
-      </div>
-
       {cropFile && (
         <CropModal
           file={cropFile}
@@ -633,7 +635,7 @@ export const RoomDetailsPanel = forwardRef<RoomDetailsPanelHandle, RoomDetailsPa
           onConfirm={async (cropped) => {
             setCropFile(null);
             try {
-              await props.onUploadPhoto(draft.id, cropped);
+              await onUploadPhoto(draft.id, cropped);
             } catch (err: any) {
               setError(String(err?.message ?? err));
             }
@@ -642,4 +644,4 @@ export const RoomDetailsPanel = forwardRef<RoomDetailsPanelHandle, RoomDetailsPa
       )}
     </div>
   );
-});
+}

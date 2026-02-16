@@ -6,7 +6,7 @@ import { SvgOverlay } from "./components/SvgOverlay";
 import type { OverlayRequest } from "./components/SvgOverlay";
 
 import { RoomListPanel } from "./components/RoomListPanel";
-import { RoomDetailsPanel, type RoomDetailsPanelHandle } from "./components/RoomDetailsPanel";
+import { RoomDetailsPanel } from "./components/RoomDetailsPanel";
 import { DraggableWindow } from "./components/DraggableWindow";
 
 import { api } from "./api";
@@ -498,7 +498,6 @@ export default function App() {
   const [selectedRoomId, setSelectedRoomId] = useState<string | null>(null);
   const [hoverRoomId, setHoverRoomId] = useState<string | null>(null);
   const [detailsRoomId, setDetailsRoomId] = useState<string | null>(null);
-  const detailsPanelRef = useRef<RoomDetailsPanelHandle | null>(null);
   const roomsPanelRef = useRef<HTMLDivElement | null>(null);
 
   const [adminMode, setAdminMode] = useState(true);
@@ -1560,7 +1559,6 @@ export default function App() {
                     }}
                   >
                     <RoomDetailsPanel
-                      ref={detailsPanelRef}
                       room={detailsRoom}
                       services={services.map(({ uid: _uid, ...rest }) => rest)}
                       onSave={async (room) => {
