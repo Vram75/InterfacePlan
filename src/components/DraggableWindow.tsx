@@ -34,7 +34,8 @@ export function DraggableWindow(props: {
   const [pos, setPos] = useState<Position>(() => readStoredPosition(props.storageKey, props.defaultPosition));
   const [collapsed, setCollapsed] = useState(false);
   const [z, setZ] = useState(1000);
-  const dragRef = useRef<{ sx: number; sy: number; ox: number; oy: number } | null>(null);
+  const dragRef = useRef<{ pointerId: number; sx: number; sy: number; ox: number; oy: number } | null>(null);
+  const captureHandleRef = useRef<HTMLElement | null>(null);
   const rootRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
@@ -53,11 +54,14 @@ export function DraggableWindow(props: {
     const isInteractiveTarget = (target: HTMLElement | null) =>
       Boolean(target?.closest("button, input, select, textarea, a, [role='button'], label"));
 
-    const onMouseDown = (e: MouseEvent, handle: HTMLElement, allowChildTargets: boolean) => {
+    const onPointerDown = (e: PointerEvent, handle: HTMLElement, allowChildTargets: boolean) => {
+      if (e.button !== 0) return;
       const target = e.target as HTMLElement | null;
       if (isInteractiveTarget(target)) return;
       if (!allowChildTargets && target !== handle) return;
-      dragRef.current = { sx: e.clientX, sy: e.clientY, ox: pos.x, oy: pos.y };
+      handle.setPointerCapture(e.pointerId);
+      captureHandleRef.current = handle;
+      dragRef.current = { pointerId: e.pointerId, sx: e.clientX, sy: e.clientY, ox: pos.x, oy: pos.y };
     };
 
     const onDoubleClick = (e: MouseEvent) => {
@@ -68,18 +72,18 @@ export function DraggableWindow(props: {
 
     const handleBindings = dragHandles.map((handle) => {
       const allowChildTargets = true;
-      const onHandleMouseDown = (e: MouseEvent) => onMouseDown(e, handle, allowChildTargets);
+      const onHandlePointerDown = (e: PointerEvent) => onPointerDown(e, handle, allowChildTargets);
       handle.style.cursor = "grab";
-      handle.addEventListener("mousedown", onHandleMouseDown);
+      handle.addEventListener("pointerdown", onHandlePointerDown);
       if (props.collapsible !== false && handle === headerHandle) {
         handle.addEventListener("dblclick", onDoubleClick);
       }
-      return { handle, onHandleMouseDown };
+      return { handle, onHandlePointerDown };
     });
     return () => {
-      handleBindings.forEach(({ handle, onHandleMouseDown }) => {
+      handleBindings.forEach(({ handle, onHandlePointerDown }) => {
         handle.style.cursor = "";
-        handle.removeEventListener("mousedown", onHandleMouseDown);
+        handle.removeEventListener("pointerdown", onHandlePointerDown);
         if (props.collapsible !== false && handle === headerHandle) {
           handle.removeEventListener("dblclick", onDoubleClick);
         }
@@ -88,9 +92,10 @@ export function DraggableWindow(props: {
   }, [pos.x, pos.y, props.collapsible]);
 
   useEffect(() => {
-    const onMouseMove = (e: MouseEvent) => {
+    const onPointerMove = (e: PointerEvent) => {
       const d = dragRef.current;
       if (!d) return;
+      if (e.pointerId !== d.pointerId) return;
 
       const w = rootRef.current?.offsetWidth ?? props.width;
       const nextX = d.ox + (e.clientX - d.sx);
@@ -102,15 +107,33 @@ export function DraggableWindow(props: {
       });
     };
 
-    const onMouseUp = () => {
+    const endDrag = (pointerId: number) => {
+      if (captureHandleRef.current?.hasPointerCapture(pointerId)) {
+        captureHandleRef.current.releasePointerCapture(pointerId);
+      }
+      captureHandleRef.current = null;
       dragRef.current = null;
     };
 
-    window.addEventListener("mousemove", onMouseMove);
-    window.addEventListener("mouseup", onMouseUp);
+    const onPointerUp = (e: PointerEvent) => {
+      const d = dragRef.current;
+      if (!d || e.pointerId !== d.pointerId) return;
+      endDrag(e.pointerId);
+    };
+
+    const onPointerCancel = (e: PointerEvent) => {
+      const d = dragRef.current;
+      if (!d || e.pointerId !== d.pointerId) return;
+      endDrag(e.pointerId);
+    };
+
+    window.addEventListener("pointermove", onPointerMove);
+    window.addEventListener("pointerup", onPointerUp);
+    window.addEventListener("pointercancel", onPointerCancel);
     return () => {
-      window.removeEventListener("mousemove", onMouseMove);
-      window.removeEventListener("mouseup", onMouseUp);
+      window.removeEventListener("pointermove", onPointerMove);
+      window.removeEventListener("pointerup", onPointerUp);
+      window.removeEventListener("pointercancel", onPointerCancel);
     };
   }, [props.width]);
 
