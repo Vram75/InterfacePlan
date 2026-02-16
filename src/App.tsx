@@ -1530,7 +1530,16 @@ export default function App() {
             <div ref={roomsPanelRef} className="ui-zoom" style={{ ["--ui-zoom" as any]: uiZoom }}>
               <DraggableWindow storageKey="iface.panel.rooms" defaultPosition={{ x: 88, y: 86 }} width={360}>
                 <div className="card plan-card">
-                  <div className="card-content card-scroll" style={{ maxHeight: "min(72vh, 760px)" }}>
+                  <div
+                    className="card-content card-scroll"
+                    style={{
+                      height: "min(72vh, 760px)",
+                      minHeight: 220,
+                      maxHeight: "min(88vh, 920px)",
+                      overflow: "auto",
+                      resize: "vertical",
+                    }}
+                  >
                     <RoomListPanel
                       rooms={rooms}
                       selectedRoomId={selectedRoomId}
@@ -1558,7 +1567,16 @@ export default function App() {
                 collapsible={false}
               >
                 <div className="card plan-card">
-                  <div className="card-content card-scroll" style={{ maxHeight: "min(72vh, 760px)" }}>
+                  <div
+                    className="card-content card-scroll"
+                    style={{
+                      height: "min(72vh, 760px)",
+                      minHeight: 220,
+                      maxHeight: "min(88vh, 920px)",
+                      overflow: "auto",
+                      resize: "vertical",
+                    }}
+                  >
                     <RoomDetailsPanel
                       ref={detailsPanelRef}
                       room={detailsRoom}
