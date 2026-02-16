@@ -1590,7 +1590,6 @@ export default function App() {
                     <RoomListPanel
                       rooms={rooms}
                       selectedRoomId={selectedRoomId}
-                      onClose={() => setIsRoomsPanelOpen(false)}
                       onSelectRoom={(roomId) => {
                         setSelectedRoomId(roomId);
                       }}
@@ -1635,7 +1634,6 @@ export default function App() {
                         const saved = await api.uploadPhoto(roomId, file);
                         setRooms((prev) => prev.map((r) => (r.id === saved.id ? saved : r)));
                       }}
-                      onClose={() => setDetailsRoomId(null)}
                     />
                   </div>
                 </div>
