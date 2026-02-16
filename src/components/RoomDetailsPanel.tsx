@@ -56,7 +56,14 @@ function CropModal(props: { file: File; onCancel: () => void; onConfirm: (croppe
   const [pos, setPos] = useState({ x: 0, y: 0 }); // px within stage
 
   const [dragging, setDragging] = useState(false);
-  const dragRef = useRef<{ startX: number; startY: number; origX: number; origY: number } | null>(null);
+  const dragRef = useRef<{
+    pointerId: number;
+    startX: number;
+    startY: number;
+    origX: number;
+    origY: number;
+  } | null>(null);
+  const captureRef = useRef<HTMLElement | null>(null);
 
   const stageRef = useRef<HTMLDivElement | null>(null);
 
@@ -94,23 +101,33 @@ function CropModal(props: { file: File; onCancel: () => void; onConfirm: (croppe
 
   // Drag global
   useEffect(() => {
-    const onMove = (e: MouseEvent) => {
-      if (!dragging) return;
+    const onMove = (e: PointerEvent) => {
       const d = dragRef.current;
-      if (!d) return;
+      if (!d || e.pointerId !== d.pointerId) return;
       setPos({ x: d.origX + (e.clientX - d.startX), y: d.origY + (e.clientY - d.startY) });
     };
-    const onUp = () => {
+
+    const onUp = (e: PointerEvent) => {
+      const d = dragRef.current;
+      if (!d || e.pointerId !== d.pointerId) return;
+
+      if (captureRef.current?.hasPointerCapture(d.pointerId)) {
+        captureRef.current.releasePointerCapture(d.pointerId);
+      }
       setDragging(false);
       dragRef.current = null;
+      captureRef.current = null;
     };
-    window.addEventListener("mousemove", onMove);
-    window.addEventListener("mouseup", onUp);
+
+    window.addEventListener("pointermove", onMove);
+    window.addEventListener("pointerup", onUp);
+    window.addEventListener("pointercancel", onUp);
     return () => {
-      window.removeEventListener("mousemove", onMove);
-      window.removeEventListener("mouseup", onUp);
+      window.removeEventListener("pointermove", onMove);
+      window.removeEventListener("pointerup", onUp);
+      window.removeEventListener("pointercancel", onUp);
     };
-  }, [dragging]);
+  }, []);
 
   function cropBoxSize(stageW: number, stageH: number): { w: number; h: number } {
     const maxW = Math.min(520, stageW - 64);
@@ -298,9 +315,17 @@ function CropModal(props: { file: File; onCancel: () => void; onConfirm: (croppe
             ref={stageRef}
             style={stageStyle}
             onWheel={onWheelZoom}
-            onMouseDown={(e) => {
+            onPointerDown={(e) => {
+              e.currentTarget.setPointerCapture(e.pointerId);
+              captureRef.current = e.currentTarget;
               setDragging(true);
-              dragRef.current = { startX: e.clientX, startY: e.clientY, origX: pos.x, origY: pos.y };
+              dragRef.current = {
+                pointerId: e.pointerId,
+                startX: e.clientX,
+                startY: e.clientY,
+                origX: pos.x,
+                origY: pos.y,
+              };
             }}
           >
             {dataUrl && (
