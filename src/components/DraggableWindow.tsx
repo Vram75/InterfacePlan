@@ -56,6 +56,21 @@ function writeStoredPosition(key: string, value: Position) {
   } catch {}
 }
 
+function readStoredCollapsed(key: string): boolean {
+  try {
+    const raw = localStorage.getItem(`${key}.collapsed`);
+    return raw === "1";
+  } catch {
+    return false;
+  }
+}
+
+function writeStoredCollapsed(key: string, value: boolean) {
+  try {
+    localStorage.setItem(`${key}.collapsed`, value ? "1" : "0");
+  } catch {}
+}
+
 export function DraggableWindow(props: {
   storageKey: string;
   defaultPosition: Position;
@@ -65,7 +80,7 @@ export function DraggableWindow(props: {
   children: React.ReactNode;
 }) {
   const [pos, setPos] = useState<Position>(() => readStoredPosition(props.storageKey, props.defaultPosition));
-  const [collapsed, setCollapsed] = useState(false);
+  const [collapsed, setCollapsed] = useState(() => readStoredCollapsed(props.storageKey));
   const [z, setZ] = useState(1000);
   const dragRef = useRef<{
     pointerId: number;
@@ -81,6 +96,10 @@ export function DraggableWindow(props: {
   useEffect(() => {
     writeStoredPosition(props.storageKey, pos);
   }, [props.storageKey, pos]);
+
+  useEffect(() => {
+    writeStoredCollapsed(props.storageKey, collapsed);
+  }, [props.storageKey, collapsed]);
 
   useEffect(() => {
     const width = rootRef.current?.offsetWidth ?? props.width;
