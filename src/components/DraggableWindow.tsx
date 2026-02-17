@@ -77,6 +77,7 @@ export function DraggableWindow(props: {
   width: number;
   title: string;
   collapsible?: boolean;
+  forceExpandedToken?: number;
   children: React.ReactNode;
 }) {
   const [pos, setPos] = useState<Position>(() => readStoredPosition(props.storageKey, props.defaultPosition));
@@ -100,6 +101,11 @@ export function DraggableWindow(props: {
   useEffect(() => {
     writeStoredCollapsed(props.storageKey, collapsed);
   }, [props.storageKey, collapsed]);
+
+  useEffect(() => {
+    if (props.forceExpandedToken == null) return;
+    setCollapsed(false);
+  }, [props.forceExpandedToken]);
 
   useEffect(() => {
     const width = rootRef.current?.offsetWidth ?? props.width;
