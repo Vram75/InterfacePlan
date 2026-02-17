@@ -1569,10 +1569,17 @@ export default function App() {
                         setRooms((prev) =>
                           prev.map((r) => {
                             if (r.id !== saved.id) return r;
+                            const merged = mergeRoomPreserveLocks(r, saved);
                             return {
-                              ...r,
-                              ...saved,
-                              personnePrenom: saved.personnePrenom ?? room.personnePrenom ?? r.personnePrenom,
+                              ...merged,
+                              niveau: saved.niveau ?? room.niveau ?? merged.niveau,
+                              aile: saved.aile ?? room.aile ?? merged.aile,
+                              designation: saved.designation ?? room.designation ?? merged.designation,
+                              service: saved.service ?? room.service ?? merged.service,
+                              surface: saved.surface ?? room.surface ?? merged.surface,
+                              personneNom: saved.personneNom ?? room.personneNom ?? merged.personneNom,
+                              personnePrenom: saved.personnePrenom ?? room.personnePrenom ?? merged.personnePrenom,
+                              personneTel: saved.personneTel ?? room.personneTel ?? merged.personneTel,
                             };
                           })
                         );
