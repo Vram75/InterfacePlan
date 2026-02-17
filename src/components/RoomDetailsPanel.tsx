@@ -334,23 +334,16 @@ function CropModal(props: { file: File; onCancel: () => void; onConfirm: (croppe
   return createPortal(modal, document.body);
 }
 
-type RoomDetailsPanelStatus = {
-  saving: boolean;
-  canSave: boolean;
-};
-
 type RoomDetailsPanelProps = {
   room: Room | null;
   services: ServiceColor[];
   onSave: (room: Room) => Promise<void>;
   onUploadPhoto: (roomId: string, file: File) => Promise<void>;
-  onStatusChange?: (status: RoomDetailsPanelStatus) => void;
 };
 
 export function RoomDetailsPanel(props: RoomDetailsPanelProps) {
-  const { room, services, onSave, onUploadPhoto, onStatusChange } = props;
+  const { room, services, onSave, onUploadPhoto } = props;
   const [draft, setDraft] = useState<Room | null>(null);
-  const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const isSavingRef = useRef(false);
   const pendingDraftRef = useRef<Room | null>(null);
@@ -371,7 +364,6 @@ export function RoomDetailsPanel(props: RoomDetailsPanelProps) {
         const payload = pendingDraftRef.current;
         pendingDraftRef.current = null;
 
-        setSaving(true);
         setError(null);
         try {
           await onSave(payload);
@@ -381,13 +373,8 @@ export function RoomDetailsPanel(props: RoomDetailsPanelProps) {
           break;
         }
       }
-      setSaving(false);
       isSavingRef.current = false;
     };
-
-  useEffect(() => {
-    onStatusChange?.({ saving, canSave: Boolean(draft) });
-  }, [draft, onStatusChange, saving]);
 
   if (!room || !draft) {
     return (
