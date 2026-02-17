@@ -498,6 +498,7 @@ export default function App() {
   const [selectedRoomId, setSelectedRoomId] = useState<string | null>(null);
   const [hoverRoomId, setHoverRoomId] = useState<string | null>(null);
   const [detailsRoomId, setDetailsRoomId] = useState<string | null>(null);
+  const [detailsExpandToken, setDetailsExpandToken] = useState(0);
   const roomsPanelRef = useRef<HTMLDivElement | null>(null);
 
   const [adminMode, setAdminMode] = useState(true);
@@ -1220,6 +1221,7 @@ export default function App() {
                           onPolygonDoubleClick={(roomId) => {
                             setSelectedRoomId(roomId);
                             setDetailsRoomId(roomId);
+                            setDetailsExpandToken((x) => x + 1);
                           }}
                           adminMode={adminMode}
                           drawingRoomId={drawingRoomId}
@@ -1540,24 +1542,25 @@ export default function App() {
             </DraggableWindow>
           </div>
 
-          {detailsRoom && (
-            <div className="ui-zoom" style={{ ["--ui-zoom" as any]: uiZoom }}>
-              <DraggableWindow
-                storageKey="iface.panel.details"
-                defaultPosition={{ x: 470, y: 86 }}
-                width={360}
-                title="Détails de la pièce"
-              >
-                <div className="card plan-card">
-                  <div
-                    className="card-content card-scroll"
-                    style={{
-                      height: "min(72vh, 760px)",
-                      minHeight: 220,
-                      maxHeight: "min(88vh, 920px)",
-                      overflow: "auto",
-                    }}
-                  >
+          <div className="ui-zoom" style={{ ["--ui-zoom" as any]: uiZoom }}>
+            <DraggableWindow
+              storageKey="iface.panel.details"
+              defaultPosition={{ x: 470, y: 86 }}
+              width={360}
+              title="Détails de la pièce"
+              forceExpandedToken={detailsExpandToken}
+            >
+              <div className="card plan-card">
+                <div
+                  className="card-content card-scroll"
+                  style={{
+                    height: "min(72vh, 760px)",
+                    minHeight: 220,
+                    maxHeight: "min(88vh, 920px)",
+                    overflow: "auto",
+                  }}
+                >
+                  {detailsRoom ? (
                     <RoomDetailsPanel
                       room={detailsRoom}
                       services={services.map(({ uid: _uid, ...rest }) => rest)}
@@ -1579,11 +1582,13 @@ export default function App() {
                         setRooms((prev) => prev.map((r) => (r.id === saved.id ? saved : r)));
                       }}
                     />
-                  </div>
+                  ) : (
+                    <div className="details-panel details-panel-muted">Sélectionnez une pièce pour afficher ses détails.</div>
+                  )}
                 </div>
-              </DraggableWindow>
-            </div>
-          )}
+              </div>
+            </DraggableWindow>
+          </div>
         </div>
       )}
     </div>
