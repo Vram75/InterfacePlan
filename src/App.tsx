@@ -1569,10 +1569,37 @@ export default function App() {
                         setRooms((prev) =>
                           prev.map((r) => {
                             if (r.id !== saved.id) return r;
+                            const merged = mergeRoomPreserveLocks(r, saved);
                             return {
-                              ...r,
-                              ...saved,
-                              personnePrenom: saved.personnePrenom ?? room.personnePrenom ?? r.personnePrenom,
+                              ...merged,
+                              niveau: saved.niveau !== undefined ? saved.niveau : room.niveau !== undefined ? room.niveau : merged.niveau,
+                              aile: saved.aile !== undefined ? saved.aile : room.aile !== undefined ? room.aile : merged.aile,
+                              designation:
+                                saved.designation !== undefined
+                                  ? saved.designation
+                                  : room.designation !== undefined
+                                    ? room.designation
+                                    : merged.designation,
+                              service: saved.service !== undefined ? saved.service : room.service !== undefined ? room.service : merged.service,
+                              surface: saved.surface !== undefined ? saved.surface : room.surface !== undefined ? room.surface : merged.surface,
+                              personneNom:
+                                saved.personneNom !== undefined
+                                  ? saved.personneNom
+                                  : room.personneNom !== undefined
+                                    ? room.personneNom
+                                    : merged.personneNom,
+                              personnePrenom:
+                                saved.personnePrenom !== undefined
+                                  ? saved.personnePrenom
+                                  : room.personnePrenom !== undefined
+                                    ? room.personnePrenom
+                                    : merged.personnePrenom,
+                              personneTel:
+                                saved.personneTel !== undefined
+                                  ? saved.personneTel
+                                  : room.personneTel !== undefined
+                                    ? room.personneTel
+                                    : merged.personneTel,
                             };
                           })
                         );
