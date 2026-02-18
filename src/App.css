@@ -911,6 +911,20 @@ body{
   gap: 6px;
 }
 
+.plan-toolbar-group-unified{
+  width: 100%;
+  align-items: stretch;
+  padding: 6px 8px;
+  border: 1px solid var(--stroke);
+  background: rgba(255,255,255,0.65);
+  border-radius: 12px;
+  box-shadow: var(--shadow-soft);
+}
+
+.plan-toolbar-group-unified .plan-grid-controls{
+  width: 100%;
+}
+
 .plan-polys-only-switch{
   width: 100%;
   justify-content: flex-start;
@@ -933,6 +947,15 @@ body{
 
 .plan-grid-snap{
   align-self: center;
+}
+
+.plan-polys-only-switch-plain{
+  margin-bottom: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  border-radius: 0;
+  box-shadow: none;
 }
 
 .plan-zoom-group{
