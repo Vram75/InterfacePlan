@@ -660,7 +660,7 @@ export default function App() {
 
   const pdfPageTabs = useMemo(() => {
     const total = Math.max(1, pageCount);
-    return Array.from({ length: total }, (_, p) => {
+    const tabs = Array.from({ length: total }, (_, p) => {
       const polygonCount = pagesPolyStats.get(p) ?? 0;
       return {
         pageIndex: p,
@@ -668,7 +668,10 @@ export default function App() {
         polygonCount,
       };
     });
-  }, [pageCount, pagesPolyStats]);
+
+    if (!onlyWithPolys) return tabs;
+    return tabs.filter((tab) => tab.hasPolygon);
+  }, [pageCount, pagesPolyStats, onlyWithPolys]);
 
   function goToPageIndex(nextIndex: number) {
     const total = Math.max(1, pageCount);
@@ -1438,70 +1441,28 @@ export default function App() {
       {pageView === "plans" && (
         <div className="dash-floating-layer" aria-hidden="false">
           <div className="ui-zoom" style={{ ["--ui-zoom" as any]: uiZoom }}>
-            <DraggableWindow storageKey="iface.panel.navigation" defaultPosition={{ x: 18, y: 18 }} width={290} title="Gestion des pages">
-              <aside className="dash-sidebar floating-sidebar-panel floating-sidebar-panel-nav">
-                <div className="nav-title" data-drag-handle>
-                  Gestion des pages
-                </div>
-                <div className="nav-title" style={{ marginTop: 10 }}>
-                  Pages
-                </div>
-
-                <div className="sidebar-pages-tools">
-                  <input
-                    id="sidebar-page-filter-floating"
-                    className="sidebar-page-filter"
-                    placeholder="Filtrer : 12 | 1-8 | 1,3,10 | ou “2”…"
-                    value={pageFilter}
-                    onChange={(e) => setPageFilter(e.target.value)}
-                    spellCheck={false}
-                  />
-                  {!!pageFilter.trim() && (
-                    <button className="sidebar-clear" type="button" onClick={() => setPageFilter("")} title="Effacer">
-                      ✕
-                    </button>
-                  )}
-                </div>
-
-                <div className="sidebar-pages">
-                  {visiblePages.length === 0 ? (
-                    <div className="sidebar-empty">Aucune page</div>
-                  ) : (
-                    visiblePages.map((p) => {
-                      const active = p === currentPage;
-                      const hasPoly = pagesWithPolygons.has(p);
-                      const polyCount = pagesPolyStats.get(p) ?? 0;
-
-                      return (
-                        <button
-                          key={`side-floating-p-${p}`}
-                          type="button"
-                          className={`sidebar-page-item ${active ? "sidebar-page-item-active" : ""}`}
-                          onClick={() => goToPageIndex(p)}
-                          title={hasPoly ? `Page ${p + 1} (${polyCount} polygone(s))` : `Page ${p + 1}`}
-                        >
-                          <span className="sidebar-page-left">
-                            <span className="sidebar-page-num">{p + 1}</span>
-                            <span className={`sidebar-page-dot ${hasPoly ? "" : "sidebar-page-dot-hidden"}`} aria-hidden="true" />
-                          </span>
-
-                          <span className={`sidebar-page-badge ${hasPoly ? "" : "sidebar-page-badge-hidden"}`} aria-hidden={!hasPoly}>
-                            {hasPoly ? polyCount : 0}
-                          </span>
-                        </button>
-                      );
-                    })
-                  )}
-                </div>
-
-              </aside>
-            </DraggableWindow>
-          </div>
-
-          <div className="ui-zoom" style={{ ["--ui-zoom" as any]: uiZoom }}>
             <DraggableWindow storageKey="iface.panel.tools" defaultPosition={{ x: 1180, y: 18 }} width={290} title="Outils">
               <aside className="dash-sidebar dash-sidebar-right floating-sidebar-panel floating-sidebar-panel-tools">
                 <div className="plan-toolbar-group plan-toolbar-group-vertical plan-toolbar-group-unified">
+                  <div className="sidebar-pages-controls-group">
+                    <div className="nav-title sidebar-pages-tools-title">Filtres des pages</div>
+                    <div className="sidebar-pages-tools">
+                      <input
+                        id="sidebar-page-filter-floating"
+                        className="sidebar-page-filter"
+                        placeholder="Filtrer : 12 | 1-8 | 1,3,10 | ou “2”…"
+                        value={pageFilter}
+                        onChange={(e) => setPageFilter(e.target.value)}
+                        spellCheck={false}
+                      />
+                      {!!pageFilter.trim() && (
+                        <button className="sidebar-clear" type="button" onClick={() => setPageFilter("")} title="Effacer">
+                          ✕
+                        </button>
+                      )}
+                    </div>
+                  </div>
+
                   <div className="plan-grid-controls">
                     <div className="plan-grid-frame" title="Taille de grille (px)">
                       <div className="plan-grid-row">
