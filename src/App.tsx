@@ -1496,6 +1496,43 @@ export default function App() {
 
                 </div>
 
+                <div className="plan-toolbar-group plan-toolbar-group-vertical">
+                  <div className="plan-controls-raw" aria-live="polite">
+                    <div className="poly-tooltip">
+                      <div className="poly-tooltip-header">
+                        <span className="poly-tooltip-number">{hoverRoom ? hoverRoom.numero : " "}</span>
+                        <span className="poly-tooltip-title">{hoverRoom ? hoverRoom.designation?.trim() || "—" : " "}</span>
+                      </div>
+                      <div className="poly-tooltip-row">
+                        <span className="poly-tooltip-label">{hoverRoom ? "Service" : " "}</span>
+                        <span className="poly-tooltip-value">{hoverRoom ? hoverRoom.service?.trim() || "—" : " "}</span>
+                      </div>
+                      <div className="poly-tooltip-row">
+                        <span className="poly-tooltip-label">{hoverRoom ? "Surface" : " "}</span>
+                        <span className="poly-tooltip-value">{hoverRoom ? formatSurface(hoverRoom.surface) : " "}</span>
+                      </div>
+                      <div className="poly-tooltip-row">
+                        <span className="poly-tooltip-label">{hoverRoom ? "Contact" : " "}</span>
+                        <span className="poly-tooltip-value">{hoverRoom ? [hoverRoom.personneNom, hoverRoom.personneTel].filter(Boolean).join(" • ") || "—" : " "}</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <label className="switch switch-compact switch-vivid switch-vivid-magenta" title="Activer/désactiver l’édition">
+                    <input
+                      type="checkbox"
+                      checked={adminMode}
+                      onChange={(e) => {
+                        setAdminMode(e.target.checked);
+                        setDrawingRoomId(null);
+                        setDrawSessionId((x) => x + 1);
+                      }}
+                    />
+                    <span className="mini-switch-track" />
+                    <span className="mini-switch-label">Admin</span>
+                  </label>
+                </div>
+
                 {adminMode && (
                   <div className="plan-toolbar-group plan-toolbar-group-vertical">
                     <div className="plan-field-inline plan-field-compact plan-draw-field">
@@ -1556,43 +1593,6 @@ export default function App() {
                     </div>
                   </div>
                 )}
-
-                <div className="plan-toolbar-group plan-toolbar-group-vertical">
-                  <div className="plan-controls-raw" aria-live="polite">
-                    <div className="poly-tooltip">
-                      <div className="poly-tooltip-header">
-                        <span className="poly-tooltip-number">{hoverRoom ? hoverRoom.numero : " "}</span>
-                        <span className="poly-tooltip-title">{hoverRoom ? hoverRoom.designation?.trim() || "—" : " "}</span>
-                      </div>
-                      <div className="poly-tooltip-row">
-                        <span className="poly-tooltip-label">{hoverRoom ? "Service" : " "}</span>
-                        <span className="poly-tooltip-value">{hoverRoom ? hoverRoom.service?.trim() || "—" : " "}</span>
-                      </div>
-                      <div className="poly-tooltip-row">
-                        <span className="poly-tooltip-label">{hoverRoom ? "Surface" : " "}</span>
-                        <span className="poly-tooltip-value">{hoverRoom ? formatSurface(hoverRoom.surface) : " "}</span>
-                      </div>
-                      <div className="poly-tooltip-row">
-                        <span className="poly-tooltip-label">{hoverRoom ? "Contact" : " "}</span>
-                        <span className="poly-tooltip-value">{hoverRoom ? [hoverRoom.personneNom, hoverRoom.personneTel].filter(Boolean).join(" • ") || "—" : " "}</span>
-                      </div>
-                    </div>
-                  </div>
-
-                  <label className="switch switch-compact switch-vivid switch-vivid-magenta" title="Activer/désactiver l’édition">
-                    <input
-                      type="checkbox"
-                      checked={adminMode}
-                      onChange={(e) => {
-                        setAdminMode(e.target.checked);
-                        setDrawingRoomId(null);
-                        setDrawSessionId((x) => x + 1);
-                      }}
-                    />
-                    <span className="mini-switch-track" />
-                    <span className="mini-switch-label">Admin</span>
-                  </label>
-                </div>
 
                 <div className="spacer" />
 
