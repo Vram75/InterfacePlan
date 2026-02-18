@@ -669,11 +669,10 @@ body{
   display: flex;
   align-items: center;
   gap: 6px;
-  padding: 10px;
+  padding: 2px 2px 0;
   overflow-x: auto;
   scrollbar-width: none;
   -ms-overflow-style: none;
-  border-bottom: 1px solid rgba(148,163,184,0.24);
 }
 
 .plan-page-tabs::-webkit-scrollbar{
@@ -732,6 +731,9 @@ body{
 
 .plan-content{
   padding: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
   flex: 1;
   min-height: 0;
   overflow: hidden;
