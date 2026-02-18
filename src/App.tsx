@@ -658,20 +658,18 @@ export default function App() {
     return base.filter((p) => pagesWithPolygons.has(p));
   }, [pageCount, pageFilter, onlyWithPolys, pagesWithPolygons]);
 
-  const pdfPageTabs = useMemo(() => {
-    const total = Math.max(1, pageCount);
-    const tabs = Array.from({ length: total }, (_, p) => {
-      const polygonCount = pagesPolyStats.get(p) ?? 0;
-      return {
-        pageIndex: p,
-        hasPolygon: polygonCount > 0,
-        polygonCount,
-      };
-    });
-
-    if (!onlyWithPolys) return tabs;
-    return tabs.filter((tab) => tab.hasPolygon);
-  }, [pageCount, pagesPolyStats, onlyWithPolys]);
+  const pdfPageTabs = useMemo(
+    () =>
+      visiblePages.map((pageIndex) => {
+        const polygonCount = pagesPolyStats.get(pageIndex) ?? 0;
+        return {
+          pageIndex,
+          hasPolygon: polygonCount > 0,
+          polygonCount,
+        };
+      }),
+    [visiblePages, pagesPolyStats],
+  );
 
   function goToPageIndex(nextIndex: number) {
     const total = Math.max(1, pageCount);
@@ -733,7 +731,7 @@ export default function App() {
       // Focus filter with Ctrl/Cmd+F inside Plans
       if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "f") {
         e.preventDefault();
-        const el = document.getElementById("sidebar-page-filter") as HTMLInputElement | null;
+        const el = document.getElementById("sidebar-page-filter-floating") as HTMLInputElement | null;
         el?.focus();
         el?.select?.();
         return;
