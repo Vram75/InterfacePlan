@@ -1219,6 +1219,25 @@ export default function App() {
                       </div>
                     </div>
 
+                    <div className="field">
+                      <label className="label">Espace UI</label>
+                      <div className="settings-row">
+                        <input
+                          className="select plan-number"
+                          type="number"
+                          min={UI_ZOOM_MIN}
+                          max={UI_ZOOM_MAX}
+                          step={0.01}
+                          value={uiZoom}
+                          onChange={(e) => {
+                            const n = Number(e.target.value);
+                            if (!Number.isFinite(n)) return;
+                            setUiZoom(clampUiZoom(n));
+                          }}
+                        />
+                      </div>
+                    </div>
+
                   </div>
                 </section>
 
@@ -1444,12 +1463,6 @@ export default function App() {
                   )}
                 </div>
 
-                <label className="mini-switch mini-switch-vivid mini-switch-vivid-amber" title="N’afficher que les pages qui ont des polygones">
-                  <input type="checkbox" checked={onlyWithPolys} onChange={(e) => setOnlyWithPolys(e.target.checked)} />
-                  <span className="mini-switch-track" />
-                  <span className="mini-switch-text">Polygones uniquement</span>
-                </label>
-
                 <div className="sidebar-pages">
                   {visiblePages.length === 0 ? (
                     <div className="sidebar-empty">Aucune page</div>
@@ -1481,20 +1494,6 @@ export default function App() {
                   )}
                 </div>
 
-                <div className="spacer" />
-
-                <div className="help-card">
-                  <div className="help-title">Raccourcis</div>
-                  <div className="help-text">
-                    <b>S</b> Snap • <b>+</b>/<b>-</b> Zoom • <b>Shift</b> orthogonal
-                    <br />
-                    <b>Alt+clic</b> insérer • <b>Delete</b> supprimer sommet
-                    <br />
-                    <b>Ctrl/⌘</b> drag = déplacer polygone
-                    <br />
-                    <b>PageUp/PageDown</b> pages • <b>Home/End</b> début/fin
-                  </div>
-                </div>
               </aside>
             </DraggableWindow>
           </div>
@@ -1537,22 +1536,11 @@ export default function App() {
                     </div>
                   </div>
 
-                  <div className="plan-field-inline plan-field-compact" title="Échelle du panneau outils">
-                    <span className="plan-field-label">Espace UI</span>
-                    <input
-                      className="select plan-number plan-number-compact"
-                      type="number"
-                      min={UI_ZOOM_MIN}
-                      max={UI_ZOOM_MAX}
-                      step={0.01}
-                      value={uiZoom}
-                      onChange={(e) => {
-                        const n = Number(e.target.value);
-                        if (!Number.isFinite(n)) return;
-                        setUiZoom(clampUiZoom(n));
-                      }}
-                    />
-                  </div>
+                  <label className="mini-switch mini-switch-vivid mini-switch-vivid-amber plan-polys-only-switch" title="N’afficher que les pages qui ont des polygones">
+                    <input type="checkbox" checked={onlyWithPolys} onChange={(e) => setOnlyWithPolys(e.target.checked)} />
+                    <span className="mini-switch-track" />
+                    <span className="mini-switch-text">Polygones uniquement</span>
+                  </label>
                 </div>
 
                 {adminMode && (
@@ -1651,6 +1639,21 @@ export default function App() {
                     <span className="mini-switch-track" />
                     <span className="mini-switch-label">Admin</span>
                   </label>
+                </div>
+
+                <div className="spacer" />
+
+                <div className="help-card">
+                  <div className="help-title">Raccourcis</div>
+                  <div className="help-text">
+                    <b>S</b> Snap • <b>+</b>/<b>-</b> Zoom • <b>Shift</b> orthogonal
+                    <br />
+                    <b>Alt+clic</b> insérer • <b>Delete</b> supprimer sommet
+                    <br />
+                    <b>Ctrl/⌘</b> drag = déplacer polygone
+                    <br />
+                    <b>PageUp/PageDown</b> pages • <b>Home/End</b> début/fin
+                  </div>
                 </div>
               </aside>
             </DraggableWindow>
