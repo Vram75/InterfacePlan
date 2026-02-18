@@ -77,7 +77,7 @@ export function DraggableWindow(props: {
   width: number;
   title: string;
   collapsible?: boolean;
-  forceExpandedToken?: number;
+  forceExpandedToken?: number | null;
   children: React.ReactNode;
 }) {
   const [pos, setPos] = useState<Position>(() => readStoredPosition(props.storageKey, props.defaultPosition));
