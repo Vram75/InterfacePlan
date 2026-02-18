@@ -35,6 +35,12 @@ const UI_PANEL_DEFAULT = "#ffffff";
 type PageView = "dashboard" | "plans" | "settings";
 type ServiceEntry = ServiceColor & { uid: string };
 
+const PAGE_TABS: Array<{ key: PageView; icon: string; label: string }> = [
+  { key: "dashboard", icon: "⌂", label: "Tableau de bord" },
+  { key: "plans", icon: "▦", label: "Plans" },
+  { key: "settings", icon: "⛭", label: "Paramètres" },
+];
+
 function makeUid(): string {
   const c: any = (globalThis as any).crypto;
   if (c?.randomUUID) return c.randomUUID();
@@ -1116,21 +1122,25 @@ export default function App() {
       }}
     >
       <div className="page-tabs ui-zoom" style={{ ["--ui-zoom" as any]: uiZoom }}>
-        <button className={`page-tab ${pageView === "dashboard" ? "page-tab-active" : ""}`} onClick={() => setPageView("dashboard")} type="button" title="Tableau de bord" aria-label="Tableau de bord">
-          <span className="nav-icon" aria-hidden="true">
-            ⌂
-          </span>
-        </button>
-        <button className={`page-tab ${pageView === "plans" ? "page-tab-active" : ""}`} onClick={() => setPageView("plans")} type="button" title="Plans" aria-label="Plans">
-          <span className="nav-icon" aria-hidden="true">
-            ▦
-          </span>
-        </button>
-        <button className={`page-tab ${pageView === "settings" ? "page-tab-active" : ""}`} onClick={() => setPageView("settings")} type="button" title="Paramètres" aria-label="Paramètres">
-          <span className="nav-icon" aria-hidden="true">
-            ⛭
-          </span>
-        </button>
+        {PAGE_TABS.map(({ key, icon, label }) => {
+          const active = pageView === key;
+          return (
+            <button
+              key={key}
+              className={`page-tab ${active ? "page-tab-active" : ""}`}
+              onClick={() => setPageView(key)}
+              type="button"
+              title={label}
+              aria-label={label}
+              aria-current={active ? "page" : undefined}
+            >
+              <span className="page-tab-icon" aria-hidden="true">
+                {icon}
+              </span>
+              <span className="page-tab-label">{label}</span>
+            </button>
+          );
+        })}
       </div>
 
       {/* BODY */}

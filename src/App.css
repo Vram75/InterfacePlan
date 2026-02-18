@@ -131,33 +131,62 @@ body{
   transform: translateX(-50%);
   z-index: 45;
   display: flex;
-  gap: 10px;
+  gap: 8px;
   padding: 8px;
-  border-radius: 18px;
-  border: 1px solid rgba(15,23,42,0.35);
-  background: linear-gradient(180deg, rgba(30,41,59,0.92), rgba(15,23,42,0.96));
-  box-shadow: 0 9px 20px rgba(15,23,42,0.09);
+  border-radius: 999px;
+  border: 1px solid rgba(226,232,240,0.45);
+  background: linear-gradient(145deg, rgba(255,255,255,0.74), rgba(241,245,249,0.65));
+  box-shadow: 0 18px 35px rgba(15,23,42,0.2), inset 0 1px 0 rgba(255,255,255,0.45);
   backdrop-filter: blur(14px);
 }
 
 .page-tab{
-  border: 1px solid transparent;
+  border: 1px solid rgba(148,163,184,0.2);
   background: transparent;
-  width: 46px;
-  height: 46px;
-  border-radius: 14px;
-  display: grid;
-  place-items: center;
+  min-height: 42px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 0 16px;
+  color: #334155;
+  font-weight: 600;
+  letter-spacing: 0.01em;
   cursor: pointer;
+  transition: transform 140ms ease, background-color 140ms ease, border-color 140ms ease, color 140ms ease, box-shadow 140ms ease;
 }
 .page-tab:hover{
-  background: rgba(248,250,252,0.08);
-  border-color: rgba(148,163,184,0.35);
+  transform: translateY(-1px);
+  background: rgba(255,255,255,0.85);
+  border-color: rgba(148,163,184,0.42);
+  box-shadow: 0 8px 14px rgba(15,23,42,0.14);
 }
 .page-tab-active{
-  background: color-mix(in srgb, var(--accent) 22%, rgba(248,250,252,0.12));
-  border-color: color-mix(in srgb, var(--accent) 55%, rgba(226,232,240,0.45));
-  box-shadow: 0 5px 10px rgba(15,23,42,0.0875);
+  background: linear-gradient(140deg, color-mix(in srgb, var(--accent) 95%, white 5%), color-mix(in srgb, var(--accent-2) 95%, black 5%));
+  border-color: color-mix(in srgb, var(--accent-2) 70%, #0f172a 30%);
+  box-shadow: 0 12px 20px color-mix(in srgb, var(--accent) 34%, transparent 66%);
+  color: #f8fafc;
+}
+
+.page-tab-icon{
+  width: 20px;
+  height: 20px;
+  border-radius: 999px;
+  display: grid;
+  place-items: center;
+  font-size: 14px;
+  font-weight: 700;
+  background: rgba(15,23,42,0.08);
+}
+
+.page-tab-active .page-tab-icon{
+  background: rgba(255,255,255,0.2);
+}
+
+.page-tab-label{
+  font-size: 13px;
+  white-space: nowrap;
 }
 
 
@@ -638,57 +667,47 @@ body{
 
 .plan-page-tabs{
   display: flex;
-  align-items: flex-end;
-  gap: 6px;
-  padding: 10px 10px 0;
+  align-items: center;
+  gap: 8px;
+  padding: 10px;
   overflow-x: auto;
-  scrollbar-width: thin;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.plan-page-tabs::-webkit-scrollbar{
+  width: 0;
+  height: 0;
 }
 
 .plan-page-tab{
-  position: relative;
   display: inline-flex;
   align-items: center;
   gap: 6px;
   flex-shrink: 0;
-  border: 1px solid rgba(148,163,184,0.48);
-  border-radius: 12px 12px 7px 7px;
-  background: linear-gradient(180deg, rgba(37,49,69,0.92), rgba(22,32,48,0.96));
-  color: #e2e8f0;
-  padding: 7px 14px 12px;
+  border: 1px solid rgba(148,163,184,0.35);
+  border-radius: 999px;
+  background: rgba(15,23,42,0.4);
+  color: #cbd5e1;
+  padding: 8px 14px;
   font-size: 12px;
-  font-weight: 700;
+  font-weight: 600;
   cursor: pointer;
-  transition: transform 140ms ease, border-color 140ms ease, background 140ms ease;
-}
-
-.plan-page-tab::after{
-  content: "";
-  position: absolute;
-  left: 50%;
-  bottom: -1px;
-  transform: translateX(-50%);
-  width: 40px;
-  height: 10px;
-  border: 1px solid rgba(148,163,184,0.36);
-  border-top: none;
-  border-radius: 0 0 8px 8px;
-  background:
-    radial-gradient(circle at center top, rgba(241,245,249,0.28) 0 6px, transparent 7px),
-    linear-gradient(180deg, rgba(51,65,85,0.78), rgba(30,41,59,0.86));
+  transition: transform 140ms ease, border-color 140ms ease, background-color 140ms ease, color 140ms ease;
 }
 
 .plan-page-tab:hover{
-  transform: translateY(-2px);
-  border-color: rgba(129,140,248,0.7);
-  background: linear-gradient(180deg, rgba(46,62,86,0.95), rgba(30,41,59,0.98));
+  transform: translateY(-1px);
+  border-color: rgba(129,140,248,0.62);
+  background: rgba(51,65,85,0.65);
+  color: #f8fafc;
 }
 
 .plan-page-tab-active{
-  transform: translateY(2px);
-  border-color: rgba(129,140,248,0.98);
-  background: linear-gradient(180deg, rgba(99,102,241,0.46), rgba(79,70,229,0.5));
+  border-color: color-mix(in srgb, var(--accent) 70%, #cbd5e1 30%);
+  background: linear-gradient(140deg, color-mix(in srgb, var(--accent) 88%, transparent 12%), color-mix(in srgb, var(--accent-2) 88%, transparent 12%));
   color: #f8fafc;
+  box-shadow: 0 8px 20px color-mix(in srgb, var(--accent) 30%, transparent 70%);
 }
 
 .plan-page-tab-num{
