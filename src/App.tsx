@@ -1501,10 +1501,6 @@ export default function App() {
           <div className="ui-zoom" style={{ ["--ui-zoom" as any]: uiZoom }}>
             <DraggableWindow storageKey="iface.panel.tools" defaultPosition={{ x: 1180, y: 18 }} width={290} title="Outils">
               <aside className="dash-sidebar dash-sidebar-right floating-sidebar-panel floating-sidebar-panel-tools">
-                <div className="nav-title" data-drag-handle>
-                  Outils
-                </div>
-
                 <div className="plan-toolbar-group plan-toolbar-group-vertical">
                   <div className="plan-grid-controls">
                     <div className="plan-field-inline plan-field-compact plan-grid-frame" title="Taille de grille (px)">
