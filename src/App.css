@@ -911,6 +911,13 @@ body{
   gap: 6px;
 }
 
+.plan-polys-only-switch{
+  width: 100%;
+  justify-content: flex-start;
+  align-self: flex-start;
+  text-align: left;
+}
+
 .plan-grid-frame{
   display: flex;
   flex-direction: row;
