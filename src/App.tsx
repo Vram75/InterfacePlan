@@ -1539,7 +1539,7 @@ export default function App() {
                   <label className="mini-switch mini-switch-vivid mini-switch-vivid-amber plan-polys-only-switch" title="N’afficher que les pages qui ont des polygones">
                     <input type="checkbox" checked={onlyWithPolys} onChange={(e) => setOnlyWithPolys(e.target.checked)} />
                     <span className="mini-switch-track" />
-                    <span className="mini-switch-text">Pages avec des polygones uniquement</span>
+                    <span className="mini-switch-text">Pages avec des polygones</span>
                   </label>
                 </div>
 
