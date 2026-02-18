@@ -1018,6 +1018,7 @@ export default function App() {
 
   function onPlanViewportWheel(e: React.WheelEvent<HTMLDivElement>) {
     e.preventDefault();
+    e.stopPropagation();
     const factor = Math.exp(-e.deltaY * 0.0012);
     setScale((prev) => clampScale(prev * factor));
   }

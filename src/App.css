@@ -482,6 +482,7 @@ body{
   width: 100%;
   max-height: min(88vh, 920px);
   min-height: 240px;
+  overflow: hidden;
 }
 
 .floating-sidebar-panel-nav{
@@ -650,7 +651,7 @@ body{
 
 .plan-viewport{
   height: 100%;
-  overflow: auto;
+  overflow: hidden;
   border-radius: 16px;
   border: 1px solid rgba(148,163,184,0.35);
   background: linear-gradient(180deg, rgba(241,245,249,0.9), rgba(226,232,240,0.75));
