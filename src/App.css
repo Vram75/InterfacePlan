@@ -636,6 +636,62 @@ body{
   box-shadow: none;
 }
 
+.plan-page-tabs{
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 10px 0;
+  overflow-x: auto;
+  scrollbar-width: thin;
+}
+
+.plan-page-tab{
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+  border: 1px solid rgba(148,163,184,0.45);
+  border-radius: 999px;
+  background: rgba(15,23,42,0.52);
+  color: #e2e8f0;
+  padding: 6px 12px;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: border-color 120ms ease, background-color 120ms ease, color 120ms ease;
+}
+
+.plan-page-tab:hover{
+  border-color: rgba(129,140,248,0.65);
+  background: rgba(30,41,59,0.82);
+}
+
+.plan-page-tab-active{
+  border-color: rgba(129,140,248,0.92);
+  background: rgba(79,70,229,0.38);
+  color: #f8fafc;
+}
+
+.plan-page-tab-num{
+  min-width: 10px;
+}
+
+.plan-page-tab-dot{
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #22c55e;
+}
+
+.plan-page-tab-count{
+  color: rgba(226,232,240,0.88);
+}
+
+.plan-page-tab-dot-hidden,
+.plan-page-tab-count-hidden{
+  opacity: 0;
+}
+
 .plan-content{
   padding: 8px;
   flex: 1;
