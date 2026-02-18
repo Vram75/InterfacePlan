@@ -1445,21 +1445,29 @@ export default function App() {
               <aside className="dash-sidebar dash-sidebar-right floating-sidebar-panel floating-sidebar-panel-tools">
                 <div className="plan-toolbar-group plan-toolbar-group-vertical plan-toolbar-group-unified">
                   <div className="sidebar-pages-controls-group">
-                    <div className="nav-title sidebar-pages-tools-title">Filtres des pages</div>
-                    <div className="sidebar-pages-tools">
-                      <input
-                        id="sidebar-page-filter-floating"
-                        className="sidebar-page-filter"
-                        placeholder="Filtrer : 12 | 1-8 | 1,3,10 | ou “2”…"
-                        value={pageFilter}
-                        onChange={(e) => setPageFilter(e.target.value)}
-                        spellCheck={false}
-                      />
-                      {!!pageFilter.trim() && (
-                        <button className="sidebar-clear" type="button" onClick={() => setPageFilter("")} title="Effacer">
-                          ✕
-                        </button>
-                      )}
+                    <div className="nav-title sidebar-pages-tools-title">Gestion des pages</div>
+                    <div className="sidebar-pages-frame">
+                      <div className="sidebar-pages-tools">
+                        <input
+                          id="sidebar-page-filter-floating"
+                          className="sidebar-page-filter"
+                          placeholder="Filtrer : 12 | 1-8 | 1,3,10 | ou “2”…"
+                          value={pageFilter}
+                          onChange={(e) => setPageFilter(e.target.value)}
+                          spellCheck={false}
+                        />
+                        {!!pageFilter.trim() && (
+                          <button className="sidebar-clear" type="button" onClick={() => setPageFilter("")} title="Effacer">
+                            ✕
+                          </button>
+                        )}
+                      </div>
+
+                      <label className="mini-switch mini-switch-vivid mini-switch-vivid-amber plan-polys-only-switch plan-polys-only-switch-plain" title="N’afficher que les pages qui ont des polygones">
+                        <input type="checkbox" checked={onlyWithPolys} onChange={(e) => setOnlyWithPolys(e.target.checked)} />
+                        <span className="mini-switch-track" />
+                        <span className="mini-switch-text">Pages avec polygones</span>
+                      </label>
                     </div>
                   </div>
 
@@ -1493,11 +1501,6 @@ export default function App() {
                     </div>
                   </div>
 
-                  <label className="mini-switch mini-switch-vivid mini-switch-vivid-amber plan-polys-only-switch plan-polys-only-switch-plain" title="N’afficher que les pages qui ont des polygones">
-                    <input type="checkbox" checked={onlyWithPolys} onChange={(e) => setOnlyWithPolys(e.target.checked)} />
-                    <span className="mini-switch-track" />
-                    <span className="mini-switch-text">Pages avec des polygones</span>
-                  </label>
                 </div>
 
                 {adminMode && (
