@@ -510,7 +510,6 @@ export default function App() {
 
   const planViewportRef = useRef<HTMLDivElement | null>(null);
   const panSessionRef = useRef<{ x: number; y: number; left: number; top: number } | null>(null);
-  const zoomAnchorRef = useRef<{ ratioX: number; ratioY: number; prevW: number; prevH: number } | null>(null);
 
   // Multi-pages (PDF)
   const [currentPage, setCurrentPage] = useState(0); // 0-based
@@ -971,24 +970,6 @@ export default function App() {
   }, []);
 
   useEffect(() => {
-    const viewport = planViewportRef.current;
-    const anchor = zoomAnchorRef.current;
-    if (!viewport || !anchor) return;
-
-    const nextW = size.w;
-    const nextH = size.h;
-    if (!isValidSize(nextW) || !isValidSize(nextH)) return;
-
-    const previousScreenX = anchor.ratioX * anchor.prevW - viewport.scrollLeft;
-    const previousScreenY = anchor.ratioY * anchor.prevH - viewport.scrollTop;
-
-    viewport.scrollLeft = anchor.ratioX * nextW - previousScreenX;
-    viewport.scrollTop = anchor.ratioY * nextH - previousScreenY;
-
-    zoomAnchorRef.current = null;
-  }, [size.w, size.h]);
-
-  useEffect(() => {
     const onUp = () => endPan();
     window.addEventListener("mouseup", onUp);
     window.addEventListener("blur", onUp);
@@ -1036,21 +1017,7 @@ export default function App() {
   }
 
   function onPlanViewportWheel(e: React.WheelEvent<HTMLDivElement>) {
-    const viewport = planViewportRef.current;
-    if (!viewport) return;
-
     e.preventDefault();
-    const rect = viewport.getBoundingClientRect();
-    const ratioX = (e.clientX - rect.left + viewport.scrollLeft) / Math.max(1, size.w);
-    const ratioY = (e.clientY - rect.top + viewport.scrollTop) / Math.max(1, size.h);
-
-    zoomAnchorRef.current = {
-      ratioX,
-      ratioY,
-      prevW: size.w,
-      prevH: size.h,
-    };
-
     const factor = Math.exp(-e.deltaY * 0.0012);
     setScale((prev) => clampScale(prev * factor));
   }
@@ -1463,16 +1430,6 @@ export default function App() {
                         />
                       </div>
                     </div>
-                  </div>
-
-                  <div className="plan-zoom-group">
-                    <button className="btn btn-icon btn-mini" type="button" onClick={() => setScale((s) => clampScale(s - 0.1))} title="Zoom - (-)">
-                      −
-                    </button>
-                    <span className="meta-chip">Zoom x{scale.toFixed(2)}</span>
-                    <button className="btn btn-icon btn-mini" type="button" onClick={() => setScale((s) => clampScale(s + 0.1))} title="Zoom + (+)">
-                      +
-                    </button>
                   </div>
 
                   <div className="plan-field-inline plan-field-compact" title="Échelle du panneau outils">
