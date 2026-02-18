@@ -288,6 +288,18 @@ body{
   margin: 0 0 10px 0;
 }
 
+.sidebar-pages-controls-group{
+  width: 100%;
+  margin-bottom: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.sidebar-pages-tools-title{
+  margin: 0;
+}
+
 .sidebar-page-filter{
   width: 100%;
   border: 1px solid rgba(148,163,184,0.35);
