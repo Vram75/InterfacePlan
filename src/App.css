@@ -316,7 +316,7 @@ body{
   border: 1px solid rgba(148,163,184,0.35);
   background: rgba(255,255,255,0.12);
   border-radius: 14px;
-  padding: 10px 36px 10px 12px;
+  padding: 10px 12px;
   outline: none;
   box-shadow: 0 4px 9px rgba(15,23,42,0.05);
   font-size: 12px;
@@ -324,25 +324,6 @@ body{
 }
 .sidebar-page-filter:focus{
   border-color: rgba(226,232,240,0.5);
-}
-
-.sidebar-clear{
-  position: absolute;
-  right: 8px;
-  top: 50%;
-  transform: translateY(-50%);
-  border: 1px solid rgba(148,163,184,0.4);
-  background: rgba(248,250,252,0.12);
-  width: 26px;
-  height: 26px;
-  border-radius: 10px;
-  cursor: pointer;
-  box-shadow: 0 3px 8px rgba(15,23,42,0.125);
-  font-weight: 900;
-  color: rgba(248,250,252,0.7);
-}
-.sidebar-clear:hover{
-  background: rgba(248,250,252,0.22);
 }
 
 /* ✅ Mini switch (sidebar) — compact, aligned, no counter */
