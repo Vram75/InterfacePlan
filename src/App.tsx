@@ -1501,9 +1501,9 @@ export default function App() {
           <div className="ui-zoom" style={{ ["--ui-zoom" as any]: uiZoom }}>
             <DraggableWindow storageKey="iface.panel.tools" defaultPosition={{ x: 1180, y: 18 }} width={290} title="Outils">
               <aside className="dash-sidebar dash-sidebar-right floating-sidebar-panel floating-sidebar-panel-tools">
-                <div className="plan-toolbar-group plan-toolbar-group-vertical">
+                <div className="plan-toolbar-group plan-toolbar-group-vertical plan-toolbar-group-unified">
                   <div className="plan-grid-controls">
-                    <div className="plan-field-inline plan-field-compact plan-grid-frame" title="Taille de grille (px)">
+                    <div className="plan-grid-frame" title="Taille de grille (px)">
                       <div className="plan-grid-row">
                         <label className="switch switch-compact switch-vivid switch-vivid-emerald plan-field-label" title="Afficher/masquer la grille">
                           <input type="checkbox" checked={gridEnabled} onChange={toggleGridFromButton} />
@@ -1532,7 +1532,7 @@ export default function App() {
                     </div>
                   </div>
 
-                  <label className="mini-switch mini-switch-vivid mini-switch-vivid-amber plan-polys-only-switch" title="N’afficher que les pages qui ont des polygones">
+                  <label className="mini-switch mini-switch-vivid mini-switch-vivid-amber plan-polys-only-switch plan-polys-only-switch-plain" title="N’afficher que les pages qui ont des polygones">
                     <input type="checkbox" checked={onlyWithPolys} onChange={(e) => setOnlyWithPolys(e.target.checked)} />
                     <span className="mini-switch-track" />
                     <span className="mini-switch-text">Pages avec des polygones</span>
