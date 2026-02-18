@@ -510,6 +510,8 @@ export default function App() {
 
   const planViewportRef = useRef<HTMLDivElement | null>(null);
   const panSessionRef = useRef<{ x: number; y: number; left: number; top: number } | null>(null);
+  const wheelZoomAnchorRef = useRef<{ docX: number; docY: number; offsetX: number; offsetY: number; targetScale: number } | null>(null);
+  const wheelZoomRafRef = useRef<number | null>(null);
 
   // Multi-pages (PDF)
   const [currentPage, setCurrentPage] = useState(0); // 0-based
@@ -979,6 +981,44 @@ export default function App() {
     };
   }, []);
 
+  useEffect(() => {
+    const viewport = planViewportRef.current;
+    const anchor = wheelZoomAnchorRef.current;
+    if (!viewport || !anchor || anchor.targetScale !== scale) return;
+
+    const applyAnchoredZoom = () => {
+      const activeAnchor = wheelZoomAnchorRef.current;
+      if (!activeAnchor || activeAnchor.targetScale !== scale) return;
+
+      const nextLeft = activeAnchor.docX * scale - activeAnchor.offsetX;
+      const nextTop = activeAnchor.docY * scale - activeAnchor.offsetY;
+      viewport.scrollLeft = nextLeft;
+      viewport.scrollTop = nextTop;
+
+      const reachedX = Math.abs(viewport.scrollLeft - nextLeft) < 1;
+      const reachedY = Math.abs(viewport.scrollTop - nextTop) < 1;
+      if (reachedX && reachedY) {
+        wheelZoomAnchorRef.current = null;
+      }
+    };
+
+    applyAnchoredZoom();
+
+    if (wheelZoomAnchorRef.current) {
+      wheelZoomRafRef.current = window.requestAnimationFrame(() => {
+        wheelZoomRafRef.current = null;
+        applyAnchoredZoom();
+      });
+    }
+
+    return () => {
+      if (wheelZoomRafRef.current != null) {
+        window.cancelAnimationFrame(wheelZoomRafRef.current);
+        wheelZoomRafRef.current = null;
+      }
+    };
+  }, [scale, size.w, size.h]);
+
   function beginPan(clientX: number, clientY: number) {
     const viewport = planViewportRef.current;
     if (!viewport) return;
@@ -1019,8 +1059,28 @@ export default function App() {
   function onPlanViewportWheel(e: React.WheelEvent<HTMLDivElement>) {
     e.preventDefault();
     e.stopPropagation();
+
+    const viewport = planViewportRef.current;
+    if (!viewport) return;
+
     const factor = Math.exp(-e.deltaY * 0.0012);
-    setScale((prev) => clampScale(prev * factor));
+    const rect = viewport.getBoundingClientRect();
+    const offsetX = e.clientX - rect.left;
+    const offsetY = e.clientY - rect.top;
+    setScale((prev) => {
+      const nextScale = clampScale(prev * factor);
+      if (nextScale === prev) return prev;
+
+      wheelZoomAnchorRef.current = {
+        docX: (viewport.scrollLeft + offsetX) / prev,
+        docY: (viewport.scrollTop + offsetY) / prev,
+        offsetX,
+        offsetY,
+        targetScale: nextScale,
+      };
+
+      return nextScale;
+    });
   }
 
   const selectedLocked = adminMode && !!selectedRoomId && roomPolygonLockedOnPage(selectedRoom as any, currentPage);
