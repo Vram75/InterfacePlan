@@ -498,7 +498,7 @@ export default function App() {
   const [selectedRoomId, setSelectedRoomId] = useState<string | null>(null);
   const [hoverRoomId, setHoverRoomId] = useState<string | null>(null);
   const [detailsRoomId, setDetailsRoomId] = useState<string | null>(null);
-  const [detailsExpandToken, setDetailsExpandToken] = useState(0);
+  const [detailsExpandToken, setDetailsExpandToken] = useState<number | null>(null);
   const roomsPanelRef = useRef<HTMLDivElement | null>(null);
 
   const [adminMode, setAdminMode] = useState(true);
@@ -1221,7 +1221,7 @@ export default function App() {
                           onPolygonDoubleClick={(roomId) => {
                             setSelectedRoomId(roomId);
                             setDetailsRoomId(roomId);
-                            setDetailsExpandToken((x) => x + 1);
+                            setDetailsExpandToken((x) => (x ?? 0) + 1);
                           }}
                           adminMode={adminMode}
                           drawingRoomId={drawingRoomId}
