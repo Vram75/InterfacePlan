@@ -170,7 +170,7 @@ function writeUiPanelColor(v: string) {
 }
 
 function clampScale(next: number) {
-  return Math.min(3, Math.max(0.4, +next.toFixed(2)));
+  return Math.min(3, Math.max(0.4, next));
 }
 
 function isTypingTarget(target: unknown): boolean {
