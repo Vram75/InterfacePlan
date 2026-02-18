@@ -663,6 +663,12 @@ body{
   width: fit-content;
 }
 
+.plan-viewport--panning,
+.plan-viewport--panning *{
+  cursor: grabbing !important;
+  user-select: none;
+}
+
 .plan-layer{
   position: relative;
   width: fit-content;

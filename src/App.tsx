@@ -508,6 +508,10 @@ export default function App() {
   const [scale, setScale] = useState(1.2);
   const [size, setSize] = useState({ w: 800, h: 600 });
 
+  const planViewportRef = useRef<HTMLDivElement | null>(null);
+  const panSessionRef = useRef<{ x: number; y: number; left: number; top: number } | null>(null);
+  const zoomAnchorRef = useRef<{ ratioX: number; ratioY: number; prevW: number; prevH: number } | null>(null);
+
   // Multi-pages (PDF)
   const [currentPage, setCurrentPage] = useState(0); // 0-based
   const [pageCount, setPageCount] = useState(1);
@@ -966,6 +970,91 @@ export default function App() {
     return () => window.removeEventListener("keydown", onKeyDown);
   }, []);
 
+  useEffect(() => {
+    const viewport = planViewportRef.current;
+    const anchor = zoomAnchorRef.current;
+    if (!viewport || !anchor) return;
+
+    const nextW = size.w;
+    const nextH = size.h;
+    if (!isValidSize(nextW) || !isValidSize(nextH)) return;
+
+    const previousScreenX = anchor.ratioX * anchor.prevW - viewport.scrollLeft;
+    const previousScreenY = anchor.ratioY * anchor.prevH - viewport.scrollTop;
+
+    viewport.scrollLeft = anchor.ratioX * nextW - previousScreenX;
+    viewport.scrollTop = anchor.ratioY * nextH - previousScreenY;
+
+    zoomAnchorRef.current = null;
+  }, [size.w, size.h]);
+
+  useEffect(() => {
+    const onUp = () => endPan();
+    window.addEventListener("mouseup", onUp);
+    window.addEventListener("blur", onUp);
+    return () => {
+      window.removeEventListener("mouseup", onUp);
+      window.removeEventListener("blur", onUp);
+    };
+  }, []);
+
+  function beginPan(clientX: number, clientY: number) {
+    const viewport = planViewportRef.current;
+    if (!viewport) return;
+    panSessionRef.current = {
+      x: clientX,
+      y: clientY,
+      left: viewport.scrollLeft,
+      top: viewport.scrollTop,
+    };
+    viewport.classList.add("plan-viewport--panning");
+  }
+
+  function endPan() {
+    panSessionRef.current = null;
+    const viewport = planViewportRef.current;
+    viewport?.classList.remove("plan-viewport--panning");
+  }
+
+  function onPlanViewportMouseDown(e: React.MouseEvent<HTMLDivElement>) {
+    const isPanGesture = e.button === 1 || (e.button === 0 && e.shiftKey);
+    if (!isPanGesture) return;
+    e.preventDefault();
+    beginPan(e.clientX, e.clientY);
+  }
+
+  function onPlanViewportMouseMove(e: React.MouseEvent<HTMLDivElement>) {
+    const viewport = planViewportRef.current;
+    const pan = panSessionRef.current;
+    if (!viewport || !pan) return;
+
+    e.preventDefault();
+    const dx = e.clientX - pan.x;
+    const dy = e.clientY - pan.y;
+    viewport.scrollLeft = pan.left - dx;
+    viewport.scrollTop = pan.top - dy;
+  }
+
+  function onPlanViewportWheel(e: React.WheelEvent<HTMLDivElement>) {
+    const viewport = planViewportRef.current;
+    if (!viewport) return;
+
+    e.preventDefault();
+    const rect = viewport.getBoundingClientRect();
+    const ratioX = (e.clientX - rect.left + viewport.scrollLeft) / Math.max(1, size.w);
+    const ratioY = (e.clientY - rect.top + viewport.scrollTop) / Math.max(1, size.h);
+
+    zoomAnchorRef.current = {
+      ratioX,
+      ratioY,
+      prevW: size.w,
+      prevH: size.h,
+    };
+
+    const factor = Math.exp(-e.deltaY * 0.0012);
+    setScale((prev) => clampScale(prev * factor));
+  }
+
   const selectedLocked = adminMode && !!selectedRoomId && roomPolygonLockedOnPage(selectedRoom as any, currentPage);
 
   const canDeletePolygon = adminMode && !!selectedRoomId && roomHasPolygonOnPage(selectedRoom as any, currentPage) && !selectedLocked;
@@ -1193,7 +1282,15 @@ export default function App() {
           <main className="dash-main">
             <div className="card plan-card">
               <div className="card-content plan-content">
-                <div className="plan-viewport">
+                <div
+                    ref={planViewportRef}
+                    className="plan-viewport"
+                    onMouseDown={onPlanViewportMouseDown}
+                    onMouseMove={onPlanViewportMouseMove}
+                    onMouseUp={endPan}
+                    onMouseLeave={endPan}
+                    onWheel={onPlanViewportWheel}
+                  >
                   <div className="plan-stage">
                     <div className="plan-layer">
                       <PdfCanvas
@@ -1335,24 +1432,6 @@ export default function App() {
               <aside className="dash-sidebar dash-sidebar-right floating-sidebar-panel floating-sidebar-panel-tools">
                 <div className="nav-title" data-drag-handle>
                   Outils
-                </div>
-
-                <div className="plan-toolbar-group plan-toolbar-group-vertical">
-                  <button className="btn btn-icon btn-mini" title="Page précédente (PageUp)" type="button" onClick={() => goToPageIndex(currentPage - 1)} disabled={currentPage <= 0}>
-                    ◀
-                  </button>
-                  <span className="meta-chip">
-                    Page {Math.min(pageCount, currentPage + 1)} / {pageCount}
-                  </span>
-                  <button
-                    className="btn btn-icon btn-mini"
-                    title="Page suivante (PageDown)"
-                    type="button"
-                    onClick={() => goToPageIndex(currentPage + 1)}
-                    disabled={currentPage >= Math.max(1, pageCount) - 1}
-                  >
-                    ▶
-                  </button>
                 </div>
 
                 <div className="plan-toolbar-group plan-toolbar-group-vertical">
