@@ -1454,11 +1454,6 @@ export default function App() {
                           onChange={(e) => setPageFilter(e.target.value)}
                           spellCheck={false}
                         />
-                        {!!pageFilter.trim() && (
-                          <button className="sidebar-clear" type="button" onClick={() => setPageFilter("")} title="Effacer">
-                            ✕
-                          </button>
-                        )}
                       </div>
 
                       <label className="mini-switch mini-switch-vivid mini-switch-vivid-amber plan-polys-only-switch plan-polys-only-switch-plain" title="N’afficher que les pages qui ont des polygones">
