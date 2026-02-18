@@ -652,6 +652,18 @@ export default function App() {
     return base.filter((p) => pagesWithPolygons.has(p));
   }, [pageCount, pageFilter, onlyWithPolys, pagesWithPolygons]);
 
+  const pdfPageTabs = useMemo(() => {
+    const total = Math.max(1, pageCount);
+    return Array.from({ length: total }, (_, p) => {
+      const polygonCount = pagesPolyStats.get(p) ?? 0;
+      return {
+        pageIndex: p,
+        hasPolygon: polygonCount > 0,
+        polygonCount,
+      };
+    });
+  }, [pageCount, pagesPolyStats]);
+
   function goToPageIndex(nextIndex: number) {
     const total = Math.max(1, pageCount);
     const clamped = Math.max(0, Math.min(total - 1, nextIndex));
@@ -1309,6 +1321,28 @@ export default function App() {
         {pageView === "plans" && (
           <main className="dash-main">
             <div className="card plan-card">
+              <div className="plan-page-tabs" role="tablist" aria-label="Pages du PDF">
+                {pdfPageTabs.map(({ pageIndex, hasPolygon, polygonCount }) => {
+                  const active = pageIndex === currentPage;
+                  return (
+                    <button
+                      key={`plan-tab-page-${pageIndex}`}
+                      type="button"
+                      className={`plan-page-tab ${active ? "plan-page-tab-active" : ""}`}
+                      onClick={() => goToPageIndex(pageIndex)}
+                      role="tab"
+                      aria-selected={active}
+                      title={hasPolygon ? `Page ${pageIndex + 1} • ${polygonCount} polygone(s)` : `Page ${pageIndex + 1}`}
+                    >
+                      <span className="plan-page-tab-num">{pageIndex + 1}</span>
+                      <span className={`plan-page-tab-dot ${hasPolygon ? "" : "plan-page-tab-dot-hidden"}`} aria-hidden="true" />
+                      <span className={`plan-page-tab-count ${hasPolygon ? "" : "plan-page-tab-count-hidden"}`} aria-hidden={!hasPolygon}>
+                        ({polygonCount})
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
               <div className="card-content plan-content">
                 <div
                     ref={planViewportRef}
