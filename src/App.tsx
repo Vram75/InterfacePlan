@@ -560,7 +560,6 @@ function parsePageFilter(input: string, pageCount: number): number[] | null {
 
 export default function App() {
   const initialUiThemePresetId = readUiThemePresetId();
-  const initialUiThemePreset = getUiThemePreset(initialUiThemePresetId);
   const [pageView, setPageView] = useState<PageView>("dashboard");
 
   const [rooms, setRooms] = useState<Room[]>([]);
@@ -605,10 +604,10 @@ export default function App() {
   const [gridEnabled, setGridEnabled] = useState<boolean>(() => readGridEnabled());
   const [gridSizePx, setGridSizePx] = useState<number>(() => readGridSizePx());
   const [uiThemePresetId, setUiThemePresetId] = useState<string>(() => initialUiThemePresetId);
-  const [uiZoom, setUiZoom] = useState<number>(() => initialUiThemePreset?.zoom ?? readUiZoom());
+  const [uiZoom, setUiZoom] = useState<number>(() => readUiZoom());
   const [uiAccent, setUiAccent] = useState<string>(() => readUiAccent());
-  const [uiPanelColor, setUiPanelColor] = useState<string>(() => initialUiThemePreset?.panel ?? readUiPanelColor());
-  const [uiBackgroundColor, setUiBackgroundColor] = useState<string>(() => initialUiThemePreset?.background ?? readUiBackgroundColor());
+  const [uiPanelColor, setUiPanelColor] = useState<string>(() => readUiPanelColor());
+  const [uiBackgroundColor, setUiBackgroundColor] = useState<string>(() => readUiBackgroundColor());
 
   useEffect(() => {
     writeUiZoom(uiZoom);
