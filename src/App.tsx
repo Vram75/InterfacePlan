@@ -30,14 +30,16 @@ const UI_ZOOM_DEFAULT = 0.75;
 const UI_ACCENT_KEY = "iface.uiAccent";
 const UI_ACCENT_DEFAULT = "#4c86d8";
 const UI_PANEL_KEY = "iface.uiPanelColor";
-const UI_PANEL_DEFAULT = "#ffffff";
+const UI_PANEL_DEFAULT = "#2a3548";
+const UI_BACKGROUND_KEY = "iface.uiBackgroundColor";
+const UI_BACKGROUND_DEFAULT = "#1c2434";
 const UI_THEME_KEY = "iface.uiThemePreset";
 
 type UiThemePreset = {
   id: string;
   label: string;
   description: string;
-  accent: string;
+  background: string;
   panel: string;
   zoom: number;
 };
@@ -46,17 +48,17 @@ const UI_THEME_PRESETS: UiThemePreset[] = [
   {
     id: "classic-blue",
     label: "Classique bleu",
-    description: "Design actuel avec accent bleu.",
-    accent: "#4c86d8",
-    panel: "#ffffff",
+    description: "Fond bleu nuit et panneaux ardoise.",
+    background: "#1c2434",
+    panel: "#2a3548",
     zoom: UI_ZOOM_DEFAULT,
   },
   {
     id: "pagetabs-neutral",
     label: "PageTabs neutre",
-    description: "Style plus neutre inspiré du bloc PageTabs (non bleu).",
-    accent: "#6f7f96",
-    panel: "#f4f6fb",
+    description: "Fond gris neutre et panneaux graphite.",
+    background: "#2a2f38",
+    panel: "#3b4350",
     zoom: 0.78,
   },
 ];
@@ -201,6 +203,22 @@ function readUiPanelColor(): string {
 function writeUiPanelColor(v: string) {
   try {
     localStorage.setItem(UI_PANEL_KEY, isHexColor(v) ? v : UI_PANEL_DEFAULT);
+  } catch {}
+}
+
+function readUiBackgroundColor(): string {
+  try {
+    const v = localStorage.getItem(UI_BACKGROUND_KEY);
+    if (!v) return UI_BACKGROUND_DEFAULT;
+    return isHexColor(v) ? v : UI_BACKGROUND_DEFAULT;
+  } catch {
+    return UI_BACKGROUND_DEFAULT;
+  }
+}
+
+function writeUiBackgroundColor(v: string) {
+  try {
+    localStorage.setItem(UI_BACKGROUND_KEY, isHexColor(v) ? v : UI_BACKGROUND_DEFAULT);
   } catch {}
 }
 
@@ -588,8 +606,9 @@ export default function App() {
   const [gridSizePx, setGridSizePx] = useState<number>(() => readGridSizePx());
   const [uiThemePresetId, setUiThemePresetId] = useState<string>(() => initialUiThemePresetId);
   const [uiZoom, setUiZoom] = useState<number>(() => initialUiThemePreset?.zoom ?? readUiZoom());
-  const [uiAccent, setUiAccent] = useState<string>(() => initialUiThemePreset?.accent ?? readUiAccent());
+  const [uiAccent, setUiAccent] = useState<string>(() => readUiAccent());
   const [uiPanelColor, setUiPanelColor] = useState<string>(() => initialUiThemePreset?.panel ?? readUiPanelColor());
+  const [uiBackgroundColor, setUiBackgroundColor] = useState<string>(() => initialUiThemePreset?.background ?? readUiBackgroundColor());
 
   useEffect(() => {
     writeUiZoom(uiZoom);
@@ -604,6 +623,10 @@ export default function App() {
   }, [uiPanelColor]);
 
   useEffect(() => {
+    writeUiBackgroundColor(uiBackgroundColor);
+  }, [uiBackgroundColor]);
+
+  useEffect(() => {
     writeUiThemePresetId(uiThemePresetId);
   }, [uiThemePresetId]);
 
@@ -611,7 +634,7 @@ export default function App() {
     const preset = getUiThemePreset(nextId);
     if (!preset) return;
     setUiThemePresetId(preset.id);
-    setUiAccent(preset.accent);
+    setUiBackgroundColor(preset.background);
     setUiPanelColor(preset.panel);
     setUiZoom(clampUiZoom(preset.zoom));
   }
@@ -1173,9 +1196,19 @@ export default function App() {
   const overlayReady = isValidSize(size.w) && isValidSize(size.h);
 
   const uiAccentDark = useMemo(() => scaleHex(uiAccent, 0.65), [uiAccent]);
+  const uiBackgroundBase = useMemo(
+    () => (isHexColor(uiBackgroundColor) ? uiBackgroundColor : UI_BACKGROUND_DEFAULT),
+    [uiBackgroundColor],
+  );
   const uiPanelBase = useMemo(() => (isHexColor(uiPanelColor) ? uiPanelColor : UI_PANEL_DEFAULT), [uiPanelColor]);
-  const uiPanelSoft = useMemo(() => rgbaFromHex(uiPanelBase, 0.72, "rgba(255,255,255,0.72)"), [uiPanelBase]);
-  const uiPanelStrong = useMemo(() => rgbaFromHex(uiPanelBase, 0.9, "rgba(255,255,255,0.9)"), [uiPanelBase]);
+  const uiPanelSoft = useMemo(() => rgbaFromHex(uiPanelBase, 0.72, "rgba(42,53,72,0.72)"), [uiPanelBase]);
+  const uiPanelStrong = useMemo(() => rgbaFromHex(uiPanelBase, 0.9, "rgba(42,53,72,0.9)"), [uiPanelBase]);
+  const uiBgStart = useMemo(() => scaleHex(uiBackgroundBase, 1.15), [uiBackgroundBase]);
+  const uiBgMid = useMemo(() => uiBackgroundBase, [uiBackgroundBase]);
+  const uiBgEnd = useMemo(() => scaleHex(uiBackgroundBase, 0.72), [uiBackgroundBase]);
+  const uiPanelStart = useMemo(() => scaleHex(uiPanelBase, 1.12), [uiPanelBase]);
+  const uiPanelMid = useMemo(() => uiPanelBase, [uiPanelBase]);
+  const uiPanelEnd = useMemo(() => scaleHex(uiPanelBase, 0.72), [uiPanelBase]);
 
   return (
     <div
@@ -1185,6 +1218,12 @@ export default function App() {
         ["--accent-2" as any]: uiAccentDark,
         ["--panel" as any]: uiPanelSoft,
         ["--panel-strong" as any]: uiPanelStrong,
+        ["--bg-start" as any]: uiBgStart,
+        ["--bg-mid" as any]: uiBgMid,
+        ["--bg-end" as any]: uiBgEnd,
+        ["--panel-start" as any]: uiPanelStart,
+        ["--panel-mid" as any]: uiPanelMid,
+        ["--panel-end" as any]: uiPanelEnd,
       }}
     >
       <div className="page-tabs ui-zoom" style={{ ["--ui-zoom" as any]: uiZoom }}>
@@ -1282,6 +1321,23 @@ export default function App() {
                             title="Choisir une couleur"
                           />
                           <span className="color-hex">{(isHexColor(uiAccent) ? uiAccent : UI_ACCENT_DEFAULT).toUpperCase()}</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="field">
+                      <label className="label">Couleur de fond</label>
+                      <div className="settings-row">
+                        <div className="color-cell">
+                          <input
+                            className="color-input"
+                            type="color"
+                            value={isHexColor(uiBackgroundColor) ? uiBackgroundColor : UI_BACKGROUND_DEFAULT}
+                            onChange={(e) => setUiBackgroundColor(e.target.value)}
+                            aria-label="Couleur de fond"
+                            title="Choisir une couleur"
+                          />
+                          <span className="color-hex">{(isHexColor(uiBackgroundColor) ? uiBackgroundColor : UI_BACKGROUND_DEFAULT).toUpperCase()}</span>
                         </div>
                       </div>
                     </div>
