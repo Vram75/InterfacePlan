@@ -31,6 +31,35 @@ const UI_ACCENT_KEY = "iface.uiAccent";
 const UI_ACCENT_DEFAULT = "#4c86d8";
 const UI_PANEL_KEY = "iface.uiPanelColor";
 const UI_PANEL_DEFAULT = "#ffffff";
+const UI_THEME_KEY = "iface.uiThemePreset";
+
+type UiThemePreset = {
+  id: string;
+  label: string;
+  description: string;
+  accent: string;
+  panel: string;
+  zoom: number;
+};
+
+const UI_THEME_PRESETS: UiThemePreset[] = [
+  {
+    id: "classic-blue",
+    label: "Classique bleu",
+    description: "Design actuel avec accent bleu.",
+    accent: "#4c86d8",
+    panel: "#ffffff",
+    zoom: UI_ZOOM_DEFAULT,
+  },
+  {
+    id: "pagetabs-neutral",
+    label: "PageTabs neutre",
+    description: "Style plus neutre inspiré du bloc PageTabs (non bleu).",
+    accent: "#6f7f96",
+    panel: "#f4f6fb",
+    zoom: 0.78,
+  },
+];
 
 type PageView = "dashboard" | "plans" | "settings";
 type ServiceEntry = ServiceColor & { uid: string };
@@ -172,6 +201,26 @@ function readUiPanelColor(): string {
 function writeUiPanelColor(v: string) {
   try {
     localStorage.setItem(UI_PANEL_KEY, isHexColor(v) ? v : UI_PANEL_DEFAULT);
+  } catch {}
+}
+
+function getUiThemePreset(id: string): UiThemePreset | null {
+  return UI_THEME_PRESETS.find((preset) => preset.id === id) ?? null;
+}
+
+function readUiThemePresetId(): string {
+  try {
+    const v = localStorage.getItem(UI_THEME_KEY);
+    if (!v) return UI_THEME_PRESETS[0].id;
+    return getUiThemePreset(v)?.id ?? UI_THEME_PRESETS[0].id;
+  } catch {
+    return UI_THEME_PRESETS[0].id;
+  }
+}
+
+function writeUiThemePresetId(v: string) {
+  try {
+    localStorage.setItem(UI_THEME_KEY, getUiThemePreset(v)?.id ?? UI_THEME_PRESETS[0].id);
   } catch {}
 }
 
@@ -492,6 +541,8 @@ function parsePageFilter(input: string, pageCount: number): number[] | null {
 // --------------------
 
 export default function App() {
+  const initialUiThemePresetId = readUiThemePresetId();
+  const initialUiThemePreset = getUiThemePreset(initialUiThemePresetId);
   const [pageView, setPageView] = useState<PageView>("dashboard");
 
   const [rooms, setRooms] = useState<Room[]>([]);
@@ -535,9 +586,10 @@ export default function App() {
   const [snapUi, setSnapUi] = useState<boolean>(() => readSnapFromStorage());
   const [gridEnabled, setGridEnabled] = useState<boolean>(() => readGridEnabled());
   const [gridSizePx, setGridSizePx] = useState<number>(() => readGridSizePx());
-  const [uiZoom, setUiZoom] = useState<number>(() => readUiZoom());
-  const [uiAccent, setUiAccent] = useState<string>(() => readUiAccent());
-  const [uiPanelColor, setUiPanelColor] = useState<string>(() => readUiPanelColor());
+  const [uiThemePresetId, setUiThemePresetId] = useState<string>(() => initialUiThemePresetId);
+  const [uiZoom, setUiZoom] = useState<number>(() => initialUiThemePreset?.zoom ?? readUiZoom());
+  const [uiAccent, setUiAccent] = useState<string>(() => initialUiThemePreset?.accent ?? readUiAccent());
+  const [uiPanelColor, setUiPanelColor] = useState<string>(() => initialUiThemePreset?.panel ?? readUiPanelColor());
 
   useEffect(() => {
     writeUiZoom(uiZoom);
@@ -550,6 +602,19 @@ export default function App() {
   useEffect(() => {
     writeUiPanelColor(uiPanelColor);
   }, [uiPanelColor]);
+
+  useEffect(() => {
+    writeUiThemePresetId(uiThemePresetId);
+  }, [uiThemePresetId]);
+
+  function applyUiThemePreset(nextId: string) {
+    const preset = getUiThemePreset(nextId);
+    if (!preset) return;
+    setUiThemePresetId(preset.id);
+    setUiAccent(preset.accent);
+    setUiPanelColor(preset.panel);
+    setUiZoom(clampUiZoom(preset.zoom));
+  }
 
   const [overlayRequest, setOverlayRequest] = useState<OverlayRequest>({ kind: "none" });
 
@@ -1186,6 +1251,24 @@ export default function App() {
                   </div>
 
                   <div className="card-content">
+                    <div className="field">
+                      <label className="label">Thème UI</label>
+                      <div className="settings-row settings-theme-row">
+                        <select
+                          className="select"
+                          value={uiThemePresetId}
+                          onChange={(e) => applyUiThemePreset(e.target.value)}
+                        >
+                          {UI_THEME_PRESETS.map((preset) => (
+                            <option key={preset.id} value={preset.id}>
+                              {preset.label}
+                            </option>
+                          ))}
+                        </select>
+                        <span className="theme-description">{getUiThemePreset(uiThemePresetId)?.description}</span>
+                      </div>
+                    </div>
+
                     <div className="field">
                       <label className="label">Couleur de l’interface</label>
                       <div className="settings-row">
