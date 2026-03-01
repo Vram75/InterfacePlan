@@ -1280,6 +1280,109 @@ export default function App() {
                 </div>
 
                 <div className="settings-panels">
+                <div className="settings-services-column">
+                <section className="card settings-card settings-service-card">
+                  <div className="card-header">
+                    <div>
+                      <div className="card-title">Paramètres de services</div>
+                      <div className="card-subtitle"></div>
+                    </div>
+                  </div>
+
+                  <div className="card-content">
+                    <div className="field">
+                      <label className="label">Ajouter un service</label>
+                      <div className="settings-row">
+                        <input
+                          className="select"
+                          placeholder="Nom"
+                          value={newServiceName}
+                          onChange={(e) => {
+                            const v = e.target.value;
+                            setNewServiceName(v);
+                            if (!newServiceColorTouched) setNewServiceColor(defaultColorForService(v || "Service"));
+                          }}
+                        />
+
+                        <div className="color-cell">
+                          <input
+                            className="color-input"
+                            type="color"
+                            value={isHexColor(newServiceColor) ? newServiceColor : "#aab4c2"}
+                            onChange={(e) => {
+                              setNewServiceColorTouched(true);
+                              setNewServiceColor(e.target.value);
+                            }}
+                            aria-label="Couleur"
+                            title="Choisir une couleur"
+                          />
+                          <span className="color-hex">{(isHexColor(newServiceColor) ? newServiceColor : "#aab4c2").toUpperCase()}</span>
+                        </div>
+
+                        <button className="btn btn-mini" type="button" onClick={addService}>
+                          Ajouter
+                        </button>
+                      </div>
+
+                      </div>
+
+                  </div>
+                </section>
+
+                <section className="card settings-card settings-service-list-card">
+                  <div className="card-header">
+                    <div>
+                      <div className="card-title">Services ({services.length})</div>
+                      <div className="card-subtitle"></div>
+                    </div>
+
+                    <div className="settings-actions">
+                      <button className="btn btn-mini" type="button" onClick={seedServicesFromRooms} title="Ajoute les services présents dans les pièces">
+                        Remplissage depuis pièces
+                      </button>
+                      <button className="btn btn-mini" type="button" onClick={resetServices} title="Vide la palette">
+                        Vider
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="card-content">
+                    {services.length === 0 ? (
+                      <div className="hint">Aucun service défini.</div>
+                    ) : (
+                      <div className="service-list">
+                        {services.map((s) => (
+                          <div className="service-row" key={s.uid}>
+                            <div className="swatch" style={{ background: sanitizeServiceColor(s.service, s.color) }} />
+
+                            <input className="select" value={s.service} onChange={(e) => updateService(s.uid, { service: e.target.value })} onBlur={() => normalizeAndSortServices()} />
+
+                            <div className="color-cell">
+                              <input
+                                className="color-input"
+                                type="color"
+                                value={sanitizeServiceColor(s.service, s.color)}
+                                onChange={(e) => updateService(s.uid, { color: e.target.value })}
+                                aria-label={`Couleur ${s.service}`}
+                                title="Choisir une couleur"
+                              />
+                              <span className="color-hex">{sanitizeServiceColor(s.service, s.color).toUpperCase()}</span>
+                            </div>
+
+                            <button className="btn btn-mini" type="button" onClick={() => removeService(s.uid)}>
+                              Suppr.
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
+                    
+                  </div>
+                </section>
+                </div>
+
+                <div className="settings-options-column">
                 <section className="card settings-card">
                   <div className="card-header">
                     <div>
@@ -1380,105 +1483,7 @@ export default function App() {
                   </div>
                 </section>
 
-                <section className="card settings-card settings-service-card">
-                  <div className="card-header">
-                    <div>
-                      <div className="card-title">Paramètres de services</div>
-                      <div className="card-subtitle"></div>
-                    </div>
-                  </div>
-
-                  <div className="card-content">
-                    <div className="field">
-                      <label className="label">Ajouter un service</label>
-                      <div className="settings-row">
-                        <input
-                          className="select"
-                          placeholder="Nom"
-                          value={newServiceName}
-                          onChange={(e) => {
-                            const v = e.target.value;
-                            setNewServiceName(v);
-                            if (!newServiceColorTouched) setNewServiceColor(defaultColorForService(v || "Service"));
-                          }}
-                        />
-
-                        <div className="color-cell">
-                          <input
-                            className="color-input"
-                            type="color"
-                            value={isHexColor(newServiceColor) ? newServiceColor : "#aab4c2"}
-                            onChange={(e) => {
-                              setNewServiceColorTouched(true);
-                              setNewServiceColor(e.target.value);
-                            }}
-                            aria-label="Couleur"
-                            title="Choisir une couleur"
-                          />
-                          <span className="color-hex">{(isHexColor(newServiceColor) ? newServiceColor : "#aab4c2").toUpperCase()}</span>
-                        </div>
-
-                        <button className="btn btn-mini" type="button" onClick={addService}>
-                          Ajouter
-                        </button>
-                      </div>
-
-                      </div>
-
-                  </div>
-                </section>
-
-                <section className="card settings-card settings-service-list-card">
-                  <div className="card-header">
-                    <div>
-                      <div className="card-title">Services ({services.length})</div>
-                      <div className="card-subtitle"></div>
-                    </div>
-
-                    <div className="settings-actions">
-                      <button className="btn btn-mini" type="button" onClick={seedServicesFromRooms} title="Ajoute les services présents dans les pièces">
-                        Remplissage depuis pièces
-                      </button>
-                      <button className="btn btn-mini" type="button" onClick={resetServices} title="Vide la palette">
-                        Vider
-                      </button>
-                    </div>
-                  </div>
-
-                  <div className="card-content">
-                    {services.length === 0 ? (
-                      <div className="hint">Aucun service défini.</div>
-                    ) : (
-                      <div className="service-list">
-                        {services.map((s) => (
-                          <div className="service-row" key={s.uid}>
-                            <div className="swatch" style={{ background: sanitizeServiceColor(s.service, s.color) }} />
-
-                            <input className="select" value={s.service} onChange={(e) => updateService(s.uid, { service: e.target.value })} onBlur={() => normalizeAndSortServices()} />
-
-                            <div className="color-cell">
-                              <input
-                                className="color-input"
-                                type="color"
-                                value={sanitizeServiceColor(s.service, s.color)}
-                                onChange={(e) => updateService(s.uid, { color: e.target.value })}
-                                aria-label={`Couleur ${s.service}`}
-                                title="Choisir une couleur"
-                              />
-                              <span className="color-hex">{sanitizeServiceColor(s.service, s.color).toUpperCase()}</span>
-                            </div>
-
-                            <button className="btn btn-mini" type="button" onClick={() => removeService(s.uid)}>
-                              Suppr.
-                            </button>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-
-                    
-                  </div>
-                </section>
+                </div>
               </div>
               </div>
             </div>

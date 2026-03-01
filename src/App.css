@@ -1476,6 +1476,8 @@ body{
 
 .settings-main-panel{
   width: 100%;
+  max-width: calc(100% - 24px);
+  margin: 0 auto;
 }
 
 .settings-main-header{
@@ -1485,6 +1487,15 @@ body{
 }
 
 .settings-panels{
+  display: grid;
+  grid-template-columns: minmax(540px, 1.35fr) minmax(340px, 1fr);
+  gap: 16px;
+  align-items: stretch;
+}
+
+.settings-services-column,
+.settings-options-column{
+  min-width: 0;
   display: flex;
   flex-direction: column;
   gap: 16px;
@@ -1496,19 +1507,28 @@ body{
 }
 
 .settings-service-card{     /* ici pour modifier la largeur du panneau parametre services */
-  width: 60%;
-  max-width: 60%;
+  width: 100%;
+  max-width: 100%;
 }
 
 .settings-service-list-card{
-  width: 60%;
-  max-width: 60%;
+  width: 100%;
+  max-width: 100%;
+  flex: 1;
+  min-height: calc(100vh - 240px);
+  display: flex;
+  flex-direction: column;
+}
+
+.settings-service-list-card .card-content{
+  flex: 1;
+  min-height: 0;
 }
 
 .settings-row{
   display: grid;
-  grid-template-columns: minmax(220px, 1fr) 190px 110px;
-  gap: 10px;
+  grid-template-columns: minmax(200px, 1fr) 170px 96px;
+  gap: 8px;
   align-items: center;
 }
 
@@ -1535,10 +1555,11 @@ body{
 .service-list{
   display: flex;
   flex-direction: column;
-  gap: 10px;
-  max-height: 560px;
+  gap: 8px;
+  max-height: none;
+  height: 100%;
   overflow-y: auto;
-  padding-right: 6px;
+  padding-right: 8px;
   scrollbar-gutter: stable;
   scrollbar-width: none;
   -ms-overflow-style: none;
@@ -1550,8 +1571,8 @@ body{
 
 .service-row{
   display: grid;
-  grid-template-columns: 18px minmax(220px, 1fr) 190px 110px;
-  gap: 10px;
+  grid-template-columns: 18px minmax(180px, 1fr) 170px 96px;
+  gap: 8px;
   align-items: center;
 }
 
@@ -1624,6 +1645,9 @@ body{
 }
 
 @media (max-width: 920px){
+  .settings-panels{
+    grid-template-columns: 1fr;
+  }
   .dash-body{
     grid-template-columns: 1fr;
     overflow: auto;
