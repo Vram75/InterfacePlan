@@ -633,7 +633,6 @@ body{
   display: flex;
   align-items: center;
   gap: 8px;
-  margin-left: auto;
 }
 
 .card-meta{
@@ -1120,7 +1119,6 @@ body{
   opacity: 0.7;
 }
 .room-panel-meta{
-  margin-left: auto;
   text-align: right;
   white-space: nowrap;
   font-size: 12px;
@@ -1474,9 +1472,21 @@ body{
 
 .settings-main-panel{
   width: 100%;
-  max-width: calc(100% - 24px);
-  margin: 0 auto;
+  max-width: none;
+  margin: 0;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
 }
+
+.settings-main-panel > .card-content{
+  width: 100%;
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
 
 .settings-main-header{
   display: flex;
@@ -1486,8 +1496,10 @@ body{
 
 .settings-panels{
   display: grid;
-  grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr);
-  gap: 16px;
+  flex: 1;
+  grid-template-columns: minmax(0, 560px) minmax(0, 620px);
+  justify-content: start;
+  gap: 12px;
   align-items: start;
   width: 100%;
   min-width: 0;
@@ -1502,7 +1514,12 @@ body{
 }
 
 .settings-services-column{
+  align-items: flex-start;
   max-height: calc(100vh - 190px);
+}
+
+.settings-options-column{
+  align-items: flex-start;
 }
 
 .settings-card{
@@ -1511,13 +1528,13 @@ body{
 }
 
 .settings-service-card{     /* ici pour modifier la largeur du panneau parametre services */
-  width: 100%;
-  max-width: 100%;
+  width: min(100%, 560px);
+  max-width: 560px;
 }
 
 .settings-service-list-card{
-  width: 100%;
-  max-width: 100%;
+  width: min(100%, 560px);
+  max-width: 560px;
   flex: 1;
   min-height: 0;
   display: flex;
@@ -1525,8 +1542,8 @@ body{
 }
 
 .settings-personalization-card{
-  width: 100%;
-  max-width: 100%;
+  width: min(100%, 620px);
+  max-width: 620px;
 }
 
 .settings-service-list-card .card-content{
@@ -1539,7 +1556,7 @@ body{
 
 .settings-row{
   display: grid;
-  grid-template-columns: minmax(200px, 1fr) 170px 96px;
+  grid-template-columns: minmax(180px, 1fr) 156px 82px;
   gap: 8px;
   align-items: center;
 }
@@ -1583,7 +1600,7 @@ body{
 
 .service-row{
   display: grid;
-  grid-template-columns: 18px minmax(180px, 1fr) 170px 96px;
+  grid-template-columns: 18px minmax(120px, 1fr) 156px 82px;
   gap: 8px;
   align-items: center;
 }
