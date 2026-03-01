@@ -1675,6 +1675,14 @@ body{
   --shadow-panel: 0 14px 30px rgba(0,0,0,0.35), 0 5px 11px rgba(0,0,0,0.275);
   --shadow-panel-soft: 0 9px 20px rgba(0,0,0,0.275);
   --shadow-inset: inset 0 0.5px 0 var(--panel-topline), inset 0 -1px 0 var(--panel-bottomline);
+
+  --bg-start: #2f3c4d;
+  --bg-mid: #202a3b;
+  --bg-end: #141b29;
+
+  --panel-start: #3f4f64;
+  --panel-mid: #2a3548;
+  --panel-end: #1b2332;
 }
 
 html, body{
@@ -1685,8 +1693,7 @@ html, body{
 
 /* Outer frame like the reference */
 .dash-root{
-  background:
-    radial-gradient(120% 120% at 20% 0%, #2f3c4d 0%, #202a3b 40%, #141b29 100%);
+  background: radial-gradient(120% 120% at 20% 0%, var(--bg-start) 0%, var(--bg-mid) 40%, var(--bg-end) 100%);
   border: 1px solid rgba(255,255,255,0.08);
   border-radius: 11px;
   box-shadow:
@@ -1697,8 +1704,7 @@ html, body{
 
 /* Inner frame */
 .dash-body{
-  background:
-    radial-gradient(120% 120% at 20% 0%, #2a3445 0%, #1c2434 45%, #121827 100%);
+  background: radial-gradient(120% 120% at 20% 0%, color-mix(in srgb, var(--bg-start) 85%, #000 15%) 0%, var(--bg-mid) 45%, color-mix(in srgb, var(--bg-end) 88%, #000 12%) 100%);
   border-radius: 9px;
   box-shadow:
     inset 0 0.5px 0 rgba(255,255,255,0.025),
@@ -1719,7 +1725,7 @@ html, body{
 /* Stronger for side columns */
 .dash-sidebar,
 .dash-right{
-  background: var(--panel-grad-strong);
+  background: radial-gradient(140% 120% at 30% 10%, var(--panel-start) 0%, var(--panel-mid) 42%, var(--panel-end) 100%);
 }
 
 .dash-sidebar{
