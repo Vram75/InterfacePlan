@@ -1486,11 +1486,11 @@ body{
 
 .settings-panels{
   display: grid;
-  grid-template-columns: minmax(540px, 1.35fr) minmax(340px, 1fr);
+  grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr);
   gap: 16px;
   align-items: start;
-  width: min(1200px, 82%);
-  min-width: 920px;
+  width: 100%;
+  min-width: 0;
 }
 
 .settings-services-column,
