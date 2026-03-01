@@ -244,7 +244,7 @@ export function FloatingPanel({
           borderBottom: collapsed ? "none" : "1px solid rgba(255,255,255,0.08)",
           cursor: "grab",
           userSelect: "none",
-          background: "radial-gradient(170% 140% at 30% 0%, #ece8e3 0%, #d7cfc8 58%, #c6bcb4 100%)",
+          background: "#d7cfc8",
         }}
         onPointerDown={(e) => {
           e.preventDefault();
