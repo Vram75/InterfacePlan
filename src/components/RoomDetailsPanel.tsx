@@ -208,9 +208,7 @@ function CropModal(props: { file: File; onCancel: () => void; onConfirm: (croppe
     width: "min(760px, 92vw)",
     height: "min(560px, 76vh)",
     borderRadius: 7,
-    background:
-      "linear-gradient(45deg, rgba(0,0,0,0.05) 25%, transparent 25%, transparent 50%, rgba(0,0,0,0.05) 50%, rgba(0,0,0,0.05) 75%, transparent 75%, transparent)",
-    backgroundSize: "18px 18px",
+    background: "rgba(0,0,0,0.04)",
     overflow: "hidden",
     border: "1px solid rgba(0,0,0,0.18)",
     cursor: dragging ? "grabbing" : "grab",
