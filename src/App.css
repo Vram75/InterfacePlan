@@ -1505,22 +1505,30 @@ body{
 }
 
 .settings-service-card{     /* ici pour modifier la largeur du panneau parametre services */
-  width: 100%;
-  max-width: 100%;
+  width: 50%;
+  max-width: 50%;
 }
 
 .settings-service-list-card{
-  width: 100%;
-  max-width: 100%;
+  width: 50%;
+  max-width: 50%;
   flex: 1;
   min-height: calc(100vh - 240px);
   display: flex;
   flex-direction: column;
 }
 
+.settings-personalization-card{
+  width: 50%;
+  max-width: 50%;
+}
+
 .settings-service-list-card .card-content{
+  display: flex;
+  flex-direction: column;
   flex: 1;
   min-height: 0;
+  overflow: hidden;
 }
 
 .settings-row{
@@ -1553,18 +1561,18 @@ body{
 .service-list{
   display: flex;
   flex-direction: column;
+  flex: 1;
+  min-height: 0;
   gap: 8px;
-  max-height: none;
-  height: 100%;
+  max-height: 100%;
   overflow-y: auto;
   padding-right: 8px;
   scrollbar-gutter: stable;
-  scrollbar-width: none;
-  -ms-overflow-style: none;
+  scrollbar-width: thin;
 }
 
 .service-list::-webkit-scrollbar{
-  display: none;
+  width: 8px;
 }
 
 .service-row{

@@ -1379,7 +1379,7 @@ export default function App() {
                 </div>
 
                 <div className="settings-options-column">
-                <section className="card settings-card">
+                <section className="card settings-card settings-personalization-card">
                   <div className="card-header">
                     <div>
                       <div className="card-title">Personnalisation</div>
