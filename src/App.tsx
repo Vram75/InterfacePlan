@@ -41,7 +41,6 @@ type UiThemePreset = {
   description: string;
   background: string;
   panel: string;
-  zoom: number;
 };
 
 const UI_THEME_PRESETS: UiThemePreset[] = [
@@ -51,7 +50,6 @@ const UI_THEME_PRESETS: UiThemePreset[] = [
     description: "Fond bleu nuit et panneaux ardoise.",
     background: "#1c2434",
     panel: "#2a3548",
-    zoom: UI_ZOOM_DEFAULT,
   },
   {
     id: "pagetabs-neutral",
@@ -59,7 +57,6 @@ const UI_THEME_PRESETS: UiThemePreset[] = [
     description: "Fond gris neutre et panneaux graphite.",
     background: "#2a2f38",
     panel: "#3b4350",
-    zoom: 0.78,
   },
 ];
 
@@ -635,7 +632,6 @@ export default function App() {
     setUiThemePresetId(preset.id);
     setUiBackgroundColor(preset.background);
     setUiPanelColor(preset.panel);
-    setUiZoom(clampUiZoom(preset.zoom));
   }
 
   const [overlayRequest, setOverlayRequest] = useState<OverlayRequest>({ kind: "none" });
