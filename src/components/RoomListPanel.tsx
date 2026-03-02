@@ -52,10 +52,10 @@ export function RoomListPanel(props: {
     <div className="room-panel">
       <div className="room-panel-header" data-drag-handle>
         <div className="room-panel-title-row">
-          <div className="room-panel-title">
-            Pièces <span className="room-panel-count">{totalCount}</span>
+          <div className="room-panel-title">Zones</div>
+          <div className="room-panel-meta">
+            Pièces <span className="room-panel-count">{totalCount}</span> ({missingCount} sans polygone)
           </div>
-          <div className="room-panel-meta">{missingCount} sans polygone</div>
         </div>
       </div>
 
