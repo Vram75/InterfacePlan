@@ -1634,9 +1634,8 @@ export default function App() {
                           selectedRoomId={selectedRoomId}
                           onSelectRoom={(roomId) => {
                             setSelectedRoomId(roomId);
+                            if (!roomId) return;
                             setDetailsRoomId(roomId);
-                            setIsDetailsPanelOpen(true);
-                            setDetailsExpandToken((x) => (x ?? 0) + 1);
                           }}
                           onPolygonDoubleClick={(roomId) => {
                             setSelectedRoomId(roomId);
