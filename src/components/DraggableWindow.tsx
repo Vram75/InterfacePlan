@@ -77,6 +77,7 @@ export function DraggableWindow(props: {
   width: number;
   title: string;
   collapsible?: boolean;
+  onClose?: () => void;
   forceExpandedToken?: number | null;
   children: React.ReactNode;
 }) {
@@ -238,18 +239,32 @@ export function DraggableWindow(props: {
       <div className="floating-panel-shell">
         <div className="card-header floating-panel-header" title="Glisser pour déplacer • Double-clic pour replier/déplier">
           <div className="card-title">{props.title}</div>
-          {props.collapsible !== false && (
-            <button
-              type="button"
-              className="btn btn-mini"
-              onClick={() => setCollapsed((prev) => !prev)}
-              onPointerDown={(e) => e.stopPropagation()}
-              title={collapsed ? "Déplier" : "Replier"}
-              aria-label={collapsed ? "Déplier" : "Replier"}
-            >
-              {collapsed ? "▾" : "▴"}
-            </button>
-          )}
+          <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+            {props.collapsible !== false && (
+              <button
+                type="button"
+                className="btn btn-mini"
+                onClick={() => setCollapsed((prev) => !prev)}
+                onPointerDown={(e) => e.stopPropagation()}
+                title={collapsed ? "Déplier" : "Replier"}
+                aria-label={collapsed ? "Déplier" : "Replier"}
+              >
+                {collapsed ? "▾" : "▴"}
+              </button>
+            )}
+            {props.onClose && (
+              <button
+                type="button"
+                className="btn btn-mini"
+                onClick={props.onClose}
+                onPointerDown={(e) => e.stopPropagation()}
+                title="Fermer"
+                aria-label="Fermer"
+              >
+                ✕
+              </button>
+            )}
+          </div>
         </div>
         <div className="floating-panel-content">{props.children}</div>
       </div>

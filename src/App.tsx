@@ -605,6 +605,7 @@ export default function App() {
   const [selectedRoomId, setSelectedRoomId] = useState<string | null>(null);
   const [hoverRoomId, setHoverRoomId] = useState<string | null>(null);
   const [detailsRoomId, setDetailsRoomId] = useState<string | null>(null);
+  const [isDetailsPanelOpen, setIsDetailsPanelOpen] = useState(true);
   const [detailsExpandToken, setDetailsExpandToken] = useState<number | null>(null);
   const roomsPanelRef = useRef<HTMLDivElement | null>(null);
 
@@ -1859,6 +1860,7 @@ export default function App() {
                     onOpenDetails={(roomId) => {
                       setSelectedRoomId(roomId);
                       setDetailsRoomId(roomId);
+                      setIsDetailsPanelOpen(true);
                     }}
                   />
                 </div>
@@ -1866,80 +1868,83 @@ export default function App() {
             </DraggableWindow>
           </div>
 
-          <div className="ui-zoom" style={{ ["--ui-zoom" as any]: uiZoom }}>
-            <DraggableWindow
-              storageKey="iface.panel.details"
-              defaultPosition={{ x: 470, y: 86 }}
-              width={360}
-              title="Détails de la pièce"
-              forceExpandedToken={detailsExpandToken}
-            >
-              <div className="card plan-card">
-                <div
-                  className="card-content card-scroll"
-                  style={{
-                    height: "min(72vh, 760px)",
-                    minHeight: 220,
-                    maxHeight: "min(88vh, 920px)",
-                    overflow: "auto",
-                  }}
-                >
-                  {detailsRoom ? (
-                    <RoomDetailsPanel
-                      room={detailsRoom}
-                      services={services.map(({ uid: _uid, ...rest }) => rest)}
-                      onSave={async (room) => {
-                        const saved = await api.updateRoom(room);
-                        setRooms((prev) =>
-                          prev.map((r) => {
-                            if (r.id !== saved.id) return r;
-                            const merged = mergeRoomPreserveLocks(r, saved);
-                            return {
-                              ...merged,
-                              niveau: saved.niveau !== undefined ? saved.niveau : room.niveau !== undefined ? room.niveau : merged.niveau,
-                              aile: saved.aile !== undefined ? saved.aile : room.aile !== undefined ? room.aile : merged.aile,
-                              designation:
-                                saved.designation !== undefined
-                                  ? saved.designation
-                                  : room.designation !== undefined
-                                    ? room.designation
-                                    : merged.designation,
-                              service: saved.service !== undefined ? saved.service : room.service !== undefined ? room.service : merged.service,
-                              surface: saved.surface !== undefined ? saved.surface : room.surface !== undefined ? room.surface : merged.surface,
-                              personneNom:
-                                saved.personneNom !== undefined
-                                  ? saved.personneNom
-                                  : room.personneNom !== undefined
-                                    ? room.personneNom
-                                    : merged.personneNom,
-                              personnePrenom:
-                                saved.personnePrenom !== undefined
-                                  ? saved.personnePrenom
-                                  : room.personnePrenom !== undefined
-                                    ? room.personnePrenom
-                                    : merged.personnePrenom,
-                              personneTel:
-                                saved.personneTel !== undefined
-                                  ? saved.personneTel
-                                  : room.personneTel !== undefined
-                                    ? room.personneTel
-                                    : merged.personneTel,
-                            };
-                          })
-                        );
-                      }}
-                      onUploadPhoto={async (roomId, file) => {
-                        const saved = await api.uploadPhoto(roomId, file);
-                        setRooms((prev) => prev.map((r) => (r.id === saved.id ? saved : r)));
-                      }}
-                    />
-                  ) : (
-                    <div className="details-panel details-panel-muted">Sélectionnez une pièce pour afficher ses détails.</div>
-                  )}
+          {isDetailsPanelOpen && (
+            <div className="ui-zoom" style={{ ["--ui-zoom" as any]: uiZoom }}>
+              <DraggableWindow
+                storageKey="iface.panel.details"
+                defaultPosition={{ x: 470, y: 86 }}
+                width={360}
+                title="Détails de la pièce"
+                onClose={() => setIsDetailsPanelOpen(false)}
+                forceExpandedToken={detailsExpandToken}
+              >
+                <div className="card plan-card">
+                  <div
+                    className="card-content card-scroll"
+                    style={{
+                      height: "min(72vh, 760px)",
+                      minHeight: 220,
+                      maxHeight: "min(88vh, 920px)",
+                      overflow: "auto",
+                    }}
+                  >
+                    {detailsRoom ? (
+                      <RoomDetailsPanel
+                        room={detailsRoom}
+                        services={services.map(({ uid: _uid, ...rest }) => rest)}
+                        onSave={async (room) => {
+                          const saved = await api.updateRoom(room);
+                          setRooms((prev) =>
+                            prev.map((r) => {
+                              if (r.id !== saved.id) return r;
+                              const merged = mergeRoomPreserveLocks(r, saved);
+                              return {
+                                ...merged,
+                                niveau: saved.niveau !== undefined ? saved.niveau : room.niveau !== undefined ? room.niveau : merged.niveau,
+                                aile: saved.aile !== undefined ? saved.aile : room.aile !== undefined ? room.aile : merged.aile,
+                                designation:
+                                  saved.designation !== undefined
+                                    ? saved.designation
+                                    : room.designation !== undefined
+                                      ? room.designation
+                                      : merged.designation,
+                                service: saved.service !== undefined ? saved.service : room.service !== undefined ? room.service : merged.service,
+                                surface: saved.surface !== undefined ? saved.surface : room.surface !== undefined ? room.surface : merged.surface,
+                                personneNom:
+                                  saved.personneNom !== undefined
+                                    ? saved.personneNom
+                                    : room.personneNom !== undefined
+                                      ? room.personneNom
+                                      : merged.personneNom,
+                                personnePrenom:
+                                  saved.personnePrenom !== undefined
+                                    ? saved.personnePrenom
+                                    : room.personnePrenom !== undefined
+                                      ? room.personnePrenom
+                                      : merged.personnePrenom,
+                                personneTel:
+                                  saved.personneTel !== undefined
+                                    ? saved.personneTel
+                                    : room.personneTel !== undefined
+                                      ? room.personneTel
+                                      : merged.personneTel,
+                              };
+                            })
+                          );
+                        }}
+                        onUploadPhoto={async (roomId, file) => {
+                          const saved = await api.uploadPhoto(roomId, file);
+                          setRooms((prev) => prev.map((r) => (r.id === saved.id ? saved : r)));
+                        }}
+                      />
+                    ) : (
+                      <div className="details-panel details-panel-muted">Sélectionnez une pièce pour afficher ses détails.</div>
+                    )}
+                  </div>
                 </div>
-              </div>
-            </DraggableWindow>
-          </div>
+              </DraggableWindow>
+            </div>
+          )}
         </div>
       )}
     </div>
