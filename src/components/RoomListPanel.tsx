@@ -54,7 +54,7 @@ export function RoomListPanel(props: {
         <div className="room-panel-title-row">
           <div className="room-panel-title">Zones</div>
           <div className="room-panel-meta">
-            Pièces <span className="room-panel-count">{totalCount}</span> ({missingCount} sans polygone)
+            <span className="room-panel-count">{totalCount}</span> Pièces ({missingCount} sans polygone)
           </div>
         </div>
       </div>
