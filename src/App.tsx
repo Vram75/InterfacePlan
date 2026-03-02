@@ -606,7 +606,8 @@ export default function App() {
   const [hoverRoomId, setHoverRoomId] = useState<string | null>(null);
   const [detailsRoomId, setDetailsRoomId] = useState<string | null>(null);
   const [isDetailsPanelOpen, setIsDetailsPanelOpen] = useState(true);
-  const [detailsExpandToken, setDetailsExpandToken] = useState<number | null>(null);
+  const [isSearchPanelOpen, setIsSearchPanelOpen] = useState(true);
+  const [isToolsPanelOpen, setIsToolsPanelOpen] = useState(true);
   const roomsPanelRef = useRef<HTMLDivElement | null>(null);
 
   const [adminMode, setAdminMode] = useState(true);
@@ -1296,6 +1297,30 @@ export default function App() {
             </button>
           );
         })}
+        {pageView === "plans" && (
+          <>
+            <button
+              className={`page-tab ${isSearchPanelOpen ? "page-tab-active" : ""}`}
+              onClick={() => setIsSearchPanelOpen((prev) => !prev)}
+              type="button"
+              title="Recherche"
+              aria-label="Recherche"
+              aria-pressed={isSearchPanelOpen}
+            >
+              <span className="page-tab-label">Recherche</span>
+            </button>
+            <button
+              className={`page-tab ${isToolsPanelOpen ? "page-tab-active" : ""}`}
+              onClick={() => setIsToolsPanelOpen((prev) => !prev)}
+              type="button"
+              title="Outils"
+              aria-label="Outils"
+              aria-pressed={isToolsPanelOpen}
+            >
+              <span className="page-tab-label">Outils</span>
+            </button>
+          </>
+        )}
       </div>
 
       {/* BODY */}
@@ -1641,7 +1666,6 @@ export default function App() {
                             setSelectedRoomId(roomId);
                             setDetailsRoomId(roomId);
                             setIsDetailsPanelOpen(true);
-                            setDetailsExpandToken((x) => (x ?? 0) + 1);
                           }}
                           adminMode={adminMode}
                           drawingRoomId={drawingRoomId}
@@ -1669,8 +1693,9 @@ export default function App() {
 
       {pageView === "plans" && (
         <div className="dash-floating-layer" aria-hidden="false">
-          <div className="ui-zoom" style={{ ["--ui-zoom" as any]: uiZoom }}>
-            <DraggableWindow storageKey="iface.panel.tools" defaultPosition={{ x: 1180, y: 18 }} width={290} title="Outils">
+          {isToolsPanelOpen && (
+            <div className="ui-zoom" style={{ ["--ui-zoom" as any]: uiZoom }}>
+              <DraggableWindow storageKey="iface.panel.tools" defaultPosition={{ x: 1180, y: 18 }} width={290} title="Outils">
               <aside className="dash-sidebar dash-sidebar-right floating-sidebar-panel floating-sidebar-panel-tools">
                 <div className="plan-toolbar-group plan-toolbar-group-vertical plan-toolbar-group-unified">
                   <div className="sidebar-pages-controls-group">
@@ -1839,21 +1864,15 @@ export default function App() {
                     <b>PageUp/PageDown</b> pages • <b>Home/End</b> début/fin
                   </div>
                 </div>
-              </aside>
-            </DraggableWindow>
-          </div>
-          <div ref={roomsPanelRef} className="ui-zoom" style={{ ["--ui-zoom" as any]: uiZoom }}>
-            <DraggableWindow storageKey="iface.panel.rooms" defaultPosition={{ x: 88, y: 86 }} width={360} title="Recherche">
+                </aside>
+              </DraggableWindow>
+            </div>
+          )}
+          {isSearchPanelOpen && (
+            <div ref={roomsPanelRef} className="ui-zoom" style={{ ["--ui-zoom" as any]: uiZoom }}>
+              <DraggableWindow storageKey="iface.panel.rooms" defaultPosition={{ x: 88, y: 86 }} width={360} title="Recherche">
               <div className="card plan-card">
-                <div
-                  className="card-content card-scroll"
-                  style={{
-                    height: "min(72vh, 760px)",
-                    minHeight: 220,
-                    maxHeight: "min(88vh, 920px)",
-                    overflow: "auto",
-                  }}
-                >
+                <div className="card-content card-scroll">
                   <RoomListPanel
                     rooms={rooms}
                     selectedRoomId={selectedRoomId}
@@ -1867,9 +1886,10 @@ export default function App() {
                     }}
                   />
                 </div>
-              </div>
-            </DraggableWindow>
-          </div>
+                </div>
+              </DraggableWindow>
+            </div>
+          )}
 
           {isDetailsPanelOpen && (
             <div className="ui-zoom" style={{ ["--ui-zoom" as any]: uiZoom }}>
@@ -1879,18 +1899,9 @@ export default function App() {
                 width={360}
                 title="Détails de la pièce"
                 onClose={() => setIsDetailsPanelOpen(false)}
-                forceExpandedToken={detailsExpandToken}
               >
                 <div className="card plan-card">
-                  <div
-                    className="card-content card-scroll"
-                    style={{
-                      height: "min(72vh, 760px)",
-                      minHeight: 220,
-                      maxHeight: "min(88vh, 920px)",
-                      overflow: "auto",
-                    }}
-                  >
+                  <div className="card-content card-scroll">
                     {detailsRoom ? (
                       <RoomDetailsPanel
                         room={detailsRoom}

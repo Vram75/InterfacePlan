@@ -56,33 +56,15 @@ function writeStoredPosition(key: string, value: Position) {
   } catch {}
 }
 
-function readStoredCollapsed(key: string): boolean {
-  try {
-    const raw = localStorage.getItem(`${key}.collapsed`);
-    return raw === "1";
-  } catch {
-    return false;
-  }
-}
-
-function writeStoredCollapsed(key: string, value: boolean) {
-  try {
-    localStorage.setItem(`${key}.collapsed`, value ? "1" : "0");
-  } catch {}
-}
-
 export function DraggableWindow(props: {
   storageKey: string;
   defaultPosition: Position;
   width: number;
   title: string;
-  collapsible?: boolean;
   onClose?: () => void;
-  forceExpandedToken?: number | null;
   children: React.ReactNode;
 }) {
   const [pos, setPos] = useState<Position>(() => readStoredPosition(props.storageKey, props.defaultPosition));
-  const [collapsed, setCollapsed] = useState(() => readStoredCollapsed(props.storageKey));
   const [z, setZ] = useState(1000);
   const dragRef = useRef<{
     pointerId: number;
@@ -98,15 +80,6 @@ export function DraggableWindow(props: {
   useEffect(() => {
     writeStoredPosition(props.storageKey, pos);
   }, [props.storageKey, pos]);
-
-  useEffect(() => {
-    writeStoredCollapsed(props.storageKey, collapsed);
-  }, [props.storageKey, collapsed]);
-
-  useEffect(() => {
-    if (props.forceExpandedToken == null) return;
-    setCollapsed(false);
-  }, [props.forceExpandedToken]);
 
   useEffect(() => {
     const width = rootRef.current?.offsetWidth ?? props.width;
@@ -137,27 +110,15 @@ export function DraggableWindow(props: {
       dragRef.current = { pointerId: e.pointerId, sx: e.clientX, sy: e.clientY, ox: pos.x, oy: pos.y, moved: false };
     };
 
-    const onDoubleClick = (e: MouseEvent) => {
-      const target = e.target as HTMLElement | null;
-      if (isInteractiveTarget(target)) return;
-      setCollapsed((prev) => !prev);
-    };
-
     const onHandlePointerDown = (e: PointerEvent) => onPointerDown(e, headerHandle, true);
     headerHandle.style.cursor = "grab";
     headerHandle.addEventListener("pointerdown", onHandlePointerDown);
-    if (props.collapsible !== false) {
-      headerHandle.addEventListener("dblclick", onDoubleClick);
-    }
 
     return () => {
       headerHandle.style.cursor = "";
       headerHandle.removeEventListener("pointerdown", onHandlePointerDown);
-      if (props.collapsible !== false) {
-        headerHandle.removeEventListener("dblclick", onDoubleClick);
-      }
     };
-  }, [pos.x, pos.y, props.collapsible]);
+  }, [pos.x, pos.y]);
 
   useEffect(() => {
     const clampCurrentPosition = () => {
@@ -232,26 +193,14 @@ export function DraggableWindow(props: {
   return (
     <div
       ref={rootRef}
-      className={`floating-card-window${collapsed && props.collapsible !== false ? " is-collapsed" : ""}`}
+      className="floating-card-window"
       style={{ left: pos.x, top: pos.y, width: props.width, zIndex: z }}
       onMouseDown={() => setZ((prev) => prev + 1)}
     >
       <div className="floating-panel-shell">
-        <div className="card-header floating-panel-header" title="Glisser pour déplacer • Double-clic pour replier/déplier">
+        <div className="card-header floating-panel-header" title="Glisser pour déplacer">
           <div className="card-title">{props.title}</div>
           <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-            {props.collapsible !== false && (
-              <button
-                type="button"
-                className="btn btn-mini"
-                onClick={() => setCollapsed((prev) => !prev)}
-                onPointerDown={(e) => e.stopPropagation()}
-                title={collapsed ? "Déplier" : "Replier"}
-                aria-label={collapsed ? "Déplier" : "Replier"}
-              >
-                {collapsed ? "▾" : "▴"}
-              </button>
-            )}
             {props.onClose && (
               <button
                 type="button"
