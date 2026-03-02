@@ -524,14 +524,6 @@ body{
   min-height: 320px;
 }
 
-.floating-card-window.is-collapsed .floating-panel-content{
-  display: none;
-}
-
-.floating-card-window.is-collapsed .floating-panel-header{
-  border-bottom: none;
-}
-
 .floating-panel-shell{
   border: 1px solid var(--stroke);
   background: var(--panel-grad-strong);
@@ -550,7 +542,7 @@ body{
 }
 
 .floating-panel-content{
-  overflow: hidden;
+  overflow: visible;
 }
 
 
@@ -654,6 +646,12 @@ body{
   max-height: 450px;
   overflow: auto;
   padding-right: 8px;
+}
+
+.dash-floating-layer .card-scroll{
+  max-height: none;
+  overflow: visible;
+  padding-right: 0;
 }
 
 .plan-card{
@@ -1136,8 +1134,8 @@ body{
   color: rgba(15,23,42,0.55);
 }
 .room-panel-list{
-  max-height: 600px;
-  overflow: auto;
+  max-height: none;
+  overflow: visible;
   border-radius: 14px;
   border: 1px solid var(--stroke);
   background: rgba(255,255,255,0.75);
