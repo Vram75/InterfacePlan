@@ -1638,6 +1638,7 @@ export default function App() {
                           onPolygonDoubleClick={(roomId) => {
                             setSelectedRoomId(roomId);
                             setDetailsRoomId(roomId);
+                            setIsDetailsPanelOpen(true);
                             setDetailsExpandToken((x) => (x ?? 0) + 1);
                           }}
                           adminMode={adminMode}
