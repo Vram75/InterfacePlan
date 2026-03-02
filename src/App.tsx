@@ -1843,7 +1843,7 @@ export default function App() {
             </DraggableWindow>
           </div>
           <div ref={roomsPanelRef} className="ui-zoom" style={{ ["--ui-zoom" as any]: uiZoom }}>
-            <DraggableWindow storageKey="iface.panel.rooms" defaultPosition={{ x: 88, y: 86 }} width={360} title="Pièces">
+            <DraggableWindow storageKey="iface.panel.rooms" defaultPosition={{ x: 88, y: 86 }} width={360} title="Recherche">
               <div className="card plan-card">
                 <div
                   className="card-content card-scroll"
