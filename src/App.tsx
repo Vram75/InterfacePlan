@@ -1219,6 +1219,8 @@ export default function App() {
         ["--panel-start" as any]: uiPanelStart,
         ["--panel-mid" as any]: uiPanelMid,
         ["--panel-end" as any]: uiPanelEnd,
+        ["--panel-grad" as any]: uiPanelMid,
+        ["--panel-grad-strong" as any]: uiPanelStart,
       }}
     >
       <div className="page-tabs ui-zoom" style={{ ["--ui-zoom" as any]: uiZoom }}>
