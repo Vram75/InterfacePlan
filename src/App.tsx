@@ -1634,10 +1634,14 @@ export default function App() {
                           selectedRoomId={selectedRoomId}
                           onSelectRoom={(roomId) => {
                             setSelectedRoomId(roomId);
+                            setDetailsRoomId(roomId);
+                            setIsDetailsPanelOpen(true);
+                            setDetailsExpandToken((x) => (x ?? 0) + 1);
                           }}
                           onPolygonDoubleClick={(roomId) => {
                             setSelectedRoomId(roomId);
                             setDetailsRoomId(roomId);
+                            setIsDetailsPanelOpen(true);
                             setDetailsExpandToken((x) => (x ?? 0) + 1);
                           }}
                           adminMode={adminMode}
