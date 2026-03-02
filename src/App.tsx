@@ -33,6 +33,10 @@ const UI_PANEL_KEY = "iface.uiPanelColor";
 const UI_PANEL_DEFAULT = "#2a3548";
 const UI_BACKGROUND_KEY = "iface.uiBackgroundColor";
 const UI_BACKGROUND_DEFAULT = "#1c2434";
+const UI_BUTTON_KEY = "iface.uiButtonColor";
+const UI_BUTTON_DEFAULT = "#2b3547";
+const UI_INPUT_KEY = "iface.uiInputColor";
+const UI_INPUT_DEFAULT = "#273143";
 const UI_THEME_KEY = "iface.uiThemePreset";
 
 type UiThemePreset = {
@@ -211,6 +215,38 @@ function readUiBackgroundColor(): string {
   } catch {
     return UI_BACKGROUND_DEFAULT;
   }
+}
+
+function readUiButtonColor(): string {
+  try {
+    const v = localStorage.getItem(UI_BUTTON_KEY);
+    if (!v) return UI_BUTTON_DEFAULT;
+    return isHexColor(v) ? v : UI_BUTTON_DEFAULT;
+  } catch {
+    return UI_BUTTON_DEFAULT;
+  }
+}
+
+function writeUiButtonColor(v: string) {
+  try {
+    localStorage.setItem(UI_BUTTON_KEY, isHexColor(v) ? v : UI_BUTTON_DEFAULT);
+  } catch {}
+}
+
+function readUiInputColor(): string {
+  try {
+    const v = localStorage.getItem(UI_INPUT_KEY);
+    if (!v) return UI_INPUT_DEFAULT;
+    return isHexColor(v) ? v : UI_INPUT_DEFAULT;
+  } catch {
+    return UI_INPUT_DEFAULT;
+  }
+}
+
+function writeUiInputColor(v: string) {
+  try {
+    localStorage.setItem(UI_INPUT_KEY, isHexColor(v) ? v : UI_INPUT_DEFAULT);
+  } catch {}
 }
 
 function writeUiBackgroundColor(v: string) {
@@ -605,6 +641,8 @@ export default function App() {
   const [uiAccent, setUiAccent] = useState<string>(() => readUiAccent());
   const [uiPanelColor, setUiPanelColor] = useState<string>(() => readUiPanelColor());
   const [uiBackgroundColor, setUiBackgroundColor] = useState<string>(() => readUiBackgroundColor());
+  const [uiButtonColor, setUiButtonColor] = useState<string>(() => readUiButtonColor());
+  const [uiInputColor, setUiInputColor] = useState<string>(() => readUiInputColor());
 
   useEffect(() => {
     writeUiZoom(uiZoom);
@@ -621,6 +659,14 @@ export default function App() {
   useEffect(() => {
     writeUiBackgroundColor(uiBackgroundColor);
   }, [uiBackgroundColor]);
+
+  useEffect(() => {
+    writeUiButtonColor(uiButtonColor);
+  }, [uiButtonColor]);
+
+  useEffect(() => {
+    writeUiInputColor(uiInputColor);
+  }, [uiInputColor]);
 
   useEffect(() => {
     writeUiThemePresetId(uiThemePresetId);
@@ -1204,6 +1250,9 @@ export default function App() {
   const uiPanelStart = useMemo(() => scaleHex(uiPanelBase, 1.12), [uiPanelBase]);
   const uiPanelMid = useMemo(() => uiPanelBase, [uiPanelBase]);
   const uiPanelEnd = useMemo(() => scaleHex(uiPanelBase, 0.72), [uiPanelBase]);
+  const uiButtonBase = useMemo(() => (isHexColor(uiButtonColor) ? uiButtonColor : UI_BUTTON_DEFAULT), [uiButtonColor]);
+  const uiButtonHover = useMemo(() => scaleHex(uiButtonBase, 1.08), [uiButtonBase]);
+  const uiInputBase = useMemo(() => (isHexColor(uiInputColor) ? uiInputColor : UI_INPUT_DEFAULT), [uiInputColor]);
 
   return (
     <div
@@ -1221,6 +1270,9 @@ export default function App() {
         ["--panel-end" as any]: uiPanelEnd,
         ["--panel-grad" as any]: uiPanelMid,
         ["--panel-grad-strong" as any]: uiPanelStart,
+        ["--button-bg" as any]: uiButtonBase,
+        ["--button-bg-hover" as any]: uiButtonHover,
+        ["--input-bg" as any]: uiInputBase,
       }}
     >
       <div className="page-tabs ui-zoom" style={{ ["--ui-zoom" as any]: uiZoom }}>
@@ -1455,6 +1507,40 @@ export default function App() {
                             title="Choisir une couleur"
                           />
                           <span className="color-hex">{(isHexColor(uiPanelColor) ? uiPanelColor : UI_PANEL_DEFAULT).toUpperCase()}</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="field">
+                      <label className="label">Couleur des boutons</label>
+                      <div className="settings-row">
+                        <div className="color-cell">
+                          <input
+                            className="color-input"
+                            type="color"
+                            value={isHexColor(uiButtonColor) ? uiButtonColor : UI_BUTTON_DEFAULT}
+                            onChange={(e) => setUiButtonColor(e.target.value)}
+                            aria-label="Couleur des boutons"
+                            title="Choisir une couleur"
+                          />
+                          <span className="color-hex">{(isHexColor(uiButtonColor) ? uiButtonColor : UI_BUTTON_DEFAULT).toUpperCase()}</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="field">
+                      <label className="label">Couleur des champs</label>
+                      <div className="settings-row">
+                        <div className="color-cell">
+                          <input
+                            className="color-input"
+                            type="color"
+                            value={isHexColor(uiInputColor) ? uiInputColor : UI_INPUT_DEFAULT}
+                            onChange={(e) => setUiInputColor(e.target.value)}
+                            aria-label="Couleur des champs"
+                            title="Choisir une couleur"
+                          />
+                          <span className="color-hex">{(isHexColor(uiInputColor) ? uiInputColor : UI_INPUT_DEFAULT).toUpperCase()}</span>
                         </div>
                       </div>
                     </div>
