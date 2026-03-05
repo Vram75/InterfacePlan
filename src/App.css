@@ -2163,3 +2163,173 @@ textarea,
   text-align: left;
   justify-content: flex-start;
 }
+
+/* ======================================================
+   Neutral light redesign (reference-aligned)
+   ====================================================== */
+:root{
+  --text: #2f333b;
+  --muted: #6f737c;
+  --stroke: #d9d9d9;
+  --stroke-strong: #c8c8c8;
+  --panel-grad: #f3f3f3;
+  --panel-grad-strong: #efefef;
+  --shadow-panel: 0 1px 2px rgba(16, 24, 40, 0.06);
+  --shadow-soft: none;
+}
+
+html,
+body,
+.dash-root,
+.dash-body{
+  background: #ececec;
+  color: var(--text);
+}
+
+.dash-root{
+  border: 1px solid #d7d7d7;
+  border-radius: 8px;
+  box-shadow: none;
+}
+
+.dash-topbar{
+  background: #f5f5f5;
+  border-bottom: 1px solid #d9d9d9;
+  box-shadow: none;
+}
+
+.page-tabs{
+  background: transparent;
+  border: 0;
+  box-shadow: none;
+  border-radius: 0;
+  padding: 0;
+  gap: 10px;
+}
+
+.page-tab{
+  min-height: 38px;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  border-radius: 0;
+  color: #4a4f58;
+  font-weight: 600;
+}
+
+.page-tab-icon{ display: none; }
+
+.page-tab-active{
+  background: transparent;
+  color: #2f333b;
+  border-bottom-color: #4f5560;
+  box-shadow: none;
+}
+
+.dash-sidebar,
+.dash-right,
+.card,
+.plan-card,
+.help-card,
+.floating-panel-shell{
+  background: #f3f3f3;
+  color: var(--text);
+  border: 1px solid #d7d7d7;
+  box-shadow: none;
+}
+
+.card-header,
+.plan-card .card-header,
+.floating-panel-header{
+  background: #f0f0f0;
+  color: var(--text);
+  border-bottom: 1px solid #d9d9d9;
+  box-shadow: none;
+}
+
+.nav-title,
+.plan-card .card-title,
+.plan-card .card-subtitle,
+.plan-field-label,
+.mini-switch-label,
+.switch-label,
+.room-panel-muted,
+.details-panel-muted,
+.theme-description,
+.color-hex{
+  color: #646972;
+}
+
+.nav-item,
+.sidebar-page-item,
+.btn,
+button,
+input,
+select,
+.select,
+.input,
+.meta-chip,
+.plan-field-inline,
+.color-cell,
+.sidebar-page-filter,
+.room-panel-search,
+.room-panel-list,
+.plan-toolbar-group-unified,
+.plan-toolbar-group-vertical,
+.sidebar-pages,
+.sidebar-pages-frame{
+  background: #fafafa;
+  color: var(--text);
+  border: 1px solid #d5d5d5;
+  box-shadow: none;
+}
+
+.nav-item-active,
+.sidebar-page-item-active,
+.room-panel-item--active,
+.plan-page-tab-active{
+  background: #e7e7e7;
+  border-color: #c8c8c8;
+  box-shadow: none;
+  color: #2f333b;
+}
+
+.plan-page-tab,
+.plan-card .btn,
+.plan-card .select,
+.plan-card .input,
+.plan-card .plan-field-inline,
+.plan-card .meta-chip,
+.plan-card .room-panel-search,
+.plan-card .room-panel-list{
+  background: #f8f8f8;
+  color: #2f333b;
+  border-color: #d4d4d4;
+}
+
+.plan-card .room-panel-item{ border-bottom-color: #dcdcdc; }
+
+.switch-track,
+.mini-switch-track,
+.plan-card .switch-track,
+.plan-card .mini-switch-track{
+  background: #e2e2e2;
+  border: 1px solid #c9c9c9;
+}
+
+.switch-track::after,
+.mini-switch-track::after{
+  background: #ffffff;
+}
+
+.switch input:checked + .switch-track,
+.mini-switch input:checked + .mini-switch-track{
+  background: #bfc4cb;
+  border-color: #a5abb3;
+}
+
+.plan-viewport,
+.plan-stage{
+  background: #ffffff;
+  border: 1px solid #d7d7d7;
+  box-shadow: none;
+}

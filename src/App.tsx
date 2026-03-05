@@ -28,15 +28,15 @@ const UI_ZOOM_MIN = 0.7;
 const UI_ZOOM_MAX = 1.1;
 const UI_ZOOM_DEFAULT = 0.75;
 const UI_ACCENT_KEY = "iface.uiAccent";
-const UI_ACCENT_DEFAULT = "#4c86d8";
+const UI_ACCENT_DEFAULT = "#5b616d";
 const UI_PANEL_KEY = "iface.uiPanelColor";
-const UI_PANEL_DEFAULT = "#2a3548";
+const UI_PANEL_DEFAULT = "#f3f3f3";
 const UI_BACKGROUND_KEY = "iface.uiBackgroundColor";
-const UI_BACKGROUND_DEFAULT = "#1c2434";
+const UI_BACKGROUND_DEFAULT = "#ececec";
 const UI_BUTTON_KEY = "iface.uiButtonColor";
-const UI_BUTTON_DEFAULT = "#2b3547";
+const UI_BUTTON_DEFAULT = "#f6f6f6";
 const UI_INPUT_KEY = "iface.uiInputColor";
-const UI_INPUT_DEFAULT = "#273143";
+const UI_INPUT_DEFAULT = "#ffffff";
 const UI_THEME_KEY = "iface.uiThemePreset";
 
 type UiThemePreset = {
@@ -52,15 +52,15 @@ const UI_THEME_PRESETS: UiThemePreset[] = [
     id: "classic-blue",
     label: "Classique bleu",
     description: "Fond bleu nuit et panneaux ardoise.",
-    background: "#1c2434",
-    panel: "#2a3548",
+    background: "#ececec",
+    panel: "#f3f3f3",
   },
   {
     id: "pagetabs-neutral",
     label: "PageTabs neutre",
     description: "Fond gris neutre et panneaux graphite.",
-    background: "#2a2f38",
-    panel: "#3b4350",
+    background: "#e7e7e7",
+    panel: "#f0f0f0",
   },
 ];
 
