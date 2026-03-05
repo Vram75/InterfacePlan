@@ -1882,6 +1882,28 @@ html, body{
     inset 0 -0.5px 0 rgba(0,0,0,0.15);
 }
 
+.dash-sidebar-right,
+.dash-sidebar-right .nav-title,
+.dash-sidebar-right .mini-switch-text,
+.dash-sidebar-right .mini-switch-label,
+.dash-sidebar-right .plan-field-label,
+.dash-sidebar-right .poly-tooltip,
+.dash-sidebar-right .poly-tooltip-label,
+.dash-sidebar-right .poly-tooltip-title,
+.dash-sidebar-right .poly-tooltip-value,
+.dash-sidebar-right .btn,
+.dash-sidebar-right button,
+.dash-sidebar-right input,
+.dash-sidebar-right select,
+.dash-sidebar-right .select,
+.dash-sidebar-right option{
+  color: #000;
+}
+
+.dash-sidebar-right input::placeholder{
+  color: rgba(0,0,0,0.6);
+}
+
 .dash-sidebar-right .btn:hover,
 .dash-sidebar-right button:hover,
 .dash-sidebar-right input:hover,
