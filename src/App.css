@@ -2355,3 +2355,74 @@ select,
   border: 1px solid #d7d7d7;
   box-shadow: none;
 }
+
+/* Final readability pass for light theme */
+.plan-card,
+.plan-card .card-title,
+.plan-card .card-subtitle,
+.plan-card .meta-chip,
+.plan-card .plan-field-label,
+.plan-card .switch-label,
+.plan-card .mini-switch-label,
+.plan-card .mini-switch-text,
+.plan-card .room-panel-title,
+.plan-card .room-panel-count,
+.plan-card .room-panel-item-number,
+.plan-card .room-panel-item-desc,
+.plan-card .details-panel-title,
+.plan-card .details-panel-number,
+.plan-card .details-panel-section-title,
+.plan-card .details-panel-muted,
+.plan-card .label,
+.plan-card .hint,
+.plan-card .poly-tooltip,
+.plan-card .poly-tooltip-title,
+.plan-card .poly-tooltip-label,
+.plan-card .poly-tooltip-value,
+.plan-card .poly-tooltip-number{
+  color: #2f333b;
+}
+
+.plan-card .room-panel-meta,
+.plan-card .room-panel-muted,
+.plan-card .plan-page-tab-count,
+.plan-card .sidebar-pages-hint,
+.plan-card .sidebar-empty{
+  color: #646972;
+}
+
+.plan-card .sidebar-pages,
+.plan-card .sidebar-pages-frame,
+.plan-card .sidebar-page-item,
+.plan-card .sidebar-page-filter,
+.plan-card .plan-toolbar-group-unified,
+.plan-card .plan-toolbar-group-vertical,
+.plan-card .plan-subbar-field,
+.plan-card .plan-controls-raw .poly-tooltip,
+.plan-card .input,
+.plan-card input,
+.plan-card .select,
+.plan-card select,
+.plan-card .btn,
+.plan-card button{
+  background: #f8f8f8;
+  color: #2f333b;
+  border-color: #d4d4d4;
+}
+
+.plan-card .sidebar-page-num,
+.plan-card .sidebar-page-badge{
+  color: #2f333b;
+}
+
+.plan-card .sidebar-page-dot{
+  background: #8b949f;
+  box-shadow: 0 0 0 1px #d0d4d9;
+}
+
+.plan-card .input::placeholder,
+.plan-card input::placeholder,
+.plan-card .room-panel-search::placeholder,
+.plan-card .sidebar-page-filter::placeholder{
+  color: #8a8f97;
+}
