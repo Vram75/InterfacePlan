@@ -996,6 +996,18 @@ body{
   width: 100%;
 }
 
+.floating-sidebar-panel-tools .plan-draw-actions .btn{
+  background: #f8f8f8;
+  color: #2f333b;
+  border-color: #d4d4d4;
+  box-shadow: none;
+}
+
+.floating-sidebar-panel-tools .plan-draw-actions .btn:hover{
+  background: #fcfcfc;
+  border-color: #c8c8c8;
+}
+
 .plan-lock-btn{
   min-width: 100px;
 }
