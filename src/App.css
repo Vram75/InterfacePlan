@@ -2395,19 +2395,29 @@ select,
 .plan-card .sidebar-pages-frame,
 .plan-card .sidebar-page-item,
 .plan-card .sidebar-page-filter,
+.floating-sidebar-panel-tools .sidebar-page-filter,
 .plan-card .plan-toolbar-group-unified,
 .plan-card .plan-toolbar-group-vertical,
+.floating-sidebar-panel-tools .plan-toolbar-group-unified,
+.floating-sidebar-panel-tools .plan-toolbar-group-vertical,
 .plan-card .plan-subbar-field,
 .plan-card .plan-controls-raw .poly-tooltip,
+.floating-sidebar-panel-tools .plan-field-inline,
 .plan-card .input,
 .plan-card input,
 .plan-card .select,
 .plan-card select,
+.floating-sidebar-panel-tools .select,
+.floating-sidebar-panel-tools select,
 .plan-card .btn,
 .plan-card button{
   background: #f8f8f8;
   color: #2f333b;
   border-color: #d4d4d4;
+}
+
+.floating-sidebar-panel-tools .sidebar-page-filter::placeholder{
+  color: #8a8f97;
 }
 
 .plan-card .sidebar-page-num,
