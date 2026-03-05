@@ -2436,3 +2436,32 @@ select,
 .plan-card .sidebar-page-filter::placeholder{
   color: #8a8f97;
 }
+
+/* Light theme fixes (buttons/help-card readability) */
+.nav-item.active,
+.nav-item-active,
+.sidebar-page-item-active,
+.room-panel-item--active,
+.plan-page-tab-active,
+.plan-card .btn-primary,
+.crop-modal-btn-primary{
+  background: #e7e7e7;
+  color: #2f333b;
+  border-color: #c8c8c8;
+}
+
+.switch.on .switch-track,
+.mini-switch.on .mini-switch-track,
+.switch input:checked + .switch-track,
+.mini-switch input:checked + .mini-switch-track{
+  background: #bfc4cb;
+  border-color: #a5abb3;
+}
+
+.help-card .help-title{
+  color: #2f333b;
+}
+
+.help-card .help-text{
+  color: #646972;
+}
