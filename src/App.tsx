@@ -27,42 +27,11 @@ const UI_ZOOM_KEY = "iface.uiZoom";
 const UI_ZOOM_MIN = 0.7;
 const UI_ZOOM_MAX = 1.1;
 const UI_ZOOM_DEFAULT = 0.75;
-const UI_ACCENT_KEY = "iface.uiAccent";
 const UI_ACCENT_DEFAULT = "#5b616d";
-const UI_PANEL_KEY = "iface.uiPanelColor";
 const UI_PANEL_DEFAULT = "#f3f3f3";
-const UI_BACKGROUND_KEY = "iface.uiBackgroundColor";
 const UI_BACKGROUND_DEFAULT = "#ececec";
-const UI_BUTTON_KEY = "iface.uiButtonColor";
 const UI_BUTTON_DEFAULT = "#f6f6f6";
-const UI_INPUT_KEY = "iface.uiInputColor";
 const UI_INPUT_DEFAULT = "#ffffff";
-const UI_THEME_KEY = "iface.uiThemePreset";
-
-type UiThemePreset = {
-  id: string;
-  label: string;
-  description: string;
-  background: string;
-  panel: string;
-};
-
-const UI_THEME_PRESETS: UiThemePreset[] = [
-  {
-    id: "classic-blue",
-    label: "Classique bleu",
-    description: "Fond bleu nuit et panneaux ardoise.",
-    background: "#ececec",
-    panel: "#f3f3f3",
-  },
-  {
-    id: "pagetabs-neutral",
-    label: "PageTabs neutre",
-    description: "Fond gris neutre et panneaux graphite.",
-    background: "#e7e7e7",
-    panel: "#f0f0f0",
-  },
-];
 
 type PageView = "dashboard" | "plans" | "settings";
 type ServiceEntry = ServiceColor & { uid: string };
@@ -173,106 +142,6 @@ function rgbaFromHex(hex: string, alpha: number, fallback: string) {
   const b = parseInt(hex.slice(5, 7), 16);
   const safeAlpha = Math.min(1, Math.max(0, alpha));
   return `rgba(${r}, ${g}, ${b}, ${safeAlpha})`;
-}
-
-function readUiAccent(): string {
-  try {
-    const v = localStorage.getItem(UI_ACCENT_KEY);
-    if (!v) return UI_ACCENT_DEFAULT;
-    return isHexColor(v) ? v : UI_ACCENT_DEFAULT;
-  } catch {
-    return UI_ACCENT_DEFAULT;
-  }
-}
-
-function writeUiAccent(v: string) {
-  try {
-    localStorage.setItem(UI_ACCENT_KEY, isHexColor(v) ? v : UI_ACCENT_DEFAULT);
-  } catch {}
-}
-
-function readUiPanelColor(): string {
-  try {
-    const v = localStorage.getItem(UI_PANEL_KEY);
-    if (!v) return UI_PANEL_DEFAULT;
-    return isHexColor(v) ? v : UI_PANEL_DEFAULT;
-  } catch {
-    return UI_PANEL_DEFAULT;
-  }
-}
-
-function writeUiPanelColor(v: string) {
-  try {
-    localStorage.setItem(UI_PANEL_KEY, isHexColor(v) ? v : UI_PANEL_DEFAULT);
-  } catch {}
-}
-
-function readUiBackgroundColor(): string {
-  try {
-    const v = localStorage.getItem(UI_BACKGROUND_KEY);
-    if (!v) return UI_BACKGROUND_DEFAULT;
-    return isHexColor(v) ? v : UI_BACKGROUND_DEFAULT;
-  } catch {
-    return UI_BACKGROUND_DEFAULT;
-  }
-}
-
-function readUiButtonColor(): string {
-  try {
-    const v = localStorage.getItem(UI_BUTTON_KEY);
-    if (!v) return UI_BUTTON_DEFAULT;
-    return isHexColor(v) ? v : UI_BUTTON_DEFAULT;
-  } catch {
-    return UI_BUTTON_DEFAULT;
-  }
-}
-
-function writeUiButtonColor(v: string) {
-  try {
-    localStorage.setItem(UI_BUTTON_KEY, isHexColor(v) ? v : UI_BUTTON_DEFAULT);
-  } catch {}
-}
-
-function readUiInputColor(): string {
-  try {
-    const v = localStorage.getItem(UI_INPUT_KEY);
-    if (!v) return UI_INPUT_DEFAULT;
-    return isHexColor(v) ? v : UI_INPUT_DEFAULT;
-  } catch {
-    return UI_INPUT_DEFAULT;
-  }
-}
-
-function writeUiInputColor(v: string) {
-  try {
-    localStorage.setItem(UI_INPUT_KEY, isHexColor(v) ? v : UI_INPUT_DEFAULT);
-  } catch {}
-}
-
-function writeUiBackgroundColor(v: string) {
-  try {
-    localStorage.setItem(UI_BACKGROUND_KEY, isHexColor(v) ? v : UI_BACKGROUND_DEFAULT);
-  } catch {}
-}
-
-function getUiThemePreset(id: string): UiThemePreset | null {
-  return UI_THEME_PRESETS.find((preset) => preset.id === id) ?? null;
-}
-
-function readUiThemePresetId(): string {
-  try {
-    const v = localStorage.getItem(UI_THEME_KEY);
-    if (!v) return UI_THEME_PRESETS[0].id;
-    return getUiThemePreset(v)?.id ?? UI_THEME_PRESETS[0].id;
-  } catch {
-    return UI_THEME_PRESETS[0].id;
-  }
-}
-
-function writeUiThemePresetId(v: string) {
-  try {
-    localStorage.setItem(UI_THEME_KEY, getUiThemePreset(v)?.id ?? UI_THEME_PRESETS[0].id);
-  } catch {}
 }
 
 function clampScale(next: number) {
@@ -592,7 +461,6 @@ function parsePageFilter(input: string, pageCount: number): number[] | null {
 // --------------------
 
 export default function App() {
-  const initialUiThemePresetId = readUiThemePresetId();
   const [pageView, setPageView] = useState<PageView>("dashboard");
 
   const [rooms, setRooms] = useState<Room[]>([]);
@@ -638,49 +506,11 @@ export default function App() {
   const [snapUi, setSnapUi] = useState<boolean>(() => readSnapFromStorage());
   const [gridEnabled, setGridEnabled] = useState<boolean>(() => readGridEnabled());
   const [gridSizePx, setGridSizePx] = useState<number>(() => readGridSizePx());
-  const [uiThemePresetId, setUiThemePresetId] = useState<string>(() => initialUiThemePresetId);
   const [uiZoom, setUiZoom] = useState<number>(() => readUiZoom());
-  const [uiAccent, setUiAccent] = useState<string>(() => readUiAccent());
-  const [uiPanelColor, setUiPanelColor] = useState<string>(() => readUiPanelColor());
-  const [uiBackgroundColor, setUiBackgroundColor] = useState<string>(() => readUiBackgroundColor());
-  const [uiButtonColor, setUiButtonColor] = useState<string>(() => readUiButtonColor());
-  const [uiInputColor, setUiInputColor] = useState<string>(() => readUiInputColor());
 
   useEffect(() => {
     writeUiZoom(uiZoom);
   }, [uiZoom]);
-
-  useEffect(() => {
-    writeUiAccent(uiAccent);
-  }, [uiAccent]);
-
-  useEffect(() => {
-    writeUiPanelColor(uiPanelColor);
-  }, [uiPanelColor]);
-
-  useEffect(() => {
-    writeUiBackgroundColor(uiBackgroundColor);
-  }, [uiBackgroundColor]);
-
-  useEffect(() => {
-    writeUiButtonColor(uiButtonColor);
-  }, [uiButtonColor]);
-
-  useEffect(() => {
-    writeUiInputColor(uiInputColor);
-  }, [uiInputColor]);
-
-  useEffect(() => {
-    writeUiThemePresetId(uiThemePresetId);
-  }, [uiThemePresetId]);
-
-  function applyUiThemePreset(nextId: string) {
-    const preset = getUiThemePreset(nextId);
-    if (!preset) return;
-    setUiThemePresetId(preset.id);
-    setUiBackgroundColor(preset.background);
-    setUiPanelColor(preset.panel);
-  }
 
   const [overlayRequest, setOverlayRequest] = useState<OverlayRequest>({ kind: "none" });
 
@@ -1238,12 +1068,9 @@ export default function App() {
   const canDeletePolygon = adminMode && !!selectedRoomId && roomHasPolygonOnPage(selectedRoom as any, currentPage) && !selectedLocked;
   const overlayReady = isValidSize(size.w) && isValidSize(size.h);
 
-  const uiAccentDark = useMemo(() => scaleHex(uiAccent, 0.65), [uiAccent]);
-  const uiBackgroundBase = useMemo(
-    () => (isHexColor(uiBackgroundColor) ? uiBackgroundColor : UI_BACKGROUND_DEFAULT),
-    [uiBackgroundColor],
-  );
-  const uiPanelBase = useMemo(() => (isHexColor(uiPanelColor) ? uiPanelColor : UI_PANEL_DEFAULT), [uiPanelColor]);
+  const uiAccentDark = useMemo(() => scaleHex(UI_ACCENT_DEFAULT, 0.65), []);
+  const uiBackgroundBase = UI_BACKGROUND_DEFAULT;
+  const uiPanelBase = UI_PANEL_DEFAULT;
   const uiPanelSoft = useMemo(() => rgbaFromHex(uiPanelBase, 0.72, "rgba(42,53,72,0.72)"), [uiPanelBase]);
   const uiPanelStrong = useMemo(() => rgbaFromHex(uiPanelBase, 0.9, "rgba(42,53,72,0.9)"), [uiPanelBase]);
   const uiBgStart = useMemo(() => scaleHex(uiBackgroundBase, 1.15), [uiBackgroundBase]);
@@ -1252,15 +1079,15 @@ export default function App() {
   const uiPanelStart = useMemo(() => scaleHex(uiPanelBase, 1.12), [uiPanelBase]);
   const uiPanelMid = useMemo(() => uiPanelBase, [uiPanelBase]);
   const uiPanelEnd = useMemo(() => scaleHex(uiPanelBase, 0.72), [uiPanelBase]);
-  const uiButtonBase = useMemo(() => (isHexColor(uiButtonColor) ? uiButtonColor : UI_BUTTON_DEFAULT), [uiButtonColor]);
+  const uiButtonBase = UI_BUTTON_DEFAULT;
   const uiButtonHover = useMemo(() => scaleHex(uiButtonBase, 1.08), [uiButtonBase]);
-  const uiInputBase = useMemo(() => (isHexColor(uiInputColor) ? uiInputColor : UI_INPUT_DEFAULT), [uiInputColor]);
+  const uiInputBase = UI_INPUT_DEFAULT;
 
   return (
     <div
       className="dash-root"
       style={{
-        ["--accent" as any]: uiAccent,
+        ["--accent" as any]: UI_ACCENT_DEFAULT,
         ["--accent-2" as any]: uiAccentDark,
         ["--panel" as any]: uiPanelSoft,
         ["--panel-strong" as any]: uiPanelStrong,
@@ -1468,109 +1295,6 @@ export default function App() {
                   </div>
 
                   <div className="card-content">
-                    <div className="field">
-                      <label className="label">Thème UI</label>
-                      <div className="settings-row settings-theme-row">
-                        <select
-                          className="select"
-                          value={uiThemePresetId}
-                          onChange={(e) => applyUiThemePreset(e.target.value)}
-                        >
-                          {UI_THEME_PRESETS.map((preset) => (
-                            <option key={preset.id} value={preset.id}>
-                              {preset.label}
-                            </option>
-                          ))}
-                        </select>
-                        <span className="theme-description">{getUiThemePreset(uiThemePresetId)?.description}</span>
-                      </div>
-                    </div>
-
-                    <div className="field">
-                      <label className="label">Couleur de l’interface</label>
-                      <div className="settings-row">
-                        <div className="color-cell">
-                          <input
-                            className="color-input"
-                            type="color"
-                            value={isHexColor(uiAccent) ? uiAccent : UI_ACCENT_DEFAULT}
-                            onChange={(e) => setUiAccent(e.target.value)}
-                            aria-label="Couleur de l’interface"
-                            title="Choisir une couleur"
-                          />
-                          <span className="color-hex">{(isHexColor(uiAccent) ? uiAccent : UI_ACCENT_DEFAULT).toUpperCase()}</span>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="field">
-                      <label className="label">Couleur de fond</label>
-                      <div className="settings-row">
-                        <div className="color-cell">
-                          <input
-                            className="color-input"
-                            type="color"
-                            value={isHexColor(uiBackgroundColor) ? uiBackgroundColor : UI_BACKGROUND_DEFAULT}
-                            onChange={(e) => setUiBackgroundColor(e.target.value)}
-                            aria-label="Couleur de fond"
-                            title="Choisir une couleur"
-                          />
-                          <span className="color-hex">{(isHexColor(uiBackgroundColor) ? uiBackgroundColor : UI_BACKGROUND_DEFAULT).toUpperCase()}</span>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="field">
-                      <label className="label">Couleur des panneaux</label>
-                      <div className="settings-row">
-                        <div className="color-cell">
-                          <input
-                            className="color-input"
-                            type="color"
-                            value={isHexColor(uiPanelColor) ? uiPanelColor : UI_PANEL_DEFAULT}
-                            onChange={(e) => setUiPanelColor(e.target.value)}
-                            aria-label="Couleur des panneaux"
-                            title="Choisir une couleur"
-                          />
-                          <span className="color-hex">{(isHexColor(uiPanelColor) ? uiPanelColor : UI_PANEL_DEFAULT).toUpperCase()}</span>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="field">
-                      <label className="label">Couleur des boutons</label>
-                      <div className="settings-row">
-                        <div className="color-cell">
-                          <input
-                            className="color-input"
-                            type="color"
-                            value={isHexColor(uiButtonColor) ? uiButtonColor : UI_BUTTON_DEFAULT}
-                            onChange={(e) => setUiButtonColor(e.target.value)}
-                            aria-label="Couleur des boutons"
-                            title="Choisir une couleur"
-                          />
-                          <span className="color-hex">{(isHexColor(uiButtonColor) ? uiButtonColor : UI_BUTTON_DEFAULT).toUpperCase()}</span>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="field">
-                      <label className="label">Couleur des champs</label>
-                      <div className="settings-row">
-                        <div className="color-cell">
-                          <input
-                            className="color-input"
-                            type="color"
-                            value={isHexColor(uiInputColor) ? uiInputColor : UI_INPUT_DEFAULT}
-                            onChange={(e) => setUiInputColor(e.target.value)}
-                            aria-label="Couleur des champs"
-                            title="Choisir une couleur"
-                          />
-                          <span className="color-hex">{(isHexColor(uiInputColor) ? uiInputColor : UI_INPUT_DEFAULT).toUpperCase()}</span>
-                        </div>
-                      </div>
-                    </div>
-
                     <div className="field">
                       <label className="label">Espace UI</label>
                       <div className="settings-row">
