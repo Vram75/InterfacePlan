@@ -1331,13 +1331,13 @@ export default function App() {
               <div className="card-content plan-content">
                 <div className="plan-top-switches" aria-label="Options plan">
                   <div className="plan-top-switches-inner">
-                    <label className="switch switch-compact switch-vivid switch-vivid-emerald" title="Afficher/masquer la grille">
+                    <label className="mini-switch mini-switch-vivid mini-switch-vivid-emerald" title="Afficher/masquer la grille">
                       <input type="checkbox" checked={gridEnabled} onChange={toggleGridFromButton} />
                       <span className="mini-switch-track" />
                       <span className="mini-switch-label">Grille</span>
                     </label>
 
-                    <label className="switch switch-compact switch-vivid switch-vivid-aurora" title="Snap (S)">
+                    <label className="mini-switch mini-switch-vivid mini-switch-vivid-aurora" title="Snap (S)">
                       <input type="checkbox" checked={snapUi} onChange={toggleSnapFromButton} />
                       <span className="mini-switch-track" />
                       <span className="mini-switch-label">Snap</span>
@@ -1357,7 +1357,7 @@ export default function App() {
                       }}
                     />
 
-                    <label className="switch switch-compact switch-vivid switch-vivid-magenta" title="Activer/désactiver l’édition">
+                    <label className="mini-switch mini-switch-vivid mini-switch-vivid-magenta" title="Activer/désactiver l’édition">
                       <input
                         type="checkbox"
                         checked={adminMode}
@@ -1402,7 +1402,7 @@ export default function App() {
                   )}
 
                   <div className="plan-page-tabs-actions">
-                    <label className="switch switch-compact switch-vivid switch-vivid-aurora plan-polys-only-switch plan-polys-only-switch-plain plan-polys-only-switch-tabs" title="N’afficher que les pages qui ont des polygones">
+                    <label className="mini-switch mini-switch-vivid mini-switch-vivid-aurora plan-polys-only-switch plan-polys-only-switch-plain plan-polys-only-switch-tabs" title="N’afficher que les pages qui ont des polygones">
                       <input type="checkbox" checked={onlyWithPolys} onChange={(e) => setOnlyWithPolys(e.target.checked)} />
                       <span className="mini-switch-track" />
                       <span className="mini-switch-label">Pages avec polygones</span>
