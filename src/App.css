@@ -758,6 +758,22 @@ body{
   overflow: hidden;
 }
 
+.plan-top-switches{
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  min-height: 38px;
+  padding: 2px 2px 0;
+}
+
+.plan-top-switches-inner{
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-left: auto;
+}
+
 .plan-stack{
   height: 100%;
   display: flex;

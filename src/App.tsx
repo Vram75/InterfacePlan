@@ -1329,6 +1329,50 @@ export default function App() {
           <main className="dash-main">
             <div className="card plan-card">
               <div className="card-content plan-content">
+                <div className="plan-top-switches" aria-label="Options plan">
+                  <div className="plan-top-switches-inner">
+                    <label className="switch switch-compact switch-vivid switch-vivid-emerald" title="Afficher/masquer la grille">
+                      <input type="checkbox" checked={gridEnabled} onChange={toggleGridFromButton} />
+                      <span className="mini-switch-track" />
+                      <span className="mini-switch-label">Grille</span>
+                    </label>
+
+                    <label className="switch switch-compact switch-vivid switch-vivid-aurora" title="Snap (S)">
+                      <input type="checkbox" checked={snapUi} onChange={toggleSnapFromButton} />
+                      <span className="mini-switch-track" />
+                      <span className="mini-switch-label">Snap</span>
+                    </label>
+
+                    <input
+                      className="select plan-number plan-number-compact"
+                      type="number"
+                      min={4}
+                      max={200}
+                      step={1}
+                      value={gridSizePx}
+                      onChange={(e) => {
+                        const n = Math.min(200, Math.max(4, Math.round(Number(e.target.value) || 0)));
+                        setGridSizePx(n);
+                        writeGridSizePx(n);
+                      }}
+                    />
+
+                    <label className="switch switch-compact switch-vivid switch-vivid-magenta" title="Activer/désactiver l’édition">
+                      <input
+                        type="checkbox"
+                        checked={adminMode}
+                        onChange={(e) => {
+                          setAdminMode(e.target.checked);
+                          setDrawingRoomId(null);
+                          setDrawSessionId((x) => x + 1);
+                        }}
+                      />
+                      <span className="mini-switch-track" />
+                      <span className="mini-switch-label">Admin</span>
+                    </label>
+                  </div>
+                </div>
+
                 <div className="plan-page-tabs" role="tablist" aria-label="Pages du PDF">
                   {pdfPageTabs.map(({ pageIndex, hasPolygon, polygonCount }) => {
                     const active = pageIndex === currentPage;
@@ -1453,36 +1497,6 @@ export default function App() {
                     </div>
                   </div>
 
-                  <div className="plan-grid-controls">
-                    <div className="plan-grid-frame" title="Taille de grille (px)">
-                      <div className="plan-grid-row">
-                        <label className="switch switch-compact switch-vivid switch-vivid-emerald plan-field-label" title="Afficher/masquer la grille">
-                          <input type="checkbox" checked={gridEnabled} onChange={toggleGridFromButton} />
-                          <span className="mini-switch-track" />
-                          <span className="mini-switch-label">Grille</span>
-                        </label>
-                        <label className="switch switch-compact switch-vivid switch-vivid-aurora plan-grid-snap" title="Snap (S)">
-                          <input type="checkbox" checked={snapUi} onChange={toggleSnapFromButton} />
-                          <span className="mini-switch-track" />
-                          <span className="mini-switch-label">Snap</span>
-                        </label>
-                        <input
-                          className="select plan-number plan-number-compact"
-                          type="number"
-                          min={4}
-                          max={200}
-                          step={1}
-                          value={gridSizePx}
-                          onChange={(e) => {
-                            const n = Math.min(200, Math.max(4, Math.round(Number(e.target.value) || 0)));
-                            setGridSizePx(n);
-                            writeGridSizePx(n);
-                          }}
-                        />
-                      </div>
-                    </div>
-                  </div>
-
                 </div>
 
                 <div className="plan-toolbar-group plan-toolbar-group-vertical">
@@ -1506,20 +1520,6 @@ export default function App() {
                       </div>
                     </div>
                   </div>
-
-                  <label className="switch switch-compact switch-vivid switch-vivid-magenta" title="Activer/désactiver l’édition">
-                    <input
-                      type="checkbox"
-                      checked={adminMode}
-                      onChange={(e) => {
-                        setAdminMode(e.target.checked);
-                        setDrawingRoomId(null);
-                        setDrawSessionId((x) => x + 1);
-                      }}
-                    />
-                    <span className="mini-switch-track" />
-                    <span className="mini-switch-label">Admin</span>
-                  </label>
                 </div>
 
                 {adminMode && (
