@@ -668,6 +668,7 @@ body{
   display: flex;
   align-items: center;
   gap: 6px;
+  min-height: 38px;
   padding: 2px 2px 0;
   overflow-x: auto;
   scrollbar-width: none;
@@ -680,6 +681,17 @@ body{
   display: inline-flex;
   align-items: center;
   padding-left: 10px;
+}
+
+
+.plan-page-tabs-empty{
+  display: inline-flex;
+  align-items: center;
+  padding: 0 10px;
+  min-height: 30px;
+  font-size: 12px;
+  color: rgba(226,232,240,0.75);
+  white-space: nowrap;
 }
 
 .plan-page-tabs::-webkit-scrollbar{
