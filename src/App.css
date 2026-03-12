@@ -2519,3 +2519,56 @@ select,
 .help-card .help-text{
   color: #646972;
 }
+
+/* Keep plan header toggles truly mini and without dark framed containers */
+.plan-top-switches .mini-switch{
+  gap: 6px;
+  padding: 0;
+  margin-bottom: 0;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+  border-radius: 0;
+}
+
+.plan-top-switches .mini-switch-track{
+  width: 30px;
+  height: 16px;
+}
+
+.plan-top-switches .mini-switch-track::after{
+  width: 12px;
+  height: 12px;
+}
+
+.plan-top-switches .mini-switch input:checked + .mini-switch-track{
+  background: rgba(250,153,29,0.93);
+  border-color: rgba(255,255,255,0.45);
+}
+
+.plan-top-switches .mini-switch input:checked + .mini-switch-track::after{
+  transform: translateX(14px);
+  background: rgba(255,255,255,0.98);
+}
+
+
+/* Keep "Pages avec polygones" toggle in true mini style too */
+.plan-polys-only-switch-tabs .mini-switch-track{
+  width: 30px;
+  height: 16px;
+}
+
+.plan-polys-only-switch-tabs .mini-switch-track::after{
+  width: 12px;
+  height: 12px;
+}
+
+.plan-polys-only-switch-tabs input:checked + .mini-switch-track{
+  background: rgba(250,153,29,0.93);
+  border-color: rgba(255,255,255,0.45);
+}
+
+.plan-polys-only-switch-tabs input:checked + .mini-switch-track::after{
+  transform: translateX(14px);
+  background: rgba(255,255,255,0.98);
+}
