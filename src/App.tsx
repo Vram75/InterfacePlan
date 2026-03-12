@@ -644,6 +644,23 @@ export default function App() {
     setDrawSessionId((x) => x + 1);
   }
 
+  function openRoomFromSearch(roomId: string) {
+    const room = rooms.find((r) => r.id === roomId);
+    const pages = room ? roomPagesWithPolygons(room as any) : [];
+
+    const roomPage =
+      pages[0] ??
+      (room ? parsePageIndex((room as any).page ?? (room as any).pageIndex) : undefined);
+
+    if (typeof roomPage === "number") {
+      goToPageIndex(roomPage);
+    }
+
+    setSelectedRoomId(roomId);
+    setDetailsRoomId(roomId);
+    setIsDetailsPanelOpen(true);
+  }
+
   function goPrevPage() {
     goToPageIndex(currentPage - 1);
   }
@@ -1613,9 +1630,7 @@ export default function App() {
                       setSelectedRoomId(roomId);
                     }}
                     onOpenDetails={(roomId) => {
-                      setSelectedRoomId(roomId);
-                      setDetailsRoomId(roomId);
-                      setIsDetailsPanelOpen(true);
+                      openRoomFromSearch(roomId);
                     }}
                   />
                 </div>
