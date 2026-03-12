@@ -1351,11 +1351,17 @@ export default function App() {
                     );
                   })}
 
+                  {pdfPageTabs.length === 0 && (
+                    <div className="plan-page-tabs-empty" role="status" aria-live="polite">
+                      Aucune page avec polygone.
+                    </div>
+                  )}
+
                   <div className="plan-page-tabs-actions">
-                    <label className="mini-switch mini-switch-vivid mini-switch-vivid-amber plan-polys-only-switch plan-polys-only-switch-plain plan-polys-only-switch-tabs" title="N’afficher que les pages qui ont des polygones">
+                    <label className="switch switch-compact switch-vivid switch-vivid-aurora plan-polys-only-switch plan-polys-only-switch-plain plan-polys-only-switch-tabs" title="N’afficher que les pages qui ont des polygones">
                       <input type="checkbox" checked={onlyWithPolys} onChange={(e) => setOnlyWithPolys(e.target.checked)} />
                       <span className="mini-switch-track" />
-                      <span className="mini-switch-text">Pages avec polygones</span>
+                      <span className="mini-switch-label">Pages avec polygones</span>
                     </label>
                   </div>
                 </div>
