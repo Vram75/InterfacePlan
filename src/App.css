@@ -674,6 +674,14 @@ body{
   -ms-overflow-style: none;
 }
 
+.plan-page-tabs-actions{
+  margin-left: auto;
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  padding-left: 10px;
+}
+
 .plan-page-tabs::-webkit-scrollbar{
   width: 0;
   height: 0;
@@ -955,6 +963,12 @@ body{
   background: transparent;
   border-radius: 0;
   box-shadow: none;
+}
+
+.plan-polys-only-switch-tabs{
+  width: auto;
+  justify-content: flex-end;
+  white-space: nowrap;
 }
 
 .sidebar-pages-frame .plan-polys-only-switch-plain{
